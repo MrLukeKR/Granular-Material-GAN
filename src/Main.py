@@ -1,0 +1,5 @@
+print("   Optimal Material Generator using Generative Adversarial Networks   ")
+print("                    Developed by Luke K Rose (BSc)                    ")
+print("In fulfilment of Doctor of Engineering at the University of Nottingham")
+print("----------------------------------------------------------------------")
+print()
