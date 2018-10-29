@@ -33,10 +33,13 @@ else:
     print("\t\tCUDA processing is unavailable!")
     print("\t\t\tEnabled device 'CPU'")
 
+# Do image loading and preprocesing
+directory = "/run/media/***REMOVED***/***REMOVED***/InputData/Brian Atkinson - Mustafa - Asphalt Cores/18-1415/"
+myCollection = ImageUtils.ImageCollection()
+myCollection.loadImagesFromDirectory(directory)
+myCollection.segmentImages()
+
+# Initialise GAN
 print("Initialising Generator Adversarial Network")
 discriminator = DCGANDiscriminator(parallelProcessing)
 generator = DCGANGenerator(parallelProcessing)
-
-directory = "/run/media/***REMOVED***/***REMOVED***/Brian Atkinson - Mustafa - Asphalt Cores/18-1415/"
-myCollection = ImageUtils.ImageCollection()
-myCollection.loadImagesFromDirectory(directory)

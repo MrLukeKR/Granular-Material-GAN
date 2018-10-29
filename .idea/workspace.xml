@@ -2,10 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="9fa2450b-a732-4310-af39-bab7196115b0" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/Porous-Material-GAN.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/Porous-Material-GAN.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DCGAN/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/DCGAN/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ImageUtils/ImageCollection.py" beforeDir="false" afterPath="$PROJECT_DIR$/ImageUtils/ImageCollection.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Main.py" beforeDir="false" afterPath="$PROJECT_DIR$/Main.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -55,32 +53,33 @@
           <entry key="project.open.time.11" value="1" />
           <entry key="project.open.time.25" value="1" />
           <entry key="project.open.time.3" value="1" />
+          <entry key="project.open.time.31" value="1" />
           <entry key="project.open.time.61" value="1" />
-          <entry key="project.opened" value="4" />
+          <entry key="project.opened" value="5" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.extensions.edit">
         <counts>
-          <entry key="dummy" value="7" />
-          <entry key="py" value="3211" />
+          <entry key="dummy" value="20" />
+          <entry key="py" value="5061" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.edit">
         <counts>
-          <entry key="PLAIN_TEXT" value="7" />
-          <entry key="Python" value="3211" />
+          <entry key="PLAIN_TEXT" value="20" />
+          <entry key="Python" value="5061" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.extensions.open">
         <counts>
           <entry key="gitignore" value="1" />
-          <entry key="py" value="6" />
+          <entry key="py" value="7" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.open">
         <counts>
           <entry key="PLAIN_TEXT" value="1" />
-          <entry key="Python" value="6" />
+          <entry key="Python" value="7" />
         </counts>
       </usages-collector>
     </session>
@@ -120,8 +119,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/Main.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="400">
-              <caret line="36" column="54" selection-start-line="36" selection-start-column="54" selection-end-line="36" selection-end-column="54" />
+            <state relative-caret-position="345">
+              <caret line="32" column="48" lean-forward="true" selection-start-line="32" selection-start-column="48" selection-end-line="32" selection-end-column="48" />
               <folding>
                 <element signature="e#0#52#0" expanded="true" />
               </folding>
@@ -146,11 +145,13 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/ImageUtils/ImageCollection.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="210">
-              <caret line="14" column="21" selection-start-line="14" selection-start-column="21" selection-end-line="14" selection-end-column="21" />
+            <state relative-caret-position="135">
+              <caret line="33" column="93" selection-start-line="33" selection-start-column="93" selection-end-line="33" selection-end-column="93" />
               <folding>
-                <element signature="e#0#22#0" expanded="true" />
-                <marker date="1540811408112" expanded="true" signature="218:293" ph="..." />
+                <element signature="e#0#33#0" expanded="true" />
+                <marker date="1540818852241" expanded="true" signature="581:630" ph="..." />
+                <marker date="1540818852241" expanded="true" signature="2009:2014" ph="..." />
+                <marker date="1540818852241" expanded="true" signature="2039:2050" ph="..." />
               </folding>
             </state>
           </provider>
@@ -159,7 +160,7 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/DCGAN/__init__.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="30">
+            <state relative-caret-position="15">
               <caret line="2" selection-start-line="2" selection-end-line="2" />
               <folding>
                 <element signature="e#0#55#0" expanded="true" />
@@ -171,7 +172,7 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/DCGAN/DCGANGenerator.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="30">
+            <state relative-caret-position="75">
               <caret line="5" column="17" selection-start-line="5" selection-start-column="17" selection-end-line="5" selection-end-column="17" />
               <folding>
                 <marker date="1540807254466" expanded="true" signature="21:26" ph="..." />
@@ -183,7 +184,7 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/DCGAN/DCGANDiscriminator.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="30">
+            <state relative-caret-position="75">
               <caret line="5" column="17" selection-start-line="5" selection-start-column="17" selection-end-line="5" selection-end-column="17" />
               <folding>
                 <marker date="1540807254466" expanded="true" signature="25:30" ph="..." />
@@ -230,7 +231,6 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
-      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -252,6 +252,7 @@
           <select />
         </subPane>
       </pane>
+      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -322,7 +323,7 @@
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
-      <window_info anchor="bottom" id="Find" order="1" />
+      <window_info anchor="bottom" id="Find" order="1" weight="0.32938644" />
       <window_info active="true" anchor="bottom" id="Run" order="2" visible="true" weight="0.32615715" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.39935413" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
@@ -345,6 +346,15 @@
     <option name="LAST_COMMIT_MESSAGE" value="Initial project upload" />
   </component>
   <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/ImageUtils/ImageCollection.py</url>
+          <line>36</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
     <watches-manager>
       <configuration name="PythonConfigurationType">
         <watch expression="i" />
@@ -352,23 +362,10 @@
     </watches-manager>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/DCGAN/DCGANDiscriminator.py">
+    <entry file="file://$PROJECT_DIR$/ImageUtils/__init__.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="30">
-          <caret line="5" column="17" selection-start-line="5" selection-start-column="17" selection-end-line="5" selection-end-column="17" />
-          <folding>
-            <marker date="1540807254466" expanded="true" signature="25:30" ph="..." />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/DCGAN/DCGANGenerator.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="30">
-          <caret line="5" column="17" selection-start-line="5" selection-start-column="17" selection-end-line="5" selection-end-column="17" />
-          <folding>
-            <marker date="1540807254466" expanded="true" signature="21:26" ph="..." />
-          </folding>
+        <state>
+          <caret column="35" selection-start-column="35" selection-end-column="35" />
         </state>
       </provider>
     </entry>
@@ -377,7 +374,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/DCGAN/__init__.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="30">
+        <state relative-caret-position="15">
           <caret line="2" selection-start-line="2" selection-end-line="2" />
           <folding>
             <element signature="e#0#55#0" expanded="true" />
@@ -385,17 +382,37 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/ImageUtils/__init__.py">
+    <entry file="file://$PROJECT_DIR$/DCGAN/DCGANGenerator.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state>
-          <caret column="35" selection-start-column="35" selection-end-column="35" />
+        <state relative-caret-position="75">
+          <caret line="5" column="17" selection-start-line="5" selection-start-column="17" selection-end-line="5" selection-end-column="17" />
+          <folding>
+            <marker date="1540807254466" expanded="true" signature="21:26" ph="..." />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/DCGAN/DCGANDiscriminator.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="75">
+          <caret line="5" column="17" selection-start-line="5" selection-start-column="17" selection-end-line="5" selection-end-column="17" />
+          <folding>
+            <marker date="1540807254466" expanded="true" signature="25:30" ph="..." />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/.conda/envs/EngD/lib/python3.7/site-packages/matplotlib/image.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1213">
+          <caret line="645" selection-start-line="645" selection-end-line="645" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/Main.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="400">
-          <caret line="36" column="54" selection-start-line="36" selection-start-column="54" selection-end-line="36" selection-end-column="54" />
+        <state relative-caret-position="345">
+          <caret line="32" column="48" lean-forward="true" selection-start-line="32" selection-start-column="48" selection-end-line="32" selection-end-column="48" />
           <folding>
             <element signature="e#0#52#0" expanded="true" />
           </folding>
@@ -404,11 +421,13 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/ImageUtils/ImageCollection.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="210">
-          <caret line="14" column="21" selection-start-line="14" selection-start-column="21" selection-end-line="14" selection-end-column="21" />
+        <state relative-caret-position="135">
+          <caret line="33" column="93" selection-start-line="33" selection-start-column="93" selection-end-line="33" selection-end-column="93" />
           <folding>
-            <element signature="e#0#22#0" expanded="true" />
-            <marker date="1540811408112" expanded="true" signature="218:293" ph="..." />
+            <element signature="e#0#33#0" expanded="true" />
+            <marker date="1540818852241" expanded="true" signature="581:630" ph="..." />
+            <marker date="1540818852241" expanded="true" signature="2009:2014" ph="..." />
+            <marker date="1540818852241" expanded="true" signature="2039:2050" ph="..." />
           </folding>
         </state>
       </provider>
