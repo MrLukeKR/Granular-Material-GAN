@@ -1,5 +1,5 @@
 import torch  # Import Torch Deep Learning Framework
-
+import ImageUtils
 from DCGAN import DCGANGenerator, DCGANDiscriminator
 
 print("   Optimal Material Generator using Generative Adversarial Networks   ")
@@ -36,3 +36,7 @@ else:
 print("Initialising Generator Adversarial Network")
 discriminator = DCGANDiscriminator(parallelProcessing)
 generator = DCGANGenerator(parallelProcessing)
+
+directory = "/run/media/***REMOVED***/***REMOVED***/Brian Atkinson - Mustafa - Asphalt Cores/18-1415/"
+myCollection = ImageUtils.ImageCollection()
+myCollection.loadImagesFromDirectory(directory)
