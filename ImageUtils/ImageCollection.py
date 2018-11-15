@@ -1,4 +1,4 @@
-from skimage import io, transform
+from skimage import io, transform, filters
 from skimage.feature import canny
 from imageio import mimsave
 from scipy import ndimage
@@ -13,17 +13,43 @@ class ImageCollection:
     segmentedImages = list()
     closedImages = list()
     filledImages = list()
+    threshimages = list()
 
     def __init__(self):
         pass
 
-    def viewImages(self):
-        viewer = CollectionViewer(self.images)
+    def viewImages(self, images):
+        viewer = CollectionViewer(images)
         viewer.show()
+
+    def constrainimages(self, images, dimensions):
+        print("Constraining " + str(len(images)) + " images to " + str(dimensions) + "...")
+        for i in tqdm(range(len(images))):
+            images[i] = transform.resize(images[i], output_shape=dimensions)
+
+        return images
+
+    def resizeimages(self, images, factor):
+        print("Resizing " + str(len(images)) + " images by a factor of " + str(factor) + "...")
+        x, y = images[0].shape
+        x = int(x * factor)
+        y = int(y * factor)
+
+        for i in tqdm(range(len(images))):
+            images[i] = transform.resize(images[i], output_shape=(x, y))
+
+        return images
 
     def saveToGif(self):
         saveLocation = input("Where do you want to save the GIF?: ")
         mimsave(saveLocation, self.images)
+
+    def thresholdImages(self):
+        print("Thresholding " + str(len(self.images)) + " images...")
+        for i in tqdm(range(len(self.images))):  # tqdm is a progress bar tool
+            self.threshimages.append(self.images[i] < filters.thresholding.threshold_otsu(self.images[i]))
+
+        return self.threshimages
 
     def segmentImages(self):
         print("Segmenting " + str(len(self.images)) + " images...")
@@ -38,22 +64,8 @@ class ImageCollection:
             self.closedImages.append(transform.rescale(closedAggregates, 0.25))
             self.filledImages.append(transform.rescale(filledAggregates, 0.25))
 
-        viewer = CollectionViewer(self.segmentedImages)
-        viewer.show()
-
-        viewer = CollectionViewer(self.closedImages)
-        viewer.show()
-
-        viewer = CollectionViewer(self.filledImages)
-        viewer.show()
-
         print()  # Print a new line after the process bar is finished
-
-        print("Saving images to GIF...")
-        mimsave('/run/media/***REMOVED***/***REMOVED***/Preprocessing/segmentedRings.gif', self.closedImages)
-        mimsave('/run/media/***REMOVED***/***REMOVED***/Preprocessing/segmentedBlobs.gif', self.filledImages)
         print("Done")
-
 
     def applyThreshold(self): pass
 

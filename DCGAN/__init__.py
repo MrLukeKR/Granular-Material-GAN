@@ -1,2 +1,1 @@
-from DCGAN.DCGANDiscriminator import DCGANDiscriminator
-from DCGAN.DCGANGenerator import DCGANGenerator
+
