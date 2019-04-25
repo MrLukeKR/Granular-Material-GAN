@@ -20,21 +20,21 @@ numepochs = 100
 visdim = 50
 
 # Do image loading and preprocesing
-directory = "F:/Windows/Documents/18-1415/"
+directory = "F://Windows//Pictures//CoreScans//Aggregate CT Scans//Brian Atkinson - Mustafa - Asphalt Cores//18-1415/"
 #directory = "/data/CT-Scans/Aggregate CT Scans/Brian Atkinson - Mustafa - Asphalt Cores/18-1415/"
 myCollection = ImageUtils.ImageCollection()
 myCollection.loadImagesFromDirectory(directory)
 
 images = myCollection.thresholdImages()
-images = myCollection.resizeimages(images, 0.01)
+images = myCollection.resizeimages(images, 0.4)
 
 #myCollection.viewImages(images)
 
 volumes = np.asarray(images, dtype=np.float32)
-volumes = np.transpose(volumes, (1, 2, 0))
+#volumes = np.transpose(volumes, (1, 2, 0))
 
 print("Visualising Air-Voids...")
-mlab.contour3d(volumes, contours=2)
+mlab.contour3d(volumes)
 mlab.show()
 
 imheight, imwidth, imlayers = volumes.shape
@@ -67,7 +67,7 @@ batchsize = 30
 
 vX, vY, vZ = volumes.shape
 
-noise = np.random.normal(0, 1, size=(vX, vY, vZ))
+noise = np.random.normal(0, 1, size=(vX, vY, vZ)).astype(np.bool)
 
 mlab.contour3d(noise, contours=2)
 mlab.show()
