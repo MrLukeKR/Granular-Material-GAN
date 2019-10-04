@@ -25,15 +25,15 @@ def remove_empty_scans(images):
     return valid_scans
 
 
-def normalise_images(images):
+def normalise_images(images, pool):
     fixed_images = list()
 
     print("\tNormalising Images...")
-    for x in tqdm(range(len(images))):
-        fixed_images.append(normalise_image(images[x]))
+    for ind, res in enumerate(pool.map(normalise_image, images)):
+        fixed_images.insert(ind, res)
 
         if sm.configuration.get("ENABLE_IMAGE_SAVING") == "True":
-            im.save_image(fixed_images[x], str(x), "Pre-processing/Normalised/")
+            im.save_image(fixed_images[ind], str(ind), "Pre-processing/Normalised/")
 
     return fixed_images
 

@@ -1,22 +1,5 @@
-import numpy as np
-
 from DCGAN import DCGAN
 from tensorflow.python.client import device_lib
-
-from ImageTools import ImageManager
-
-print("   Optimal Material Generator using Generative Adversarial Networks   ")
-print("                    Developed by ***REMOVED*** (BSc)                    ")
-print("In fulfilment of Doctor of Engineering at the University of Nottingham")
-print("----------------------------------------------------------------------")
-print()
-
-print("Running hardware checks...")
-print(device_lib.list_local_devices())
-
-numepochs = 100
-
-visdim = 50
 
 # File I/O >>>
 from glob import glob
@@ -26,8 +9,8 @@ from os import walk
 # Utilities >>>
 import numpy as np
 
-
 from tqdm import tqdm
+from multiprocessing import Pool, cpu_count
 # <<< Utilities
 
 # Image Processing >>>
@@ -35,18 +18,27 @@ import ImageTools.Preprocessor as itp
 import ImageTools.VoxelProcessor as vp
 import ImageTools.ImageManager as im
 
-
 from Settings import SettingsManager as sm
+from skimage.morphology import disk
+from skimage.filters import threshold_otsu, rank
 # <<< Image Processing
 
 # Machine Learning >>>
-# import MachineLearningTools.MachineLearningManager as mlm
+import MachineLearningTools.MachineLearningManager as mlm
 # <<< Machine Learning
 
+print("   Optimal Material Generator using Generative Adversarial Networks   ")
+print("                    Developed by ***REMOVED*** (BSc)                    ")
+print("In fulfilment of Doctor of Engineering at the University of Nottingham")
+print("----------------------------------------------------------------------")
+print()
+print("Running hardware checks...")
+print(device_lib.list_local_devices())
 
-def main():
-    sm.load_settings()
+pool = Pool()
 
+
+def prepare_directories():
     data_directories = [f.replace('\\', '/')
                         for f in glob(sm.configuration.get("IO_DATA_ROOT_DIR") + "**/", recursive=True)]
 
@@ -60,41 +52,7 @@ def main():
     for directory in to_remove:
         data_directories.remove(directory)
 
-    for data_directory in data_directories:
-        images = im.load_images_from_directory(data_directory)
-        sm.current_directory = data_directory.replace(sm.configuration.get("IO_DATA_ROOT_DIR"), '')
-
-        if not sm.current_directory.endswith('/'):
-            sm.current_directory += '/'
-
-        if sm.configuration.get("ENABLE_PREPROCESSING") == "True":
-            images = preprocess_image_collection(images)
-
-        voxels = list()
-
-        if sm.segmentation_mode == "3D":
-            if sm.configuration.get("ENABLE_VOXEL_SEPARATION") == "True":
-                voxels = vp.split_to_voxels(images, int(sm.configuration.get("VOXEL_RESOLUTION")))
-
-                if sm.configuration.get("ENABLE_VOXEL_INPUT_SAVING") == "True":
-                    im.save_voxel_images(voxels, "Unsegmented")
-
-#        if sm.configuration.get("ENABLE_SEGMENTATION") == "True":
-#
-#            if sm.segmentation_mode == "3D":
-#                voxel_segmentation_net = mlm.train_network_3d(voxels)
-#                segmented_voxels = segment_voxels(voxel_segmentation_net, voxels)
-#
-#                if sm.configuration.get("ENABLE_VOXEL_OUTPUT_SAVING") == "True":
-#                    im.save_voxel_images(segmented_voxels, "Segmented")
-#            elif sm.segmentation_mode == "2D":
-#                image_segmentation_net = mlm.train_network_2d(images)
-#                segmented_images = segment_images(image_segmentation_net, images)
-
-        sm.images = images
-        for v in voxels:
-            ImageManager.display_voxel(v)
-        # generateAnimation()
+    return data_directories
 
 
 def segment_images(cnn, images):
@@ -125,29 +83,66 @@ def preprocess_image_collection(images):
     print("Pre-processing Image Collection...")
     processed_images = images
 
-    processed_images = itp.normalise_images(processed_images)
+    processed_images = itp.normalise_images(processed_images, pool=pool)
     # processed_images = itp.denoise_images(processed_images)
-
     # processed_images = itp.remove_empty_scans(processed_images)
-
     # processed_images = itp.remove_anomalies(processed_images)
-
     # processed_images = itp.remove_backgrounds(processed_images)
 
     return processed_images
 
 
+def process_voxels(images):
+    voxels = list()
+
+    if sm.configuration.get("ENABLE_VOXEL_SEPARATION") == "True":
+        voxels = vp.split_to_voxels(images, int(sm.configuration.get("VOXEL_RESOLUTION")))
+
+        if sm.configuration.get("ENABLE_VOXEL_INPUT_SAVING") == "True":
+            im.save_voxel_images(voxels, "Unsegmented")
+    return voxels
+
+
+def main():
+    sm.load_settings()
+    data_directories = prepare_directories()
+
+    for data_directory in data_directories:
+
+# | DATA PREPARATION MODULE
+# \-- | DATA LOADING SUB-MODULE
+        images = im.load_images_from_directory(data_directory)
+        sm.current_directory = data_directory.replace(sm.configuration.get("IO_DATA_ROOT_DIR"), '')
+
+        if not sm.current_directory.endswith('/'):
+            sm.current_directory += '/'
+
+        if sm.configuration.get("ENABLE_PREPROCESSING") == "True":
+            images = preprocess_image_collection(images)
+
+        sm.images = images
+
+# \-- | DATA REPRESENTATION CONVERSION SUB-MODULE
+        voxels = process_voxels(images)
+
+# \-- | DATA SEGMENTATION SUB-MODULE
+
+        for ind, res in enumerate(pool.map(im.segment_vox, voxels)):
+            continue
+
+# | GENERATIVE ADVERSARIAL NETWORK MODULE
+        DCGAN.initialise_network(images)
+
+# \-- | 2D Noise Generation
+        vX, vY, vC = images[0].shape
+        noise = im.get_noise_image((vX, vY))
+        im.show_image(noise)
+
+# \-- | 3D Noise Generation
+        # vX, vY, vZ, vC = voxels[0].shape
+        # noise = get_noise_image((vX, vY, vZ))
+        # im.display_voxel(noise)
+
+
 if __name__ == "__main__":
     main()
-
-
-# Initialise GAN
-
-# DCGAN.initialise_network()
-
-#vX, vY, vZ = volumes.shape
-
-#noise = np.random.normal(0, 1, size=(vX, vY, vZ)).astype(np.int)
-
-#mlab.contour3d(noise, contours=2)
-#mlab.show()

@@ -16,6 +16,21 @@ project_images = list()
 segmentedImages = list()
 
 
+def save_plot(filename, save_location):
+    directory = sm.configuration.get("IO_OUTPUT_ROOT_DIR") + sm.current_directory + save_location
+
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    file_loc = directory + filename + '.' + sm.configuration.get("IO_IMAGE_FILETYPE")
+
+    if not os.path.isfile(file_loc):
+        if sm.USE_BW:
+            plt.savefig(file_loc, cmap='gray')
+        else:
+            plt.savefig(file_loc, cmap='jet')
+
+
 def save_image(image, filename, save_location):
     directory = sm.configuration.get("IO_OUTPUT_ROOT_DIR") + sm.current_directory + save_location
 
@@ -31,7 +46,23 @@ def save_image(image, filename, save_location):
             plt.imsave(file_loc, np.squeeze(image, 2), cmap='jet')
 
 
-def save_voxel_image(voxels, save_location):
+def save_voxel_image(voxel, file_name, save_location):
+    directory = sm.configuration.get("IO_OUTPUT_ROOT_DIR") + sm.current_directory + save_location
+
+    file_loc = directory + file_name + '.' + sm.configuration.get("IO_IMAGE_FILETYPE")
+
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    if os.path.isfile(file_loc):
+        return
+
+    fig = vp.plot_voxel(voxel)
+    plt.savefig(file_loc)
+    plt.close(fig)
+
+
+def save_voxel_image_collection(voxels, save_location):
     print("Saving " + str(len(voxels)) + " voxel visualisations")
     directory = sm.configuration.get("IO_OUTPUT_ROOT_DIR") + sm.current_directory + save_location
 
@@ -53,9 +84,9 @@ def save_voxel_image(voxels, save_location):
 
 def save_voxel_images(voxels, voxel_category="Unknown"):
     if sm.USE_BW:
-        save_voxel_image(voxels, "Results/VoxelImages/" + voxel_category + "/BW/")
+        save_voxel_image_collection(voxels, "Results/VoxelImages/" + voxel_category + "/BW/")
     else:
-        save_voxel_image(voxels, "Results/VoxelImages/" + voxel_category + "/RGB/")
+        save_voxel_image_collection(voxels, "Results/VoxelImages/" + voxel_category + "/RGB/")
 
 
 def show_image(array):
@@ -129,3 +160,17 @@ def load_images_from_directory(directory):
     files.sort()
 
     return load_images_from_list(files)
+
+
+def get_noise_image(shape):
+    noise = np.random.normal(0, 1, size=shape)
+    noise = np.array(noise > 0).astype(np.uint8)
+    noise = noise.reshape(shape)
+
+    return noise
+
+
+def segment_vox(data):
+    img = np.reshape(data, (64, 64, 64))
+
+    return img

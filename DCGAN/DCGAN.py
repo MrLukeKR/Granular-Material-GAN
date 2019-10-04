@@ -3,10 +3,13 @@ from keras.optimizers import Adam
 
 from DCGAN import DCGANGenerator, DCGANDiscriminator
 
+generator = None
+discriminator = None
 
-def initialise_network(volumes):
+
+def initialise_network(data):
     print("Initialising Generator Adversarial Network...")
-    generator = DCGANGenerator.Generator3D(volumes, strides=(2, 2, 2), kernelsize=(4, 4, 4), train=True)
+    generator = DCGANGenerator.Generator3D(data, strides=(2, 2, 2), kernelsize=(4, 4, 4), train=True)
     discriminator = DCGANDiscriminator.Discriminator3D(0.2, (2, 2, 2), (4, 4, 4), True)
 
     discongen = Sequential()
