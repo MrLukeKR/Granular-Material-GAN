@@ -83,6 +83,7 @@ def preprocess_image_collection(images):
     print("Pre-processing Image Collection...")
     processed_images = images
 
+    processed_images = itp.reshape_images(processed_images, pool=pool)
     processed_images = itp.normalise_images(processed_images, pool=pool)
     # processed_images = itp.denoise_images(processed_images)
     # processed_images = itp.remove_empty_scans(processed_images)
@@ -134,12 +135,12 @@ def main():
         DCGAN.initialise_network(images)
 
 # \-- | 2D Noise Generation
-        vX, vY, vC = images[0].shape
+        vX, vY = images[0].shape
         noise = im.get_noise_image((vX, vY))
         im.show_image(noise)
 
 # \-- | 3D Noise Generation
-        # vX, vY, vZ, vC = voxels[0].shape
+        # vX, vY, vZ = voxels[0].shape
         # noise = get_noise_image((vX, vY, vZ))
         # im.display_voxel(noise)
 

@@ -38,6 +38,23 @@ def normalise_images(images, pool):
     return fixed_images
 
 
+def reshape_images(images, pool):
+    reshaped_images = list()
+
+    print("\tReshaping Images...")
+    for ind, res in enumerate(pool.map(reshape_image, images)):
+        reshaped_images.insert(ind, res)
+
+    return reshaped_images
+
+
+def reshape_image(image):
+    shape = image.shape
+    reshaped = np.reshape(image, (shape[0], shape[1]))
+
+    return reshaped
+
+
 def normalise_image(image):
     n_image = exposure.equalize_hist(image)
 

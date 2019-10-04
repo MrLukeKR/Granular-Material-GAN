@@ -2,6 +2,7 @@ import math
 import numpy as np
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
+
 from mpl_toolkits.mplot3d import Axes3D
 
 
@@ -57,6 +58,7 @@ def split_to_voxels(volume_data, cubic_dimension):
 
     print("Separating data volume into " + str(voxel_count_x * voxel_count_y) + " voxels")
 
+
     for x in range(voxel_count_x):
         x_start = cubic_dimension * x
         x_end = x_start + cubic_dimension
@@ -64,7 +66,8 @@ def split_to_voxels(volume_data, cubic_dimension):
             z_start = cubic_dimension * z
             z_end = z_start + cubic_dimension
             for y in range(voxel_count_y):
-                print("Voxel [DEPTH " + str(z) + "][ROW " + str(y) + "][COL " + str(x) + "]")
+                print("\rVoxel [DEPTH " + str(z) + "][ROW " + str(y) + "][COL " + str(x) + "]", end='')
+
                 y_start = cubic_dimension * y
                 y_end = y_start + cubic_dimension
 

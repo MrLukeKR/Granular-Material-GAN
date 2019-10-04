@@ -11,14 +11,16 @@ def Generator3D(images, strides, kernelsize, train):
     if len(images) == 0:
         return
 
-    x, y, c = images[0].shape
+    x, y = images[0].shape
     z = len(images)
+
+    channels = 1
 
     filters = 512
 
     print("\t\t Input size is: (" + str(x) + "px * " + str(y) + "px) * " + str(z) + " slices")
 
-    inputs = Input(shape=(x, y, c, z))
+    inputs = Input(shape=(x, y, z, channels))
 
     g1 = Deconv3D(filters=filters, kernel_size=kernelsize,
                   strides=strides, kernel_initializer='glorot_normal',
