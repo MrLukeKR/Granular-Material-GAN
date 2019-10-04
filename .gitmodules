@@ -1,0 +1,3 @@
+[submodule "3D-Image-Segmentation"]
+	path = 3D-Image-Segmentation
+	url = https://github.com/MrLukeKR/3D-Image-Segmentation
