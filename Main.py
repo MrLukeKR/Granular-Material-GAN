@@ -1,4 +1,4 @@
-from DCGAN import DCGAN
+from GAN.DCGAN import DCGAN
 from tensorflow.python.client import device_lib
 
 # File I/O >>>
@@ -10,7 +10,7 @@ from os import walk
 import numpy as np
 
 from tqdm import tqdm
-from multiprocessing import Pool, cpu_count
+from multiprocessing import Pool
 # <<< Utilities
 
 # Image Processing >>>
@@ -19,21 +19,21 @@ import ImageTools.VoxelProcessor as vp
 import ImageTools.ImageManager as im
 
 from Settings import SettingsManager as sm
-from skimage.morphology import disk
-from skimage.filters import threshold_otsu, rank
+
+
 # <<< Image Processing
 
 # Machine Learning >>>
-import MachineLearningTools.MachineLearningManager as mlm
 # <<< Machine Learning
 
-print("   Optimal Material Generator using Generative Adversarial Networks   ")
-print("                    Developed by ***REMOVED*** (BSc)                    ")
-print("In fulfilment of Doctor of Engineering at the University of Nottingham")
-print("----------------------------------------------------------------------")
-print()
-print("Running hardware checks...")
-print(device_lib.list_local_devices())
+def print_introduction():
+    print("   Optimal Material Generator using Generative Adversarial Networks   ")
+    print("                    Developed by ***REMOVED*** (BSc)                    ")
+    print("In fulfilment of Doctor of Engineering at the University of Nottingham")
+    print("----------------------------------------------------------------------")
+    print()
+    print("Running hardware checks...")
+    print(device_lib.list_local_devices())
 
 pool = Pool()
 
@@ -105,6 +105,8 @@ def process_voxels(images):
 
 
 def main():
+    print_introduction()
+
     sm.load_settings()
     data_directories = prepare_directories()
 
@@ -138,6 +140,8 @@ def main():
         vX, vY = images[0].shape
         noise = im.get_noise_image((vX, vY))
         im.show_image(noise)
+
+        # DCGAN.train()
 
 # \-- | 3D Noise Generation
         # vX, vY, vZ = voxels[0].shape
