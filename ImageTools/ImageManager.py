@@ -93,7 +93,10 @@ def show_image(array):
     array = np.reshape(array, newshape=(1024, 1024))
 
     fig = plt.figure()
-    plt.imshow(array, interpolation='nearest')
+    if sm.USE_BW:
+        plt.imshow(array, interpolation='nearest', cmap='gray')
+    else:
+        plt.imshow(array, interpolation='nearest', cmap='jet')
     plt.show()
 
     plt.close(fig)

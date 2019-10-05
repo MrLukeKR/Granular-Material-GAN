@@ -1,4 +1,4 @@
-from GAN.DCGAN import DCGAN
+from GAN import DCGAN
 from tensorflow.python.client import device_lib
 
 # File I/O >>>
@@ -26,6 +26,10 @@ from Settings import SettingsManager as sm
 # Machine Learning >>>
 # <<< Machine Learning
 
+
+pool = Pool()
+
+
 def print_introduction():
     print("   Optimal Material Generator using Generative Adversarial Networks   ")
     print("                    Developed by ***REMOVED*** (BSc)                    ")
@@ -34,8 +38,6 @@ def print_introduction():
     print()
     print("Running hardware checks...")
     print(device_lib.list_local_devices())
-
-pool = Pool()
 
 
 def prepare_directories():
@@ -134,11 +136,12 @@ def main():
             continue
 
 # | GENERATIVE ADVERSARIAL NETWORK MODULE
-        DCGAN.initialise_network(images)
+        my_net = DCGAN.Network
+        my_net.create_network(images)
 
 # \-- | 2D Noise Generation
-        vX, vY = images[0].shape
-        noise = im.get_noise_image((vX, vY))
+        v_x, v_y = images[0].shape
+        noise = im.get_noise_image((v_x, v_y))
         im.show_image(noise)
 
         # DCGAN.train()
