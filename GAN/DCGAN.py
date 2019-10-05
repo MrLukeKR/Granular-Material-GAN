@@ -15,6 +15,14 @@ class Network(AbstractGAN.Network):
         self.create_network(data)
 
     @classmethod
+    def train_network(cls, training_set):
+        pass
+
+    @classmethod
+    def test_network(cls, testing_set):
+        pass
+
+    @classmethod
     def create_network(cls, data):
         print("Initialising Generator Adversarial Network...")
         cls.generator = DCGANGenerator(data, strides=(2, 2, 2), kernelsize=(4, 4, 4), train=True)
@@ -43,7 +51,15 @@ class Network(AbstractGAN.Network):
 
 
 class DCGANDiscriminator:
-    model = None
+    _model = None
+
+    @property
+    def model(self):
+        return self._model
+
+    @model.setter
+    def model(self, value):
+        self._model = value
 
     def __init__(self, leak_value, strides, kernel_size, train):
         print("\tInitialising Deep Convolutional Generative Adversarial Network (Discriminator)")
@@ -87,7 +103,15 @@ class DCGANDiscriminator:
 
 
 class DCGANGenerator:
-    model = None
+    _model = None
+
+    @property
+    def model(self):
+        return self._model
+
+    @model.setter
+    def model(self, value):
+        self._model = value
 
     def __init__(self, images, strides, kernelsize, train):
         print("\tInitialising Deep Convolutional Generative Adversarial Network (Generator)")

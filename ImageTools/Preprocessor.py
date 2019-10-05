@@ -11,7 +11,7 @@ from skimage import exposure, restoration
 
 
 def remove_empty_scans(images):
-    print("\tRemoving Empty Images...")
+    print("\tRemoving Empty Images... ", end='')
     threshold = 0.1 * len(images[0]) * len(images[0][0])
     valid_scans = list()
 
@@ -22,29 +22,32 @@ def remove_empty_scans(images):
         if image_sum >= threshold:
             valid_scans.append(image)
 
+    print("done!")
     return valid_scans
 
 
 def normalise_images(images, pool):
     fixed_images = list()
 
-    print("\tNormalising Images...")
+    print("\tNormalising Images... ", end='')
     for ind, res in enumerate(pool.map(normalise_image, images)):
         fixed_images.insert(ind, res)
 
         if sm.configuration.get("ENABLE_IMAGE_SAVING") == "True":
             im.save_image(fixed_images[ind], str(ind), "Pre-processing/Normalised/")
 
+    print("done!")
     return fixed_images
 
 
 def reshape_images(images, pool):
     reshaped_images = list()
 
-    print("\tReshaping Images...")
+    print("\tReshaping Images... ", end='')
     for ind, res in enumerate(pool.map(reshape_image, images)):
         reshaped_images.insert(ind, res)
 
+    print("done!")
     return reshaped_images
 
 
@@ -67,13 +70,14 @@ def normalise_image(image):
 def denoise_images(images):
     fixed_images = list()
 
-    print("\tDe-noising Images...")
+    print("\tDe-noising Images... ", end='')
     for x in tqdm(range(len(images))):
         fixed_images.append(denoise_image(images[x]))
 
         if sm.configuration.get("ENABLE_IMAGE_SAVING") == "True":
             im.save_image(fixed_images[x], str(x), "Pre-processing/De-Noised/")
 
+    print("done!")
     return fixed_images
 
 
@@ -83,7 +87,7 @@ def denoise_image(image):
 
 def remove_anomalies(images):
     fixed_images = list()
-    print("\tResolving X-Ray Intensity Anomalies...")
+    print("\tResolving X-Ray Intensity Anomalies... ", end='')
 
     for x in tqdm(range(len(images))):
         fixed_images.append(remove_anomaly(images[x]))
@@ -91,12 +95,13 @@ def remove_anomalies(images):
         if sm.configuration.get("ENABLE_IMAGE_SAVING") == "True":
             im.save_image(fixed_images[x], str(x), "Pre-processing/AnomalyRemoved/")
 
+    print("done!")
     return fixed_images
 
 
 def remove_backgrounds(images):
     fixed_images = list()
-    print("\tRemoving backgrounds (air-voids)")
+    print("\tRemoving backgrounds (air-voids)", end='')
 
     for x in tqdm(range(len(images))):
         fixed_images.append(remove_background(images[x]))
@@ -104,6 +109,7 @@ def remove_backgrounds(images):
         if sm.configuration.get("ENABLE_IMAGE_SAVING") == "True":
             im.save_image(fixed_images[x], str(x), "Pre-processing/BackgroundRemoved/")
 
+    print("done!")
     return fixed_images
 
 

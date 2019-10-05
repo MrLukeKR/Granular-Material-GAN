@@ -18,6 +18,8 @@ import ImageTools.Preprocessor as itp
 import ImageTools.VoxelProcessor as vp
 import ImageTools.ImageManager as im
 
+from ImageTools.Segmentation import OtsuCFA3D as segmentor
+
 from Settings import SettingsManager as sm
 
 
@@ -55,30 +57,6 @@ def prepare_directories():
         data_directories.remove(directory)
 
     return data_directories
-
-
-def segment_images(cnn, images):
-    segmented_ims = list()
-
-    print("Segmenting images...")
-
-    for ind in tqdm(range(len(images))):
-        result = cnn.predict(np.expand_dims(images[ind], 0))
-        segmented_ims.append(np.squeeze(result, 0))
-
-    return segmented_ims
-
-
-def segment_voxels(cnn, voxels):
-    segmented_vox = list()
-
-    print("Segmenting voxels...")
-
-    for ind in tqdm(range(len(voxels))):
-        result = cnn.predict(np.expand_dims(voxels[ind], 0))
-        segmented_vox.append(np.squeeze(result, 0))
-
-    return segmented_vox
 
 
 def preprocess_image_collection(images):
@@ -131,20 +109,19 @@ def main():
         voxels = process_voxels(images)
 
 # \-- | DATA SEGMENTATION SUB-MODULE
-
-        for ind, res in enumerate(pool.map(im.segment_vox, voxels)):
-            continue
+        print("Segmenting voxels... ", end='')
+        for v in tqdm(range(len(voxels))):
+            segmentor.segment_image(voxels[v])
+        print("done!")
 
 # | GENERATIVE ADVERSARIAL NETWORK MODULE
         my_net = DCGAN.Network
         my_net.create_network(images)
+        # my_net.train_network()
 
 # \-- | 2D Noise Generation
         v_x, v_y = images[0].shape
         noise = im.get_noise_image((v_x, v_y))
-        im.show_image(noise)
-
-        # DCGAN.train()
 
 # \-- | 3D Noise Generation
         # vX, vY, vZ = voxels[0].shape

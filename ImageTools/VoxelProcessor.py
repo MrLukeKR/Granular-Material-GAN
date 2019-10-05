@@ -56,8 +56,9 @@ def split_to_voxels(volume_data, cubic_dimension):
 
             pass
 
-    print("Separating data volume into " + str(voxel_count_x * voxel_count_y) + " voxels")
+    pretext = "Separating data volume into " + str(voxel_count_x * voxel_count_y) + " voxels..."
 
+    print(pretext, end='\r', flush=True)
 
     for x in range(voxel_count_x):
         x_start = cubic_dimension * x
@@ -66,14 +67,14 @@ def split_to_voxels(volume_data, cubic_dimension):
             z_start = cubic_dimension * z
             z_end = z_start + cubic_dimension
             for y in range(voxel_count_y):
-                print("\rVoxel [DEPTH " + str(z) + "][ROW " + str(y) + "][COL " + str(x) + "]", end='')
+                print(pretext + " Voxel [DEPTH " + str(z) + "][ROW " + str(y) + "][COL " + str(x) + "]", end='\r', flush=True)
 
                 y_start = cubic_dimension * y
                 y_end = y_start + cubic_dimension
 
                 voxel = volume[x_start:x_end, y_start:y_end, z_start:z_end]
 
-                if voxel.shape != (cubic_dimension, cubic_dimension, cubic_dimension, 1):
+                if voxel.shape != (cubic_dimension, cubic_dimension, cubic_dimension):
                     if str(sm.configuration.get("VOXEL_RESOLVE_METHOD")).upper() == "PADDING":
                         xPad = cubic_dimension - len(voxel)
                         if xPad == cubic_dimension:
@@ -87,18 +88,14 @@ def split_to_voxels(volume_data, cubic_dimension):
                         if zPad == cubic_dimension:
                             continue
 
-                        wPad = sm.image_channels - len(voxel[0][0][0])
-                        if wPad == cubic_dimension:
-                            continue
+                        voxel = np.pad(voxel, ((0, xPad), (0, yPad), (0, zPad)), 'constant', constant_values=0)
 
-                        voxel = np.pad(voxel, ((0, xPad), (0, yPad), (0, zPad), (0, wPad)), 'constant', constant_values=0)
-                    else:
-                        continue
-                if voxel.shape == (cubic_dimension, cubic_dimension, cubic_dimension, 1):
+                if voxel.shape == (cubic_dimension, cubic_dimension, cubic_dimension):
                     voxels.append(voxel)
                 else:
                     print("!-- ERROR: Voxel was invalid size --!")
 
+    print(pretext + " done!")
     return voxels
 
 
