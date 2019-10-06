@@ -90,7 +90,8 @@ def save_voxel_images(voxels, voxel_category="Unknown"):
 
 
 def show_image(array):
-    array = np.reshape(array, newshape=(1024, 1024))
+    image_dim = len(array)
+    array = np.reshape(array, newshape=(image_dim, image_dim))
 
     fig = plt.figure()
     if sm.USE_BW:

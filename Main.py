@@ -7,7 +7,6 @@ from os import walk
 # <<< File I/O
 
 # Utilities >>>
-import numpy as np
 
 from tqdm import tqdm
 from multiprocessing import Pool
@@ -18,7 +17,8 @@ import ImageTools.Preprocessor as itp
 import ImageTools.VoxelProcessor as vp
 import ImageTools.ImageManager as im
 
-from ImageTools.Segmentation import OtsuCFA3D as segmentor
+from ImageTools.Segmentation.ThreeDimensional import StackedOtsu2D as segmentor3D
+from ImageTools.Segmentation.TwoDimensional import Otsu2D as segmentor2D
 
 from Settings import SettingsManager as sm
 
@@ -105,14 +105,20 @@ def main():
 
         sm.images = images
 
+# \-- | 2D DATA SEGMENTATION SUB-MODULE
+        print("Segmenting images... ")
+        for i in tqdm(range(len(images))):
+            segmentor2D.segment_image(images[i])
+
+
 # \-- | DATA REPRESENTATION CONVERSION SUB-MODULE
         voxels = process_voxels(images)
 
-# \-- | DATA SEGMENTATION SUB-MODULE
-        print("Segmenting voxels... ", end='')
-        for v in tqdm(range(len(voxels))):
-            segmentor.segment_image(voxels[v])
-        print("done!")
+# \-- | 3D DATA SEGMENTATION SUB-MODULE
+#        print("Segmenting voxels... ", end='')
+#        for v in tqdm(range(len(voxels))):
+#            segmentor3D.segment_image(voxels[v])
+#        print("done!")
 
 # | GENERATIVE ADVERSARIAL NETWORK MODULE
         my_net = DCGAN.Network
