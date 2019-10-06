@@ -1,7 +1,7 @@
 import ImageTools.ImageManager as im
 import numpy as np
-# from skimage.filters import threshold_multiotsu
-from skimage.filters import threshold_otsu
+from scipy import ndimage
+from sklearn.cluster import KMeans
 
 
 def segment_image(image):
@@ -9,15 +9,15 @@ def segment_image(image):
         raise Exception("This segmentation method only accepts two-dimensional images. "
                         "The shape given is " + image.shape)
 
-    background = image >= threshold_otsu(image)
-    seg = image * background
+    kmeans = KMeans(n_clusters=3).fit(np.reshape(image, (np.prod(image.shape), 1)))
+    segment = np.reshape(kmeans.cluster_centers_[kmeans.labels_], image.shape)
 
-    fig, ax = im.plt.subplots(1, 2, figsize=(10, 3.5))
+    fig, ax = im.plt.subplots(1, 2, figsize=(10, 5))
 
     ax[0].set_title("Original Image")
     ax[0].imshow(np.reshape(image, (1024, 1024)))
 
     ax[1].set_title("Segmented Image")
-    ax[1].imshow(np.reshape(seg, (1024, 1024)))
+    ax[1].imshow(np.reshape(segment, (1024, 1024)))
 
     im.plt.show()

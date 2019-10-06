@@ -67,15 +67,15 @@ def normalise_image(image):
     return n_image
 
 
-def denoise_images(images):
+def denoise_images(images, pool):
     fixed_images = list()
 
     print("\tDe-noising Images... ", end='')
-    for x in tqdm(range(len(images))):
-        fixed_images.append(denoise_image(images[x]))
+    for ind, res in enumerate(pool.map(denoise_image, images)):
+        fixed_images.insert(ind, res)
 
         if sm.configuration.get("ENABLE_IMAGE_SAVING") == "True":
-            im.save_image(fixed_images[x], str(x), "Pre-processing/De-Noised/")
+            im.save_image(res, str(ind), "Pre-processing/De-Noised/")
 
     print("done!")
     return fixed_images

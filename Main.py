@@ -18,7 +18,7 @@ import ImageTools.VoxelProcessor as vp
 import ImageTools.ImageManager as im
 
 from ImageTools.Segmentation.ThreeDimensional import StackedOtsu2D as segmentor3D
-from ImageTools.Segmentation.TwoDimensional import Otsu2D as segmentor2D
+from ImageTools.Segmentation.TwoDimensional import KMeans2D as segmentor2D
 
 from Settings import SettingsManager as sm
 
@@ -65,7 +65,7 @@ def preprocess_image_collection(images):
 
     processed_images = itp.reshape_images(processed_images, pool=pool)
     processed_images = itp.normalise_images(processed_images, pool=pool)
-    # processed_images = itp.denoise_images(processed_images)
+    # processed_images = itp.denoise_images(processed_images, pool=pool)
     # processed_images = itp.remove_empty_scans(processed_images)
     # processed_images = itp.remove_anomalies(processed_images)
     # processed_images = itp.remove_backgrounds(processed_images)
