@@ -3,6 +3,8 @@ import numpy as np
 from scipy import ndimage
 from sklearn.cluster import KMeans
 
+counter = 0
+
 
 def segment_image(image):
     if len(image.shape) != 2:
@@ -12,12 +14,9 @@ def segment_image(image):
     kmeans = KMeans(n_clusters=3).fit(np.reshape(image, (np.prod(image.shape), 1)))
     segment = np.reshape(kmeans.cluster_centers_[kmeans.labels_], image.shape)
 
-    fig, ax = im.plt.subplots(1, 2, figsize=(10, 5))
+    voids = segment <= np.min(segment)
+    aggregates = segment >= np.max(segment)
 
-    ax[0].set_title("Original Image")
-    ax[0].imshow(np.reshape(image, (1024, 1024)))
+    binder = segment * ~(voids + aggregates)
 
-    ax[1].set_title("Segmented Image")
-    ax[1].imshow(np.reshape(segment, (1024, 1024)))
-
-    im.plt.show()
+    return voids, aggregates, binder, segment

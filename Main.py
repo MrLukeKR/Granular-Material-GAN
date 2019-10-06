@@ -10,6 +10,8 @@ from os import walk
 
 from tqdm import tqdm
 from multiprocessing import Pool
+import numpy as np
+
 # <<< Utilities
 
 # Image Processing >>>
@@ -105,11 +107,41 @@ def main():
 
         sm.images = images
 
+#        ind = 0
+#        for image in images:
+#            im.save_image(image, str(ind), 'data/core/train/image/', False)
+#            ind += 1
+
 # \-- | 2D DATA SEGMENTATION SUB-MODULE
+        voids = list()
+        aggregates = list()
+        binders = list()
+
         print("Segmenting images... ")
         for i in tqdm(range(len(images))):
-            segmentor2D.segment_image(images[i])
+            void, aggregate, binder, segment = segmentor2D.segment_image(images[i])
+            voids.append(void)
+            aggregates.append(aggregate)
+            binders.append(binders)
 
+            fig, ax = im.plt.subplots(2, 3, figsize=(10, 5))
+
+            ax[0, 0].set_title("Original Image")
+            ax[0, 0].imshow(np.reshape(images[i], (1024, 1024)))
+
+            ax[0, 1].set_title("Segmented Image")
+            ax[0, 1].imshow(np.reshape(segment, (1024, 1024)))
+
+            ax[1, 0].set_title("Voids")
+            ax[1, 0].imshow(np.reshape(void, (1024, 1024)))
+
+            ax[1, 1].set_title("Binder")
+            ax[1, 1].imshow(np.reshape(binder, (1024, 1024)))
+
+            ax[1, 2].set_title("Aggregates")
+            ax[1, 2].imshow(np.reshape(aggregate, (1024, 1024)))
+
+            im.save_plot(str(i), 'segments/')
 
 # \-- | DATA REPRESENTATION CONVERSION SUB-MODULE
         voxels = process_voxels(images)

@@ -31,8 +31,11 @@ def save_plot(filename, save_location):
             plt.savefig(file_loc, cmap='jet')
 
 
-def save_image(image, filename, save_location):
-    directory = sm.configuration.get("IO_OUTPUT_ROOT_DIR") + sm.current_directory + save_location
+def save_image(image, filename, save_location, use_global_save_location=True):
+    directory = save_location
+
+    if use_global_save_location:
+        directory = directory + sm.configuration.get("IO_OUTPUT_ROOT_DIR") + sm.current_directory
 
     if not os.path.exists(directory):
         os.makedirs(directory)
@@ -40,10 +43,12 @@ def save_image(image, filename, save_location):
     file_loc = directory + filename + '.' + sm.configuration.get("IO_IMAGE_FILETYPE")
 
     if not os.path.isfile(file_loc):
+        if len(image.shape) != 2:
+            image = np.squeeze(image, 2)
         if sm.USE_BW:
-            plt.imsave(file_loc, np.squeeze(image, 2), cmap='gray')
+            plt.imsave(file_loc, image, cmap='gray')
         else:
-            plt.imsave(file_loc, np.squeeze(image, 2), cmap='jet')
+            plt.imsave(file_loc, image, cmap='jet')
 
 
 def save_voxel_image(voxel, file_name, save_location):

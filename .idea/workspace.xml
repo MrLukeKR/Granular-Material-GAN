@@ -2,12 +2,10 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="9fa2450b-a732-4310-af39-bab7196115b0" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/ImageTools/Segmentation/TwoDimensional/KMeans2D.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ImageTools/Segmentation/TwoDimensional/Sobel2D.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ImageTools/Segmentation/TwoDimensional/UNET.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ImageTools/Preprocessor.py" beforeDir="false" afterPath="$PROJECT_DIR$/ImageTools/Preprocessor.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ImageTools/Segmentation/TwoDimensional/Otsu2D.py" beforeDir="false" afterPath="$PROJECT_DIR$/ImageTools/Segmentation/TwoDimensional/Otsu2D.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ImageTools/ImageManager.py" beforeDir="false" afterPath="$PROJECT_DIR$/ImageTools/ImageManager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ImageTools/Segmentation/TwoDimensional/KMeans2D.py" beforeDir="false" afterPath="$PROJECT_DIR$/ImageTools/Segmentation/TwoDimensional/KMeans2D.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ImageTools/Segmentation/TwoDimensional/UNET.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/Main.py" beforeDir="false" afterPath="$PROJECT_DIR$/Main.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -59,11 +57,11 @@
       <recent name="F:\Windows\PyCharmProjects\porous-material-gan\DCGAN" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/data/core/train/image" />
+      <recent name="$PROJECT_DIR$/data/core/train" />
       <recent name="$PROJECT_DIR$/ImageTools/Segmentation/ThreeDimensional" />
       <recent name="$PROJECT_DIR$/GAN" />
       <recent name="$PROJECT_DIR$/GAN/DCGAN" />
-      <recent name="F:\Windows\Documents\Programming\Python Projects\porous-material-gan" />
-      <recent name="F:\Windows\Documents\Programming\Python Projects\porous-material-gan\ImageTools" />
     </key>
   </component>
   <component name="RunDashboard">
@@ -130,7 +128,7 @@
       <workItem from="1569923586832" duration="2785000" />
       <workItem from="1569927062605" duration="3622000" />
       <workItem from="1570214958261" duration="18614000" />
-      <workItem from="1570274343712" duration="23972000" />
+      <workItem from="1570274343712" duration="31723000" />
     </task>
     <task id="LOCAL-00001" summary="Initial project upload">
       <created>1538486874623</created>
@@ -185,6 +183,16 @@
           <line>29</line>
           <option name="timeStamp" value="25" />
         </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/ImageTools/Segmentation/TwoDimensional/WNET.py</url>
+          <line>198</line>
+          <option name="timeStamp" value="26" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/ImageTools/ImageManager.py</url>
+          <line>28</line>
+          <option name="timeStamp" value="32" />
+        </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
     <watches-manager>
@@ -194,7 +202,7 @@
     </watches-manager>
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/Granular_Material_GAN$Main.coverage" NAME="Main Coverage Results" MODIFIED="1570372437770" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/Granular_Material_GAN$Main.coverage" NAME="Main Coverage Results" MODIFIED="1570383552067" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/porous_material_gan$Main.coverage" NAME="Main Coverage Results" MODIFIED="1569930179141" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
