@@ -1,13 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="9fa2450b-a732-4310-af39-bab7196115b0" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ImageTools/ImageManager.py" beforeDir="false" afterPath="$PROJECT_DIR$/ImageTools/ImageManager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ImageTools/Segmentation/TwoDimensional/KMeans2D.py" beforeDir="false" afterPath="$PROJECT_DIR$/ImageTools/Segmentation/TwoDimensional/KMeans2D.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ImageTools/Segmentation/TwoDimensional/UNET.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Main.py" beforeDir="false" afterPath="$PROJECT_DIR$/Main.py" afterDir="false" />
-    </list>
+    <list default="true" id="9fa2450b-a732-4310-af39-bab7196115b0" name="Default Changelist" comment="" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -128,7 +122,7 @@
       <workItem from="1569923586832" duration="2785000" />
       <workItem from="1569927062605" duration="3622000" />
       <workItem from="1570214958261" duration="18614000" />
-      <workItem from="1570274343712" duration="31723000" />
+      <workItem from="1570274343712" duration="32796000" />
     </task>
     <task id="LOCAL-00001" summary="Initial project upload">
       <created>1538486874623</created>
