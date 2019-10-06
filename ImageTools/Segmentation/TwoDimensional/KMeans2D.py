@@ -3,6 +3,7 @@ import numpy as np
 from scipy import ndimage
 from sklearn.cluster import KMeans
 
+
 counter = 0
 
 
@@ -20,3 +21,4 @@ def segment_image(image):
     binder = segment * ~(voids + aggregates)
 
     return voids, aggregates, binder, segment
+

@@ -37,12 +37,14 @@ def save_image(image, filename, save_location, use_global_save_location=True):
     if use_global_save_location:
         directory = directory + sm.configuration.get("IO_OUTPUT_ROOT_DIR") + sm.current_directory
 
+
     if not os.path.exists(directory):
         os.makedirs(directory)
 
     file_loc = directory + filename + '.' + sm.configuration.get("IO_IMAGE_FILETYPE")
 
     if not os.path.isfile(file_loc):
+
         if len(image.shape) != 2:
             image = np.squeeze(image, 2)
         if sm.USE_BW:
