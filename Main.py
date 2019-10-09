@@ -122,29 +122,31 @@ def main():
         voids = list()
         aggregates = list()
         binders = list()
+        segments = list()
 
-        print("Segmenting images... ", end="\r", flush=True)
+        print("Segmenting images... ", end="", flush=True)
         for ind, res in enumerate(pool.map(segmentor2D.segment_image, images)):
             void, aggregate, binder, segment = res
 
             voids.insert(ind, void)
             aggregates.insert(ind, aggregate)
-            binders.insert(ind, binders)
+            binders.insert(ind, binder)
+            segments.insert(ind, segment)
         print("done!")
 
-        print("Post-Processing Segment Collection...")
+        print("Post-processing Segment Collection...")
 
-        print("\tCleaning Voids...", end="\r", flush=True)
+        print("\tCleaning Voids...", end="", flush=True)
         for ind, res in enumerate(pool.map(postproc.clean_segment, voids)):
             voids.insert(ind, res)
         print("done!")
 
-        print("\tCleaning Aggregates...", end="\r", flush=True)
+        print("\tCleaning Aggregates...", end="", flush=True)
         for ind, res in enumerate(pool.map(postproc.clean_segment, aggregates)):
             aggregates.insert(ind, res)
         print("done!")
 
-        print("\tCleaning Binders...", end="\r", flush=True)
+        print("\tCleaning Binders...", end="", flush=True)
         for ind, res in enumerate(pool.map(postproc.clean_segment, binders)):
             binders.insert(ind, res)
         print("done!")
@@ -163,19 +165,19 @@ def main():
 
             ax[0, 2].set_title("Segmented Image")
             ax[0, 2].axis('off')
-            ax[0, 2].imshow(np.reshape(segment, (1024, 1024)))
+            ax[0, 2].imshow(np.reshape(segments[i], (1024, 1024)))
 
             ax[1, 0].set_title("Voids")
             ax[1, 0].axis('off')
-            ax[1, 0].imshow(np.reshape(void, (1024, 1024)))
+            ax[1, 0].imshow(np.reshape(voids[i], (1024, 1024)))
 
             ax[1, 1].set_title("Binder")
             ax[1, 1].axis('off')
-            ax[1, 1].imshow(np.reshape(binder, (1024, 1024)))
+            ax[1, 1].imshow(np.reshape(binders[i], (1024, 1024)))
 
             ax[1, 2].set_title("Aggregates")
             ax[1, 2].axis('off')
-            ax[1, 2].imshow(np.reshape(aggregate, (1024, 1024)))
+            ax[1, 2].imshow(np.reshape(aggregates[i], (1024, 1024)))
 
             im.save_plot(str(i), 'segments/')
 

@@ -73,16 +73,16 @@ def denoise_images(images, pool):
     total = len(images)
     curr = 0
 
-    print("\tDe-noising Images... ", end='\r', flush=True)
+    print("\tDe-noising Images... ", end='', flush=True)
     for ind, res in enumerate(pool.map(denoise_image, images)):
         fixed_images.insert(ind, res)
         curr += 1
-        print("\tDe-noising Images... " + str(curr / total * 100) + "%", end='\r', flush=True)
+        print("\r\tDe-noising Images... " + str(curr / total * 100) + "%", end='', flush=True)
 
         if sm.configuration.get("ENABLE_IMAGE_SAVING") == "True":
             im.save_image(res, str(ind), "Pre-processing/De-Noised/")
 
-    print("\tDe-noising Images... done!")
+    print("\r\tDe-noising Images... done!")
     return fixed_images
 
 
