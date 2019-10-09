@@ -70,19 +70,25 @@ def normalise_image(image):
 def denoise_images(images, pool):
     fixed_images = list()
 
-    print("\tDe-noising Images... ", end='')
+    total = len(images)
+    curr = 0
+
+    print("\tDe-noising Images... ", end='\r')
     for ind, res in enumerate(pool.map(denoise_image, images)):
         fixed_images.insert(ind, res)
+        curr += 1
+        print("\tDe-noising Images... " + str(curr / total * 100) + "%", end='\r', flush=True)
 
         if sm.configuration.get("ENABLE_IMAGE_SAVING") == "True":
             im.save_image(res, str(ind), "Pre-processing/De-Noised/")
 
-    print("done!")
+    print("\tDe-noising Images... done!")
     return fixed_images
 
 
 def denoise_image(image):
-    return restoration.denoise_tv_chambolle(image)
+    # return restoration.denoise_nl_means(image)
+    return restoration.denoise_bilateral(image)
 
 
 def remove_anomalies(images):

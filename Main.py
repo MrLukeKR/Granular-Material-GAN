@@ -31,7 +31,7 @@ from Settings import SettingsManager as sm
 # <<< Machine Learning
 
 
-pool = Pool()
+pool = None
 
 
 def print_introduction():
@@ -67,7 +67,7 @@ def preprocess_image_collection(images):
 
     processed_images = itp.reshape_images(processed_images, pool=pool)
     processed_images = itp.normalise_images(processed_images, pool=pool)
-    # processed_images = itp.denoise_images(processed_images, pool=pool)
+    processed_images = itp.denoise_images(processed_images, pool=pool)
     # processed_images = itp.remove_empty_scans(processed_images)
     # processed_images = itp.remove_anomalies(processed_images)
     # processed_images = itp.remove_backgrounds(processed_images)
@@ -87,6 +87,9 @@ def process_voxels(images):
 
 
 def main():
+    global pool
+
+    pool = Pool()
     print_introduction()
 
     sm.load_settings()
@@ -96,14 +99,16 @@ def main():
 
 # | DATA PREPARATION MODULE
 # \-- | DATA LOADING SUB-MODULE
-        images = im.load_images_from_directory(data_directory)
+        original_images = im.load_images_from_directory(data_directory)
         sm.current_directory = data_directory.replace(sm.configuration.get("IO_DATA_ROOT_DIR"), '')
 
         if not sm.current_directory.endswith('/'):
             sm.current_directory += '/'
 
         if sm.configuration.get("ENABLE_PREPROCESSING") == "True":
-            images = preprocess_image_collection(images)
+            images = preprocess_image_collection(original_images)
+        else:
+            images = original_images
 
         sm.images = images
 
@@ -127,18 +132,28 @@ def main():
             fig, ax = im.plt.subplots(2, 3, figsize=(10, 5))
 
             ax[0, 0].set_title("Original Image")
-            ax[0, 0].imshow(np.reshape(images[i], (1024, 1024)))
+            ax[0, 0].axis('off')
+            ax[0, 0].imshow(np.reshape(original_images[i], (1024, 1024)))
 
-            ax[0, 1].set_title("Segmented Image")
-            ax[0, 1].imshow(np.reshape(segment, (1024, 1024)))
+            ax[0, 1].axis('off')
+            if sm.configuration.get("ENABLE_PREPROCESSING") == "True":
+                ax[0, 1].set_title("Processed Image")
+                ax[0, 1].imshow(np.reshape(images[i], (1024, 1024)))
+
+            ax[0, 2].set_title("Segmented Image")
+            ax[0, 2].axis('off')
+            ax[0, 2].imshow(np.reshape(segment, (1024, 1024)))
 
             ax[1, 0].set_title("Voids")
+            ax[1, 0].axis('off')
             ax[1, 0].imshow(np.reshape(void, (1024, 1024)))
 
             ax[1, 1].set_title("Binder")
+            ax[1, 1].axis('off')
             ax[1, 1].imshow(np.reshape(binder, (1024, 1024)))
 
             ax[1, 2].set_title("Aggregates")
+            ax[1, 2].axis('off')
             ax[1, 2].imshow(np.reshape(aggregate, (1024, 1024)))
 
             im.save_plot(str(i), 'segments/')
