@@ -15,7 +15,8 @@ import numpy as np
 # <<< Utilities
 
 # Image Processing >>>
-import ImageTools.Preprocessor as itp
+import ImageTools.Preprocessor as preproc
+import ImageTools.Postprocessor as postproc
 import ImageTools.VoxelProcessor as vp
 import ImageTools.ImageManager as im
 
@@ -65,9 +66,9 @@ def preprocess_image_collection(images):
     print("Pre-processing Image Collection...")
     processed_images = images
 
-    processed_images = itp.reshape_images(processed_images, pool=pool)
-    processed_images = itp.normalise_images(processed_images, pool=pool)
-    processed_images = itp.denoise_images(processed_images, pool=pool)
+    processed_images = preproc.reshape_images(processed_images, pool=pool)
+    processed_images = preproc.normalise_images(processed_images, pool=pool)
+    processed_images = preproc.denoise_images(processed_images, pool=pool)
     # processed_images = itp.remove_empty_scans(processed_images)
     # processed_images = itp.remove_anomalies(processed_images)
     # processed_images = itp.remove_backgrounds(processed_images)
@@ -122,15 +123,35 @@ def main():
         aggregates = list()
         binders = list()
 
-        print("Segmenting images... ")
+        print("Segmenting images... ", end="\r", flush=True)
+        for ind, res in enumerate(pool.map(segmentor2D.segment_image, images)):
+            void, aggregate, binder, segment = res
+
+            voids.insert(ind, void)
+            aggregates.insert(ind, aggregate)
+            binders.insert(ind, binders)
+        print("done!")
+
+        print("Post-Processing Segment Collection...")
+
+        print("\tCleaning Voids...", end="\r", flush=True)
+        for ind, res in enumerate(pool.map(postproc.clean_segment, voids)):
+            voids.insert(ind, res)
+        print("done!")
+
+        print("\tCleaning Aggregates...", end="\r", flush=True)
+        for ind, res in enumerate(pool.map(postproc.clean_segment, aggregates)):
+            aggregates.insert(ind, res)
+        print("done!")
+
+        print("\tCleaning Binders...", end="\r", flush=True)
+        for ind, res in enumerate(pool.map(postproc.clean_segment, binders)):
+            binders.insert(ind, res)
+        print("done!")
+
+        print("Saving plots...")
+        fig, ax = im.plt.subplots(2, 3, figsize=(10, 5))
         for i in tqdm(range(len(images))):
-            void, aggregate, binder, segment = segmentor2D.segment_image(images[i])
-            voids.append(void)
-            aggregates.append(aggregate)
-            binders.append(binders)
-
-            fig, ax = im.plt.subplots(2, 3, figsize=(10, 5))
-
             ax[0, 0].set_title("Original Image")
             ax[0, 0].axis('off')
             ax[0, 0].imshow(np.reshape(original_images[i], (1024, 1024)))

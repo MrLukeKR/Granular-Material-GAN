@@ -73,7 +73,7 @@ def denoise_images(images, pool):
     total = len(images)
     curr = 0
 
-    print("\tDe-noising Images... ", end='\r')
+    print("\tDe-noising Images... ", end='\r', flush=True)
     for ind, res in enumerate(pool.map(denoise_image, images)):
         fixed_images.insert(ind, res)
         curr += 1
