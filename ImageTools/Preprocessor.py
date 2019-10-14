@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import ImageTools.ImageManager as im
 import scipy.signal as ss
+from scipy import ndimage
 
 
 from tqdm import tqdm
@@ -80,7 +81,7 @@ def denoise_images(images, pool):
         print("\r\tDe-noising Images... " + str(curr / total * 100) + "%", end='', flush=True)
 
         if sm.configuration.get("ENABLE_IMAGE_SAVING") == "True":
-            im.save_image(res, str(ind), "Pre-processing/De-Noised/")
+            im.save_image(res, str(ind), "Pre-processing/De-Noised/", "De-Noised")
 
     print("\r\tDe-noising Images... done!")
     return fixed_images
@@ -88,7 +89,8 @@ def denoise_images(images, pool):
 
 def denoise_image(image):
     # return restoration.denoise_nl_means(image)
-    return restoration.denoise_bilateral(image)
+    # return restoration.denoise_wavelet(image)
+    return ndimage.gaussian_filter(image, sigma=1)
 
 
 def remove_anomalies(images):
@@ -99,7 +101,7 @@ def remove_anomalies(images):
         fixed_images.append(remove_anomaly(images[x]))
 
         if sm.configuration.get("ENABLE_IMAGE_SAVING") == "True":
-            im.save_image(fixed_images[x], str(x), "Pre-processing/AnomalyRemoved/")
+            im.save_image(fixed_images[x], str(x), "Pre-processing/AnomalyRemoved/", "AnomalyRemoved")
 
     print("done!")
     return fixed_images

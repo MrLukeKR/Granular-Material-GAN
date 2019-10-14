@@ -24,6 +24,7 @@ from ImageTools.Segmentation.ThreeDimensional import StackedOtsu2D as segmentor3
 from ImageTools.Segmentation.TwoDimensional import KMeans2D as segmentor2D
 
 from Settings import SettingsManager as sm
+from Settings import FileManager as fm
 
 
 # <<< Image Processing
@@ -43,23 +44,6 @@ def print_introduction():
     print()
     print("Running hardware checks...")
     print(device_lib.list_local_devices())
-
-
-def prepare_directories():
-    data_directories = [f.replace('\\', '/')
-                        for f in glob(sm.configuration.get("IO_DATA_ROOT_DIR") + "**/", recursive=True)]
-
-    to_remove = set()
-
-    for data_directory in data_directories:
-        for dPaths, dNames, fNames in walk(data_directory):
-            if len(fNames) == 0:
-                to_remove.add(data_directory)
-
-    for directory in to_remove:
-        data_directories.remove(directory)
-
-    return data_directories
 
 
 def preprocess_image_collection(images):
@@ -94,23 +78,32 @@ def main():
     print_introduction()
 
     sm.load_settings()
-    data_directories = prepare_directories()
-
-    for data_directory in data_directories:
+    fm.assign_special_folders()
 
 # | DATA PREPARATION MODULE
+    fm.data_directories = fm.prepare_directories(True)
+
+    if sm.configuration.get("ENABLE_PREPROCESSING") == "True":
+        fm.data_directories = fm.prepare_directories(False)
+        for data_directory in fm.data_directories:
+            fm.current_directory = data_directory.replace(sm.configuration.get("IO_DATA_ROOT_DIR"), '')
+
+            images = im.load_images_from_directory(data_directory)
+            images = preprocess_image_collection(images)
+
+            print("Saving processed images... ", end='')
+            im.save_images(images, "scan", fm.SpecialFolder.PROCESSED_DATA)
+            print("done!")
+
+    fm.data_directories = fm.prepare_directories(True)
+
 # \-- | DATA LOADING SUB-MODULE
-        original_images = im.load_images_from_directory(data_directory)
-        sm.current_directory = data_directory.replace(sm.configuration.get("IO_DATA_ROOT_DIR"), '')
+    for data_directory in fm.data_directories:
+        images = im.load_images_from_directory(data_directory)
+        fm.current_directory = data_directory.replace(sm.configuration.get("IO_DATA_ROOT_DIR"), '')
 
-        if not sm.current_directory.endswith('/'):
-            sm.current_directory += '/'
-
-        if sm.configuration.get("ENABLE_PREPROCESSING") == "True":
-            images = preprocess_image_collection(original_images)
-        else:
-            images = original_images
-
+        if not fm.current_directory.endswith('/'):
+            fm.current_directory += '/'
         sm.images = images
 
 #        ind = 0
@@ -156,7 +149,7 @@ def main():
         for i in tqdm(range(len(images))):
             ax[0, 0].set_title("Original Image")
             ax[0, 0].axis('off')
-            ax[0, 0].imshow(np.reshape(original_images[i], (1024, 1024)))
+            ax[0, 0].imshow(np.reshape(images[i], (1024, 1024)))
 
             ax[0, 1].axis('off')
             if sm.configuration.get("ENABLE_PREPROCESSING") == "True":

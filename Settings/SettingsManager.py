@@ -1,10 +1,9 @@
 import numpy as np
 
-settings_file = []
-data_directory = []
-configuration = dict()
+from Settings import FileManager as fm
 
-current_directory = str()
+settings_file = []
+configuration = dict()
 
 rescale_factor = 0
 image_channels = 1
