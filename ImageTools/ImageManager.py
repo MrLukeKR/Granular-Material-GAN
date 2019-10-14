@@ -16,6 +16,8 @@ from enum import Enum
 project_images = list()
 segmentedImages = list()
 
+supported_image_formats = ('.png', '.jpg', '.jpeg', '.tiff', '.tif', '.bmp', '.gif')
+
 
 def save_plot(filename, save_location, root_directory, use_current_directory):
     if not isinstance(root_directory, fm.SpecialFolder):
@@ -156,9 +158,13 @@ def load_images_from_list(file_list):
     ims = list()
     t = tqdm(range(len(file_list)))
     for i in t:  # tqdm is a progress bar tool
+        if not file_list[i].lower().endswith(supported_image_formats):
+            continue
+
         t.set_description("Loading: " + file_list[i])
         t.refresh()  # to show immediately the update
         # Number of images, channels, height, width
+
         img = Image.open(file_list[i])
 
         img = img.resize((sm.image_resolution, sm.image_resolution))
@@ -186,8 +192,6 @@ def load_images_from_directory(directory):
 
     for (dPaths, dNames, fNames) in walk(directory):
             files.extend([directory + '{0}'.format(i) for i in fNames])
-
-    files.sort()
 
     return load_images_from_list(files)
 
