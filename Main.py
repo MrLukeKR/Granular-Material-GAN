@@ -144,36 +144,6 @@ def main():
             binders.insert(ind, res)
         print("done!")
 
-        print("Saving plots...")
-        fig, ax = im.plt.subplots(2, 3, figsize=(10, 5))
-        for i in tqdm(range(len(images))):
-            ax[0, 0].set_title("Original Image")
-            ax[0, 0].axis('off')
-            ax[0, 0].imshow(np.reshape(images[i], (1024, 1024)))
-
-            ax[0, 1].axis('off')
-            if sm.configuration.get("ENABLE_PREPROCESSING") == "True":
-                ax[0, 1].set_title("Processed Image")
-                ax[0, 1].imshow(np.reshape(images[i], (1024, 1024)))
-
-            ax[0, 2].set_title("Segmented Image")
-            ax[0, 2].axis('off')
-            ax[0, 2].imshow(np.reshape(segments[i], (1024, 1024)))
-
-            ax[1, 0].set_title("Voids")
-            ax[1, 0].axis('off')
-            ax[1, 0].imshow(np.reshape(voids[i], (1024, 1024)))
-
-            ax[1, 1].set_title("Binder")
-            ax[1, 1].axis('off')
-            ax[1, 1].imshow(np.reshape(binders[i], (1024, 1024)))
-
-            ax[1, 2].set_title("Aggregates")
-            ax[1, 2].axis('off')
-            ax[1, 2].imshow(np.reshape(aggregates[i], (1024, 1024)))
-
-            im.save_plot(str(i), 'segments/')
-
 # \-- | DATA REPRESENTATION CONVERSION SUB-MODULE
         voxels = process_voxels(images)
 
@@ -196,6 +166,39 @@ def main():
         # vX, vY, vZ = voxels[0].shape
         # noise = get_noise_image((vX, vY, vZ))
         # im.display_voxel(noise)
+
+
+def save_segmentation_plots(images, segments, voids, binders, aggregates):
+    print("Saving plots...")
+
+    fig, ax = im.plt.subplots(2, 3, figsize=(10, 5))
+    for i in tqdm(range(len(images))):
+        ax[0, 0].axis('off')
+        ax[0, 0].set_title("Original Image")
+        ax[0, 0].imshow(np.reshape(images[i], (1024, 1024)))
+
+        ax[0, 1].axis('off')
+        if sm.configuration.get("ENABLE_PREPROCESSING") == "True":
+            ax[0, 1].set_title("Processed Image")
+            ax[0, 1].imshow(np.reshape(images[i], (1024, 1024)))
+
+        ax[0, 2].set_title("Segmented Image")
+        ax[0, 2].axis('off')
+        ax[0, 2].imshow(np.reshape(segments[i], (1024, 1024)))
+
+        ax[1, 0].set_title("Voids")
+        ax[1, 0].axis('off')
+        ax[1, 0].imshow(np.reshape(voids[i], (1024, 1024)))
+
+        ax[1, 1].set_title("Binder")
+        ax[1, 1].axis('off')
+        ax[1, 1].imshow(np.reshape(binders[i], (1024, 1024)))
+
+        ax[1, 2].set_title("Aggregates")
+        ax[1, 2].axis('off')
+        ax[1, 2].imshow(np.reshape(aggregates[i], (1024, 1024)))
+
+        im.save_plot(str(i), 'segments/')
 
 
 if __name__ == "__main__":
