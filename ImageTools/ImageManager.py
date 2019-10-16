@@ -74,6 +74,39 @@ def save_image(image, root_directory, save_location, filename, use_current_direc
             plt.imsave(file_loc, image, cmap='jet')
 
 
+def save_segmentation_plots(images, segments, voids, binders, aggregates):
+    print("Saving plots...")
+
+    fig, ax = plt.subplots(2, 3, figsize=(10, 5))
+    for i in tqdm(range(len(images))):
+        ax[0, 0].axis('off')
+        ax[0, 0].set_title("Original Image")
+        ax[0, 0].imshow(np.reshape(images[i], (1024, 1024)))
+
+        ax[0, 1].axis('off')
+        if sm.configuration.get("ENABLE_PREPROCESSING") == "True":
+            ax[0, 1].set_title("Processed Image")
+            ax[0, 1].imshow(np.reshape(images[i], (1024, 1024)))
+
+        ax[0, 2].set_title("Segmented Image")
+        ax[0, 2].axis('off')
+        ax[0, 2].imshow(np.reshape(segments[i], (1024, 1024)))
+
+        ax[1, 0].set_title("Voids")
+        ax[1, 0].axis('off')
+        ax[1, 0].imshow(np.reshape(voids[i], (1024, 1024)))
+
+        ax[1, 1].set_title("Binder")
+        ax[1, 1].axis('off')
+        ax[1, 1].imshow(np.reshape(binders[i], (1024, 1024)))
+
+        ax[1, 2].set_title("Aggregates")
+        ax[1, 2].axis('off')
+        ax[1, 2].imshow(np.reshape(aggregates[i], (1024, 1024)))
+
+        save_plot(str(i), 'segments/')
+
+
 def save_voxel_image(voxel, file_name, save_location):
     directory = sm.configuration.get("IO_OUTPUT_ROOT_DIR") + fm.current_directory + save_location
 

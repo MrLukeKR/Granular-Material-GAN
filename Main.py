@@ -81,71 +81,83 @@ def main():
     fm.assign_special_folders()
 
 # | DATA PREPARATION MODULE
-    fm.data_directories = fm.prepare_directories(True)
-
     if sm.configuration.get("ENABLE_PREPROCESSING") == "True":
-        fm.data_directories = fm.prepare_directories(False)
+        fm.data_directories = fm.prepare_directories(fm.SpecialFolder.UNPROCESSED_SCANS)
         for data_directory in fm.data_directories:
-            fm.current_directory = data_directory.replace(sm.configuration.get("IO_DATA_ROOT_DIR"), '')
+            fm.current_directory = data_directory.replace(sm.configuration.get("IO_UNPROCESSED_SCAN_ROOT_DIR"), '')
 
             images = im.load_images_from_directory(data_directory)
             images = preprocess_image_collection(images)
 
             print("Saving processed images... ", end='')
-            im.save_images(images, "scan", fm.SpecialFolder.PROCESSED_DATA)
+            im.save_images(images, "scan", fm.SpecialFolder.PROCESSED_SCANS)
             print("done!")
 
-    fm.data_directories = fm.prepare_directories(True)
-
 # \-- | DATA LOADING SUB-MODULE
-    for data_directory in fm.data_directories:
-        images = im.load_images_from_directory(data_directory)
-        fm.current_directory = data_directory.replace(sm.configuration.get("IO_DATA_ROOT_DIR"), '')
 
-        if not fm.current_directory.endswith('/'):
-            fm.current_directory += '/'
-        sm.images = images
+    if sm.configuration.get("ENABLE_SEGMENTATION") == "True":
+        fm.data_directories = fm.prepare_directories(fm.SpecialFolder.PROCESSED_SCANS)
 
-#        ind = 0
-#        for image in images:
-#            im.save_image(image, str(ind), 'data/core/train/image/', False)
-#            ind += 1
+        for data_directory in fm.data_directories:
+            images = im.load_images_from_directory(data_directory)
+            fm.current_directory = data_directory.replace(sm.configuration.get("IO_PROCESSED_SCAN_ROOT_DIR"), '')
 
-# \-- | 2D DATA SEGMENTATION SUB-MODULE
-        voids = list()
-        aggregates = list()
-        binders = list()
-        segments = list()
+            if not fm.current_directory.endswith('/'):
+                fm.current_directory += '/'
+            sm.images = images
 
-        print("Segmenting images... ", end="", flush=True)
-        for ind, res in enumerate(pool.map(segmentor2D.segment_image, images)):
-            void, aggregate, binder, segment = res
+    #        ind = 0
+    #        for image in images:
+    #            im.save_image(image, str(ind), 'data/core/train/image/', False)
+    #            ind += 1
 
-            voids.insert(ind, void)
-            aggregates.insert(ind, aggregate)
-            binders.insert(ind, binder)
-            segments.insert(ind, segment)
-        print("done!")
+    # \-- | 2D DATA SEGMENTATION SUB-MODULE
+            voids = list()
+            aggregates = list()
+            binders = list()
+            segments = list()
 
-        print("Post-processing Segment Collection...")
+            print("Segmenting images... ", end="", flush=True)
+            for ind, res in enumerate(pool.map(segmentor2D.segment_image, images)):
+                void, aggregate, binder, segment = res
 
-        print("\tCleaning Voids...", end="", flush=True)
-        for ind, res in enumerate(pool.map(postproc.clean_segment, voids)):
-            voids.insert(ind, res)
-        print("done!")
+                voids.insert(ind, void)
+                aggregates.insert(ind, aggregate)
+                binders.insert(ind, binder)
+                segments.insert(ind, segment)
+            print("done!")
 
-        print("\tCleaning Aggregates...", end="", flush=True)
-        for ind, res in enumerate(pool.map(postproc.clean_segment, aggregates)):
-            aggregates.insert(ind, res)
-        print("done!")
+            print("Post-processing Segment Collection...")
 
-        print("\tCleaning Binders...", end="", flush=True)
-        for ind, res in enumerate(pool.map(postproc.clean_segment, binders)):
-            binders.insert(ind, res)
-        print("done!")
+            print("\tCleaning Voids...", end="", flush=True)
+            for ind, res in enumerate(pool.map(postproc.clean_segment, voids)):
+                voids.insert(ind, res)
+            print("done!")
+
+            print("\tCleaning Aggregates...", end="", flush=True)
+            for ind, res in enumerate(pool.map(postproc.clean_segment, aggregates)):
+                aggregates.insert(ind, res)
+            print("done!")
+
+            print("\tCleaning Binders...", end="", flush=True)
+            for ind, res in enumerate(pool.map(postproc.clean_segment, binders)):
+                binders.insert(ind, res)
+            print("done!")
+
+            print("Saving segmented images... ", end='')
+            im.save_images(binders, "binder", fm.SpecialFolder.SEGMENTED_SCANS)
+            im.save_images(aggregates, "aggregate", fm.SpecialFolder.SEGMENTED_SCANS)
+            im.save_images(voids, "void", fm.SpecialFolder.SEGMENTED_SCANS)
+            print("done!")
 
 # \-- | DATA REPRESENTATION CONVERSION SUB-MODULE
-        voxels = process_voxels(images)
+        if sm.configuration.get("ENABLE_VOXEL_SEPARATION") == "True":
+            fm.data_directories = fm.prepare_directories(fm.SpecialFolder.SEGMENTED_SCANS)
+
+            for data_directory in fm.data_directories:
+                images = im.load_images_from_directory(data_directory)
+
+                voxels = process_voxels(images)
 
 # \-- | 3D DATA SEGMENTATION SUB-MODULE
 #        print("Segmenting voxels... ", end='')
@@ -154,51 +166,20 @@ def main():
 #        print("done!")
 
 # | GENERATIVE ADVERSARIAL NETWORK MODULE
-        my_net = DCGAN.Network
-        my_net.create_network(images)
-        # my_net.train_network()
+        # my_net = DCGAN.Network
+        # my_net.create_network(images)
+
+        # if sm.configuration.get("ENABLE_GAN_TRAINING") == "True":
+            # my_net.train_network()
 
 # \-- | 2D Noise Generation
-        v_x, v_y = images[0].shape
-        noise = im.get_noise_image((v_x, v_y))
+        # v_x, v_y = images[0].shape
+        # noise = im.get_noise_image((v_x, v_y))
 
 # \-- | 3D Noise Generation
         # vX, vY, vZ = voxels[0].shape
         # noise = get_noise_image((vX, vY, vZ))
         # im.display_voxel(noise)
-
-
-def save_segmentation_plots(images, segments, voids, binders, aggregates):
-    print("Saving plots...")
-
-    fig, ax = im.plt.subplots(2, 3, figsize=(10, 5))
-    for i in tqdm(range(len(images))):
-        ax[0, 0].axis('off')
-        ax[0, 0].set_title("Original Image")
-        ax[0, 0].imshow(np.reshape(images[i], (1024, 1024)))
-
-        ax[0, 1].axis('off')
-        if sm.configuration.get("ENABLE_PREPROCESSING") == "True":
-            ax[0, 1].set_title("Processed Image")
-            ax[0, 1].imshow(np.reshape(images[i], (1024, 1024)))
-
-        ax[0, 2].set_title("Segmented Image")
-        ax[0, 2].axis('off')
-        ax[0, 2].imshow(np.reshape(segments[i], (1024, 1024)))
-
-        ax[1, 0].set_title("Voids")
-        ax[1, 0].axis('off')
-        ax[1, 0].imshow(np.reshape(voids[i], (1024, 1024)))
-
-        ax[1, 1].set_title("Binder")
-        ax[1, 1].axis('off')
-        ax[1, 1].imshow(np.reshape(binders[i], (1024, 1024)))
-
-        ax[1, 2].set_title("Aggregates")
-        ax[1, 2].axis('off')
-        ax[1, 2].imshow(np.reshape(aggregates[i], (1024, 1024)))
-
-        im.save_plot(str(i), 'segments/')
 
 
 if __name__ == "__main__":
