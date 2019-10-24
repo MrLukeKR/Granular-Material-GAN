@@ -90,7 +90,7 @@ def main():
             images = preprocess_image_collection(images)
 
             print("Saving processed images... ", end='')
-            im.save_images(images, "scan", fm.SpecialFolder.PROCESSED_SCANS)
+            im.save_images(images, "processed_scan", fm.SpecialFolder.PROCESSED_SCANS)
             print("done!")
 
 # \-- | DATA LOADING SUB-MODULE
@@ -119,12 +119,10 @@ def main():
 
             print("Segmenting images... ", end="", flush=True)
             for ind, res in enumerate(pool.map(segmentor2D.segment_image, images)):
-                void, aggregate, binder, segment = res
-
-                voids.insert(ind, void)
-                aggregates.insert(ind, aggregate)
-                binders.insert(ind, binder)
-                segments.insert(ind, segment)
+                voids.insert(ind, res[0])
+                aggregates.insert(ind, res[1])
+                binders.insert(ind, res[2])
+                segments.insert(ind, res[3])
             print("done!")
 
             print("Post-processing Segment Collection...")
@@ -148,6 +146,7 @@ def main():
             im.save_images(binders, "binder", fm.SpecialFolder.SEGMENTED_SCANS)
             im.save_images(aggregates, "aggregate", fm.SpecialFolder.SEGMENTED_SCANS)
             im.save_images(voids, "void", fm.SpecialFolder.SEGMENTED_SCANS)
+            im.save_images(segments, "segment", fm.SpecialFolder.SEGMENTED_SCANS)
             print("done!")
 
 # \-- | DATA REPRESENTATION CONVERSION SUB-MODULE

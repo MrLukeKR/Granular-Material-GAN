@@ -1,4 +1,5 @@
 import os
+import math
 import numpy as np
 import PIL.Image as Image
 import matplotlib.pyplot as plt
@@ -43,8 +44,12 @@ def save_plot(filename, save_location, root_directory, use_current_directory):
 def save_images(images, filename_pretext, root_directory, save_location="", use_current_directory=True):
     ind = 0
 
+    digits = len(str(len(images)))
+
     for image in images:
-        save_image(image, root_directory, save_location, filename_pretext + '_' + str(ind), use_current_directory)
+        preamble_digits = digits - len(str(ind))
+        preamble = '0' * preamble_digits
+        save_image(image, root_directory, save_location, filename_pretext + '_' + preamble + str(ind), use_current_directory)
         ind += 1
 
 
@@ -188,6 +193,7 @@ def save_animation(animation, save_location, frames_per_second):
 
 def load_images_from_list(file_list):
     print("Loading " + str(len(file_list)) + " images")
+    file_list.sort()
     ims = list()
     t = tqdm(range(len(file_list)))
     for i in t:  # tqdm is a progress bar tool
@@ -198,13 +204,14 @@ def load_images_from_list(file_list):
         t.refresh()  # to show immediately the update
         # Number of images, channels, height, width
 
-        img = Image.open(file_list[i])
+        img = Image.open(file_list[i]).convert('L')
 
         img = img.resize((sm.image_resolution, sm.image_resolution))
         img = np.asarray(img, dtype=mlm.K.floatx())
 
-        img = np.uint8(img / img.max() * 255.0)
-        img = np.reshape(img, (sm.image_resolution, sm.image_resolution, 1))
+        img = np.uint8(img / np.max(img) * 255.0)
+
+        img = np.reshape(img, (sm.image_resolution, sm.image_resolution))
         ims.append(img)
 
     print()  # Print a new line after the process bar is finished
