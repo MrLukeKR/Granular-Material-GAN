@@ -82,7 +82,12 @@ def main():
 
 # | DATA PREPARATION MODULE
     if sm.configuration.get("ENABLE_PREPROCESSING") == "True":
-        fm.data_directories = fm.prepare_directories(fm.SpecialFolder.UNPROCESSED_SCANS)
+        existing_scans = set(fm.prepare_directories(fm.SpecialFolder.PROCESSED_SCANS))
+        existing_scans = list(map(lambda x: x.split('/')[-2], existing_scans))
+
+        fm.data_directories = list(d for d in fm.prepare_directories(fm.SpecialFolder.UNPROCESSED_SCANS)
+                                   if d.split('/')[-2] not in existing_scans)
+
         for data_directory in fm.data_directories:
             fm.current_directory = data_directory.replace(sm.configuration.get("IO_UNPROCESSED_SCAN_ROOT_DIR"), '')
 
@@ -96,7 +101,11 @@ def main():
 # \-- | DATA LOADING SUB-MODULE
 
     if sm.configuration.get("ENABLE_SEGMENTATION") == "True":
-        fm.data_directories = fm.prepare_directories(fm.SpecialFolder.PROCESSED_SCANS)
+        existing_scans = set(fm.prepare_directories(fm.SpecialFolder.SEGMENTED_SCANS))
+        existing_scans = list(map(lambda x: x.split('/')[-2], existing_scans))
+
+        fm.data_directories = list(d for d in fm.prepare_directories(fm.SpecialFolder.PROCESSED_SCANS)
+                                   if d.split('/')[-2] not in existing_scans)
 
         for data_directory in fm.data_directories:
             images = im.load_images_from_directory(data_directory)
@@ -113,8 +122,14 @@ def main():
 
     # \-- | 2D DATA SEGMENTATION SUB-MODULE
             voids = list()
+            clean_voids = list()
+
             aggregates = list()
+            clean_aggregates = list()
+
             binders = list()
+            clean_binders = list()
+
             segments = list()
 
             print("Segmenting images... ", end="", flush=True)
@@ -129,23 +144,23 @@ def main():
 
             print("\tCleaning Voids...", end="", flush=True)
             for ind, res in enumerate(pool.map(postproc.clean_segment, voids)):
-                voids.insert(ind, res)
+                clean_voids.insert(ind, res)
             print("done!")
 
             print("\tCleaning Aggregates...", end="", flush=True)
             for ind, res in enumerate(pool.map(postproc.clean_segment, aggregates)):
-                aggregates.insert(ind, res)
+                clean_aggregates.insert(ind, res)
             print("done!")
 
             print("\tCleaning Binders...", end="", flush=True)
             for ind, res in enumerate(pool.map(postproc.clean_segment, binders)):
-                binders.insert(ind, res)
+                clean_binders.insert(ind, res)
             print("done!")
 
             print("Saving segmented images... ", end='')
-            im.save_images(binders, "binder", fm.SpecialFolder.SEGMENTED_SCANS)
-            im.save_images(aggregates, "aggregate", fm.SpecialFolder.SEGMENTED_SCANS)
-            im.save_images(voids, "void", fm.SpecialFolder.SEGMENTED_SCANS)
+            im.save_images(clean_binders, "binder", fm.SpecialFolder.SEGMENTED_SCANS)
+            im.save_images(clean_aggregates, "aggregate", fm.SpecialFolder.SEGMENTED_SCANS)
+            im.save_images(clean_voids, "void", fm.SpecialFolder.SEGMENTED_SCANS)
             im.save_images(segments, "segment", fm.SpecialFolder.SEGMENTED_SCANS)
             print("done!")
 
