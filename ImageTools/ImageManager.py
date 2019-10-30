@@ -204,10 +204,9 @@ def load_images_from_list(file_list):
         t.refresh()  # to show immediately the update
         # Number of images, channels, height, width
 
-        img = Image.open(file_list[i])
-        img.getdata()
+        img = np.asarray(Image.open(file_list[i]), dtype=mlm.K.floatx())
 
-        if img.mode == "RGB" or len(img.size) == 3:
+        if len(img.shape) == 3:
             r, g, b = img.split()
 
             ra = np.array(r)
@@ -217,8 +216,7 @@ def load_images_from_list(file_list):
             img = (0.299 * ra + 0.587 * ga + 0.114 * ba)
 
         if img.shape != (sm.image_resolution, sm.image_resolution):
-            img = img.resize((sm.image_resolution, sm.image_resolution))
-        img = np.asarray(img, dtype=mlm.K.floatx())
+            img.resize((sm.image_resolution, sm.image_resolution))
 
         img = np.uint8(img / np.max(img) * 255.0)
 
