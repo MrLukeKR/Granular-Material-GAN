@@ -158,9 +158,9 @@ def main():
             print("done!")
 
             print("Saving segmented images... ", end='')
-            im.save_images(clean_binders, "binder", fm.SpecialFolder.SEGMENTED_SCANS)
-            im.save_images(clean_aggregates, "aggregate", fm.SpecialFolder.SEGMENTED_SCANS)
-            im.save_images(clean_voids, "void", fm.SpecialFolder.SEGMENTED_SCANS)
+            im.save_images(clean_binders, "binder", fm.SpecialFolder.BINDER_SEGMENTS)
+            im.save_images(clean_aggregates, "aggregate", fm.SpecialFolder.AGGREGATE_SEGMENTS)
+            im.save_images(clean_voids, "void", fm.SpecialFolder.VOID_SEGMENTS)
             im.save_images(segments, "segment", fm.SpecialFolder.SEGMENTED_SCANS)
             print("done!")
 

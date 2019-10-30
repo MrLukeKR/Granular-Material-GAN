@@ -206,12 +206,10 @@ def load_images_from_list(file_list):
 
         img = np.asarray(Image.open(file_list[i]), dtype=mlm.K.floatx())
 
-        if len(img.shape) == 3:
-            r, g, b = img.split()
-
-            ra = np.array(r)
-            ga = np.array(g)
-            ba = np.array(b)
+        if img.shape[2] == 3:
+            ra = img[:, :, 0]
+            ga = img[:, :, 1]
+            ba = img[:, :, 2]
 
             img = (0.299 * ra + 0.587 * ga + 0.114 * ba)
 
