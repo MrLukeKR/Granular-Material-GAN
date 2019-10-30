@@ -204,21 +204,21 @@ def load_images_from_list(file_list):
         t.refresh()  # to show immediately the update
         # Number of images, channels, height, width
 
-        img = np.asarray(Image.open(file_list[i]), dtype=mlm.K.floatx())
+        img = Image.open(file_list[i])
 
-        if img.shape[2] == 3:
-            ra = img[:, :, 0]
-            ga = img[:, :, 1]
-            ba = img[:, :, 2]
+        if img.size != (sm.image_resolution, sm.image_resolution):
+            img = img.resize((sm.image_resolution, sm.image_resolution))
+
+        if img.mode == "RGB":
+            r, g, b = img.split()
+            ra = np.array(r)
+            ga = np.array(g)
+            ba = np.array(b)
 
             img = (0.299 * ra + 0.587 * ga + 0.114 * ba)
 
-        if img.shape != (sm.image_resolution, sm.image_resolution):
-            img.resize((sm.image_resolution, sm.image_resolution))
-
         img = np.uint8(img / np.max(img) * 255.0)
 
-        img = np.reshape(img, (sm.image_resolution, sm.image_resolution))
         ims.append(img)
 
     print()  # Print a new line after the process bar is finished
