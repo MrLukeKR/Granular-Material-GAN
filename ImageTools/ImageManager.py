@@ -128,11 +128,13 @@ def save_voxel_image(voxel, file_name, save_location):
     plt.close(fig)
 
 
-def save_voxel_image_collection(voxels, save_location):
-    print("Saving " + str(len(voxels)) + " voxel visualisations")
-    directory = sm.configuration.get("IO_OUTPUT_ROOT_DIR") + fm.current_directory + save_location
+def save_voxel_image_collection(voxels, root_location, save_location=""):
+    if not isinstance(root_location, fm.SpecialFolder):
+        raise TypeError("root_location must be of enum type 'SpecialFolder'")
 
-    print(directory)
+    directory = fm.root_directories[root_location.value] + fm.current_directory + save_location
+
+    print("Saving " + str(len(voxels)) + " voxel visualisations to " + directory)
 
     if not os.path.exists(directory):
         os.makedirs(directory)
@@ -231,7 +233,7 @@ def load_images_from_list(file_list):
     return ims
 
 
-def load_images_from_directory(directory):
+def load_images_from_directory(directory, containing_keyword=None):
     files = []
 
     if not directory.endswith('/'):
@@ -239,6 +241,9 @@ def load_images_from_directory(directory):
 
     for (dPaths, dNames, fNames) in walk(directory):
             files.extend([directory + '{0}'.format(i) for i in fNames])
+
+    if containing_keyword is not None:
+        files = list(f for f in files if "segment" in f)
 
     return load_images_from_list(files)
 

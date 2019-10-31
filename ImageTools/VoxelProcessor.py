@@ -13,7 +13,7 @@ def split_to_voxels(volume_data, cubic_dimension):
     voxels = list()
     # Structure of voxel -> uint[cubicDimension][cubicDimension][cubicDimension]
 
-    volume = np.array(volume_data)
+    volume = np.array(volume_data,)
 
     # Voxel normalisation (is this necessary if we normalise the input images?
     #vol_min = volume.min(axis=(0, 1, 2), keepdims=True)
@@ -21,10 +21,14 @@ def split_to_voxels(volume_data, cubic_dimension):
     #volume = (volume - vol_min)/(vol_max - vol_min)
 
     # This should be equal to a hypothetical voxelCountZ, since images are square
-    voxel_count_x = int(len(volume[0]) / cubic_dimension)
-    voxel_count_y = int(len(volume) / cubic_dimension)
+    voxel_count_x = len(volume) / cubic_dimension
+    voxel_count_y = len(volume[0]) / cubic_dimension
+    voxel_count_z = len(volume[0][0]) / cubic_dimension
 
-    if voxel_count_x != int(voxel_count_x) or voxel_count_y != int(voxel_count_y):
+    if \
+            voxel_count_x != int(voxel_count_x) or \
+            voxel_count_y != int(voxel_count_y) or \
+            voxel_count_z != int(voxel_count_z):
         print("Voxel division resulted in a floating-point number:")
 
         if str(sm.configuration.get("VOXEL_RESOLVE_METHOD")).upper() == "LOSSY":
@@ -56,14 +60,18 @@ def split_to_voxels(volume_data, cubic_dimension):
 
             pass
 
-    pretext = "Separating data volume into " + str(voxel_count_x * voxel_count_y) + " voxels..."
+    pretext = "Separating data volume into " + str(int(voxel_count_x * voxel_count_y * voxel_count_z)) + " voxels..."
 
     print(pretext, end='\r', flush=True)
+
+    voxel_count_x = int(voxel_count_x)
+    voxel_count_y = int(voxel_count_y)
+    voxel_count_z = int(voxel_count_z)
 
     for x in range(voxel_count_x):
         x_start = cubic_dimension * x
         x_end = x_start + cubic_dimension
-        for z in range(voxel_count_x):
+        for z in range(voxel_count_z):
             z_start = cubic_dimension * z
             z_end = z_start + cubic_dimension
             for y in range(voxel_count_y):
@@ -75,7 +83,11 @@ def split_to_voxels(volume_data, cubic_dimension):
                 voxel = volume[x_start:x_end, y_start:y_end, z_start:z_end]
 
                 if voxel.shape != (cubic_dimension, cubic_dimension, cubic_dimension):
-                    if str(sm.configuration.get("VOXEL_RESOLVE_METHOD")).upper() == "PADDING":
+                    resolver = str(sm.configuration.get("VOXEL_RESOLVE_METHOD")).upper()
+
+                    print("FOUND NON-PERFECT VOXEL, RESOLVING WITH [" + resolver + "]...")
+
+                    if resolver == "PADDING":
                         xPad = cubic_dimension - len(voxel)
                         if xPad == cubic_dimension:
                             continue

@@ -157,21 +157,29 @@ def main():
                 clean_binders.insert(ind, res)
             print("done!")
 
+            print("\tRecombining Cleaned Segments...", end="", flush=True)
+            segments = \
+                np.array(x for x in clean_voids) + \
+                np.array(y for y in clean_aggregates) + \
+                np.array(z for z in clean_binders)
+            print("done!")
+
             print("Saving segmented images... ", end='')
-            im.save_images(clean_binders, "binder", fm.SpecialFolder.BINDER_SEGMENTS)
-            im.save_images(clean_aggregates, "aggregate", fm.SpecialFolder.AGGREGATE_SEGMENTS)
-            im.save_images(clean_voids, "void", fm.SpecialFolder.VOID_SEGMENTS)
+            im.save_images(clean_binders, "binder", fm.SpecialFolder.SEGMENTED_SCANS)
+            im.save_images(clean_aggregates, "aggregate", fm.SpecialFolder.SEGMENTED_SCANS)
+            im.save_images(clean_voids, "void", fm.SpecialFolder.SEGMENTED_SCANS)
             im.save_images(segments, "segment", fm.SpecialFolder.SEGMENTED_SCANS)
             print("done!")
 
 # \-- | DATA REPRESENTATION CONVERSION SUB-MODULE
-        if sm.configuration.get("ENABLE_VOXEL_SEPARATION") == "True":
-            fm.data_directories = fm.prepare_directories(fm.SpecialFolder.SEGMENTED_SCANS)
+        fm.data_directories = fm.prepare_directories(fm.SpecialFolder.SEGMENTED_SCANS)
 
-            for data_directory in fm.data_directories:
-                images = im.load_images_from_directory(data_directory)
+        for data_directory in fm.data_directories:
+            images = im.load_images_from_directory(data_directory, "segment")
 
-                voxels = process_voxels(images)
+            voxels = process_voxels(images)
+
+            im.save_voxel_image_collection(voxels, fm.SpecialFolder.VOXEL_DATA, "/Unsegmented/")
 
 # \-- | 3D DATA SEGMENTATION SUB-MODULE
 #        print("Segmenting voxels... ", end='')
@@ -180,8 +188,8 @@ def main():
 #        print("done!")
 
 # | GENERATIVE ADVERSARIAL NETWORK MODULE
-        # my_net = DCGAN.Network
-        # my_net.create_network(images)
+        my_net = DCGAN.Network
+        my_net.create_network(voxels)
 
         # if sm.configuration.get("ENABLE_GAN_TRAINING") == "True":
             # my_net.train_network()

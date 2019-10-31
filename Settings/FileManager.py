@@ -14,12 +14,9 @@ class SpecialFolder(Enum):
     PROCESSED_SCANS = 1
     UNPROCESSED_SCANS = 2
     SEGMENTED_SCANS = 3
-    VOID_SEGMENTS = 4
-    AGGREGATE_SEGMENTS = 5
-    BINDER_SEGMENTS = 6
-    EXPERIMENTS = 7
-    RESULTS = 8
-    VOXEL_DATA = 9
+    EXPERIMENTS = 4
+    RESULTS = 5
+    VOXEL_DATA = 6
 
 
 def get_settings_id(special_folder):
@@ -32,12 +29,6 @@ def get_settings_id(special_folder):
         return "IO_UNPROCESSED_SCAN_ROOT_DIR"
     elif special_folder == SpecialFolder.SEGMENTED_SCANS:
         return "IO_SEGMENTED_SCAN_ROOT_DIR"
-    elif special_folder == SpecialFolder.VOID_SEGMENTS:
-        return "IO_SEGMENTED_VOID_ROOT_DIR"
-    elif special_folder == SpecialFolder.AGGREGATE_SEGMENTS:
-        return "IO_SEGMENTED_AGGREGATE_ROOT_DIR"
-    elif special_folder == SpecialFolder.BINDER_SEGMENTS:
-        return "IO_SEGMENTED_BINDER_ROOT_DIR"
     elif special_folder == SpecialFolder.EXPERIMENTS:
         return "IO_EXPERIMENT_ROOT_DIR"
     elif special_folder == SpecialFolder.RESULTS:
@@ -46,11 +37,6 @@ def get_settings_id(special_folder):
         return "IO_VOXEL_DATA_ROOT_DIR"
     else:
         return "NONE"
-
-
-def has_directory_been_processed(unprocessed_directory, processed_directory):
-
-    return False
 
 
 def assign_special_folders():
