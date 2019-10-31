@@ -1,6 +1,6 @@
 import numpy as np
 
-from MachineLearningTools import MachineLearningManager as mlm, Neighbourhood as nbh
+from MachineLearningTools import GANManager as mlm, Neighbourhood as nbh
 
 
 def brightness_weights(tensor):

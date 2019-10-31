@@ -1,14 +1,47 @@
+import os
+
 import h5py
+from keras.models import load_model
+
+from GAN import DCGAN
+from Settings import FileManager as fm
 
 
-def load_model():
+# Models are saved as discriminator.h5 and generator.h5, under an experimental ID
+def load_network():
+    root_dir = fm.root_directories[fm.SpecialFolder.MODEL_DATA.value]
+    print("Loading Generative Adversarial Network...")
 
-    pass
+    discriminator = None
+    generator = None
+
+    print("\tLoading Discriminator... ", end='')
+    if os.path.isfile(root_dir + "discriminator.h5"):
+        discriminator = load_model(root_dir + "discriminator.h5")
+        print("done!")
+    else:
+        print("Missing!")
+
+    print("\tLoading Generator... ", end='')
+    if os.path.isfile(root_dir + "generator.h5"):
+        generator = load_model(root_dir + "generator.h5")
+        print("done!")
+    else:
+        print("Missing!")
+
+    return discriminator, generator
 
 
-def save_model():
+def save_network(discriminator, generator):
+    print("Saving Generative Adversarial Network Model...")
 
-    pass
+    root_dir = fm.root_directories[fm.SpecialFolder.MODEL_DATA.value]
+
+    if not os.path.exists(root_dir):
+        os.makedirs(root_dir)
+
+    discriminator.model.save(root_dir + "discriminator.h5")
+    generator.model.save(root_dir + "generator.h5")
 
 
 def load_dataset():

@@ -30,6 +30,9 @@ from Settings import FileManager as fm
 # <<< Image Processing
 
 # Machine Learning >>>
+
+import Settings.MachineLearningManager as mlm
+
 # <<< Machine Learning
 
 
@@ -178,7 +181,7 @@ def main():
 
             voxels = process_voxels(images)
 
-            im.save_voxel_image_collection(voxels, fm.SpecialFolder.VOXEL_DATA, "/Unsegmented/")
+            # im.save_voxel_image_collection(voxels, fm.SpecialFolder.VOXEL_DATA, "/Unsegmented/")
 
 # \-- | 3D DATA SEGMENTATION SUB-MODULE
 #        print("Segmenting voxels... ", end='')
@@ -188,8 +191,11 @@ def main():
 
 # | GENERATIVE ADVERSARIAL NETWORK MODULE
 
-        my_net = DCGAN.Network
-        my_net.create_network(voxels)
+        discriminator, generator = mlm.load_network()
+
+        if discriminator is None or generator is None:
+            discriminator, generator = DCGAN.Network.create_network(voxels)
+            mlm.save_network(discriminator, generator)
 
         # if sm.configuration.get("ENABLE_GAN_TRAINING") == "True":
             # my_net.train_network()

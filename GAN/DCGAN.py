@@ -49,6 +49,8 @@ class Network(AbstractGAN.Network):
 
         batchsize = 30
 
+        return cls.discriminator, cls.generator
+
 
 class DCGANDiscriminator:
     _model = None
@@ -113,20 +115,19 @@ class DCGANGenerator:
     def model(self, value):
         self._model = value
 
-    def __init__(self, images, strides, kernelsize, train):
+    def __init__(self, voxels, strides, kernelsize, train):
         print("\tInitialising Deep Convolutional Generative Adversarial Network (Generator)")
 
-        if len(images) == 0:
-            return
-
-        x, y = images[0].shape
-        z = len(images)
+        x = len(voxels[0])
+        y = len(voxels[0][0])
+        z = len(voxels[0][0][0])
+        w = len(voxels)
 
         channels = 1
 
         filters = 512
 
-        print("\t\t Input size is: (" + str(x) + "px * " + str(y) + "px) * " + str(z) + " slices")
+        print("\t\t Input size is: " + str(w) + " (" + str(x) + " * " + str(y) + " * " + str(z) + ") voxels")
 
         inputs = Input(shape=(x, y, z, channels))
 

@@ -17,6 +17,8 @@ class SpecialFolder(Enum):
     EXPERIMENTS = 4
     RESULTS = 5
     VOXEL_DATA = 6
+    MODEL_DATA = 7
+    DATASET_DATA = 8
 
 
 def get_settings_id(special_folder):
@@ -35,6 +37,10 @@ def get_settings_id(special_folder):
         return "IO_RESULTS_ROOT_DIR"
     elif special_folder == SpecialFolder.VOXEL_DATA:
         return "IO_VOXEL_DATA_ROOT_DIR"
+    elif special_folder == SpecialFolder.MODEL_DATA:
+        return "IO_MODEL_ROOT_DIR"
+    elif special_folder == SpecialFolder.DATASET_DATA:
+        return "IO_DATASET_ROOT_DIR"
     else:
         return "NONE"
 

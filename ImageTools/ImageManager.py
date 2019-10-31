@@ -5,7 +5,7 @@ import PIL.Image as Image
 import matplotlib.pyplot as plt
 import matplotlib.animation as anim
 import ImageTools.VoxelProcessor as vp
-import MachineLearningTools.MachineLearningManager as mlm
+import MachineLearningTools.GANManager as mlm
 
 
 from os import walk
