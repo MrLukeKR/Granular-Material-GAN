@@ -131,6 +131,7 @@ def main():
             clean_binders = list()
 
             segments = list()
+            clean_segments = list()
 
             print("Segmenting images... ", end="", flush=True)
             for ind, res in enumerate(pool.map(segmentor2D.segment_image, images)):
@@ -157,18 +158,16 @@ def main():
                 clean_binders.insert(ind, res)
             print("done!")
 
-            print("\tRecombining Cleaned Segments...", end="", flush=True)
-            segments = \
-                np.array(x for x in clean_voids) + \
-                np.array(y for y in clean_aggregates) + \
-                np.array(z for z in clean_binders)
+            print("\tCleaning Segments...", end="", flush=True)
+            for ind, res in enumerate(pool.map(postproc.clean_segment, segments)):
+                clean_segments.insert(ind, res)
             print("done!")
 
             print("Saving segmented images... ", end='')
             im.save_images(clean_binders, "binder", fm.SpecialFolder.SEGMENTED_SCANS)
             im.save_images(clean_aggregates, "aggregate", fm.SpecialFolder.SEGMENTED_SCANS)
             im.save_images(clean_voids, "void", fm.SpecialFolder.SEGMENTED_SCANS)
-            im.save_images(segments, "segment", fm.SpecialFolder.SEGMENTED_SCANS)
+            im.save_images(clean_segments, "segment", fm.SpecialFolder.SEGMENTED_SCANS)
             print("done!")
 
 # \-- | DATA REPRESENTATION CONVERSION SUB-MODULE
