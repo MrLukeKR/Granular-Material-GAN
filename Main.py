@@ -187,6 +187,7 @@ def main():
 #        print("done!")
 
 # | GENERATIVE ADVERSARIAL NETWORK MODULE
+
         my_net = DCGAN.Network
         my_net.create_network(voxels)
 
