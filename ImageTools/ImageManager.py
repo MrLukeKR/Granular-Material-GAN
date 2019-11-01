@@ -240,10 +240,10 @@ def load_images_from_directory(directory, containing_keyword=None):
         directory += '/'
 
     for (dPaths, dNames, fNames) in walk(directory):
-            files.extend([directory + '{0}'.format(i) for i in fNames])
+        files.extend([directory + '{0}'.format(i) for i in fNames])
 
     if containing_keyword is not None:
-        files = list(f for f in files if "segment" in f)
+        files = list(f for f in files if containing_keyword in f)
 
     return load_images_from_list(files)
 

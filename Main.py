@@ -172,10 +172,22 @@ def main():
 # \-- | DATA REPRESENTATION CONVERSION SUB-MODULE
         fm.data_directories = fm.prepare_directories(fm.SpecialFolder.SEGMENTED_SCANS)
 
-        for data_directory in fm.data_directories:
-            images = im.load_images_from_directory(data_directory, "segment")
+        aggregates = list()
+        binders = list()
+        voids = list()
 
-            voxels = process_voxels(images)
+        for data_directory in fm.data_directories:
+            print("Loading aggregate data...\r\n\t", end='')
+            aggregates = im.load_images_from_directory(data_directory, "aggregate")
+            aggregates.append(process_voxels(aggregates))
+
+            print("Loading binder data...\r\n\t", end='')
+            binders = im.load_images_from_directory(data_directory, "binder")
+            binders.append(process_voxels(binders))
+
+            print("Loading void data...\r\n\t", end='')
+            voids = im.load_images_from_directory(data_directory, "void")
+            voids.append(process_voxels(voids))
 
             # im.save_voxel_image_collection(voxels, fm.SpecialFolder.VOXEL_DATA, "/Unsegmented/")
 
@@ -190,7 +202,7 @@ def main():
         discriminator, generator = mlm.load_network()
 
         if discriminator is None or generator is None:
-            discriminator, generator = DCGAN.Network.create_network(voxels)
+            discriminator, generator = DCGAN.Network.create_network(aggregates)
             mlm.save_network(discriminator, generator)
 
         # if sm.configuration.get("ENABLE_GAN_TRAINING") == "True":

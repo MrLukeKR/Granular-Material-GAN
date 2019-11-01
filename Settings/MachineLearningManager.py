@@ -44,7 +44,15 @@ def save_network(discriminator, generator):
     generator.model.save(root_dir + "generator.h5")
 
 
-def load_dataset():
+def prepare_dataset(voxels, training_split):
+    if training_split >= 1:
+        raise ValueError("training_split must be less than 1")
+    elif training_split <= 0:
+        raise ValueError("training_split must be greater than 0")
+
+    # TODO: Shuffle voxels
+    # TODO: Split to training/testing
+
     training_set = list()
     testing_set = list()
 
