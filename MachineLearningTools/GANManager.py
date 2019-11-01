@@ -1,18 +1,12 @@
 import os
 import numpy as np
-import tensorflow as tf
 import MachineLearningTools.ML3D.UNet3D as UNet3D
 import MachineLearningTools.ML2D.UNet2D as UNet2D
 import Settings.SettingsManager as sm
 
 from tqdm import tqdm
-from keras import backend as K
 from MachineLearningTools.ML3D.ImageDataGenerator3D import ImageDataGenerator3D
-
-
-sess = tf.Session()
-K.set_session(sess)
-
+from Settings import FileManager as fm
 
 def train_network_2d(images):
     x_train = list()
@@ -35,7 +29,7 @@ def train_network_2d(images):
 
     data_indices = list(range(len(x_train)))
 
-    data_directory = "Data/" + sm.current_directory
+    data_directory = "Data/" + fm.current_directory
 
     if not os.path.exists(data_directory):
         os.makedirs(data_directory)
@@ -85,7 +79,7 @@ def train_network_3d(voxels):
 
     data_indices = list(range(len(x_train)))
 
-    data_directory = "Data/" + sm.current_directory
+    data_directory = "Data/" + fm.current_directory
 
     if not os.path.exists(data_directory):
         os.makedirs(data_directory)
@@ -100,10 +94,12 @@ def train_network_3d(voxels):
     datagen.data_directory = data_directory
     config = sm.configuration
 
-    encoder = UNet3D.create_unet(int(config.get("VOXEL_RESOLUTION")),
-                               int(config.get("IMAGE_CHANNELS")),
-                               int(config.get("LABEL_SEGMENTS")),
-                               config.get("ENABLE_BATCH_NORMALISATION") == 'True')
+    encoder = UNet3D.create_unet(
+        int(config.get("VOXEL_RESOLUTION")),
+        int(config.get("IMAGE_CHANNELS")),
+        int(config.get("LABEL_SEGMENTS")),
+        config.get("ENABLE_BATCH_NORMALISATION") == 'True'
+    )
     # decoder = UNet.CreateUNet(voxel_resolution, image_channels)
 
     wnet = encoder

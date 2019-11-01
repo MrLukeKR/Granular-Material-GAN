@@ -1,5 +1,4 @@
 from GAN import DCGAN
-from tensorflow.python.client import device_lib
 
 # File I/O >>>
 from glob import glob
@@ -7,11 +6,7 @@ from os import walk
 # <<< File I/O
 
 # Utilities >>>
-
-from tqdm import tqdm
 from multiprocessing import Pool
-import numpy as np
-
 # <<< Utilities
 
 # Image Processing >>>
@@ -25,14 +20,10 @@ from ImageTools.Segmentation.TwoDimensional import KMeans2D as segmentor2D
 
 from Settings import SettingsManager as sm
 from Settings import FileManager as fm
-
-
 # <<< Image Processing
 
 # Machine Learning >>>
-
 import Settings.MachineLearningManager as mlm
-
 # <<< Machine Learning
 
 
@@ -45,8 +36,6 @@ def print_introduction():
     print("In fulfilment of Doctor of Engineering at the University of Nottingham")
     print("----------------------------------------------------------------------")
     print()
-    print("Running hardware checks...")
-    print(device_lib.list_local_devices())
 
 
 def preprocess_image_collection(images):
