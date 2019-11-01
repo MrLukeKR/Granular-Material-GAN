@@ -135,21 +135,6 @@ def main():
 
             print("Post-processing Segment Collection...")
 
-            print("\tCleaning Voids...", end="", flush=True)
-            for ind, res in enumerate(pool.map(postproc.clean_segment, voids)):
-                clean_voids.insert(ind, res)
-            print("done!")
-
-            print("\tCleaning Aggregates...", end="", flush=True)
-            for ind, res in enumerate(pool.map(postproc.clean_segment, aggregates)):
-                clean_aggregates.insert(ind, res)
-            print("done!")
-
-            print("\tCleaning Binders...", end="", flush=True)
-            for ind, res in enumerate(pool.map(postproc.clean_segment, binders)):
-                clean_binders.insert(ind, res)
-            print("done!")
-
             print("\tCleaning Segments...", end="", flush=True)
             for ind, res in enumerate(pool.map(postproc.clean_segment, segments)):
                 clean_segments.insert(ind, res)
@@ -165,10 +150,22 @@ def main():
 # \-- | DATA REPRESENTATION CONVERSION SUB-MODULE
         fm.data_directories = fm.prepare_directories(fm.SpecialFolder.SEGMENTED_SCANS)
 
-        for data_directory in fm.data_directories:
-            images = im.load_images_from_directory(data_directory, "segment")
+        aggregates = list()
+        binders = list()
+        voids = list()
 
-            voxels = process_voxels(images)
+        for data_directory in fm.data_directories:
+            print("Loading aggregate data...\r\n\t", end='')
+            aggregates = im.load_images_from_directory(data_directory, "aggregate")
+            aggregates.append(process_voxels(aggregates))
+
+            print("Loading binder data...\r\n\t", end='')
+            binders = im.load_images_from_directory(data_directory, "binder")
+            binders.append(process_voxels(binders))
+
+            print("Loading void data...\r\n\t", end='')
+            voids = im.load_images_from_directory(data_directory, "void")
+            voids.append(process_voxels(voids))
 
             # im.save_voxel_image_collection(voxels, fm.SpecialFolder.VOXEL_DATA, "/Unsegmented/")
 

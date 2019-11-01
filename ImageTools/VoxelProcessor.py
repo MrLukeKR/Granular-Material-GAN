@@ -3,10 +3,30 @@ import numpy as np
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 
-from mpl_toolkits.mplot3d import Axes3D
-
 
 from Settings import SettingsManager as sm
+
+
+def split_voxel_collection_to_segments(voxels):
+    aggregates = list()
+    binders = list()
+    voids = list()
+
+    for voxel in voxels:
+        a, b, v = split_voxel_to_segments(voxel)
+        aggregates.append(a)
+        binders.append(b)
+        voids.append(v)
+
+    return aggregates, binders, voids
+
+
+def split_voxel_to_segments(voxel):
+    aggregate = None
+    binder = None
+    void = None
+
+    raise NotImplementedError("split_voxel_to_segments is not implemented!")
 
 
 def split_to_voxels(volume_data, cubic_dimension):
