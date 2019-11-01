@@ -135,31 +135,38 @@ def main():
 
             print("Post-processing Segment Collection...")
 
-            print("\tCleaning Voids...", end="", flush=True)
-            for ind, res in enumerate(pool.map(postproc.clean_segment, voids)):
-                clean_voids.insert(ind, res)
-            print("done!")
+            ENABLE_POSTPROCESSING=False
 
-            print("\tCleaning Aggregates...", end="", flush=True)
-            for ind, res in enumerate(pool.map(postproc.clean_segment, aggregates)):
-                clean_aggregates.insert(ind, res)
-            print("done!")
+            if ENABLE_POSTPROCESSING:
+                print("\tCleaning Voids...", end="", flush=True)
+                for ind, res in enumerate(pool.map(postproc.clean_segment, voids)):
+                    clean_voids.insert(ind, res)
+                voids = clean_voids
+                print("done!")
 
-            print("\tCleaning Binders...", end="", flush=True)
-            for ind, res in enumerate(pool.map(postproc.clean_segment, binders)):
-                clean_binders.insert(ind, res)
-            print("done!")
+                print("\tCleaning Aggregates...", end="", flush=True)
+                for ind, res in enumerate(pool.map(postproc.clean_segment, aggregates)):
+                    clean_aggregates.insert(ind, res)
+                aggregates = clean_aggregates
+                print("done!")
 
-            print("\tCleaning Segments...", end="", flush=True)
-            for ind, res in enumerate(pool.map(postproc.clean_segment, segments)):
-                clean_segments.insert(ind, res)
-            print("done!")
+                print("\tCleaning Binders...", end="", flush=True)
+                for ind, res in enumerate(pool.map(postproc.clean_segment, binders)):
+                    clean_binders.insert(ind, res)
+                binders = clean_binders
+                print("done!")
+
+                print("\tCleaning Segments...", end="", flush=True)
+                for ind, res in enumerate(pool.map(postproc.clean_segment, segments)):
+                    clean_segments.insert(ind, res)
+                segments = clean_segments
+                print("done!")
 
             print("Saving segmented images... ", end='')
-            im.save_images(clean_binders, "binder", fm.SpecialFolder.SEGMENTED_SCANS)
-            im.save_images(clean_aggregates, "aggregate", fm.SpecialFolder.SEGMENTED_SCANS)
-            im.save_images(clean_voids, "void", fm.SpecialFolder.SEGMENTED_SCANS)
-            im.save_images(clean_segments, "segment", fm.SpecialFolder.SEGMENTED_SCANS)
+            im.save_images(binders, "binder", fm.SpecialFolder.SEGMENTED_SCANS)
+            im.save_images(aggregates, "aggregate", fm.SpecialFolder.SEGMENTED_SCANS)
+            im.save_images(voids, "void", fm.SpecialFolder.SEGMENTED_SCANS)
+            im.save_images(segments, "segment", fm.SpecialFolder.SEGMENTED_SCANS)
             print("done!")
 
 # \-- | DATA REPRESENTATION CONVERSION SUB-MODULE
