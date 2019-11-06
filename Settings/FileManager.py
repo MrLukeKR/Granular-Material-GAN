@@ -10,7 +10,7 @@ root_directories = [""]
 
 
 class SpecialFolder(Enum):
-    NONE = 0
+    ROOT = 0
     PROCESSED_SCANS = 1
     UNPROCESSED_SCANS = 2
     SEGMENTED_SCANS = 3
@@ -25,7 +25,9 @@ def get_settings_id(special_folder):
     if not isinstance(special_folder, SpecialFolder):
         raise TypeError("special_folder must be of enum type SpecialFolder")
 
-    if special_folder == SpecialFolder.PROCESSED_SCANS:
+    if special_folder == SpecialFolder.ROOT:
+        return "IO_ROOT_DIR"
+    elif special_folder == SpecialFolder.PROCESSED_SCANS:
         return "IO_PROCESSED_SCAN_ROOT_DIR"
     elif special_folder == SpecialFolder.UNPROCESSED_SCANS:
         return "IO_UNPROCESSED_SCAN_ROOT_DIR"
@@ -46,8 +48,14 @@ def get_settings_id(special_folder):
 
 
 def assign_special_folders():
+    root_directories.insert(SpecialFolder.ROOT.value, sm.configuration.get(get_settings_id(SpecialFolder.ROOT)))
+
     for folder in SpecialFolder:
-        root_directories.insert(folder.value, sm.configuration.get(get_settings_id(folder)))
+        if folder != SpecialFolder.ROOT:
+            root_directories.insert(
+                folder.value,
+                root_directories[SpecialFolder.ROOT.value] + sm.configuration.get(get_settings_id(folder))
+            )
 
 
 def get_directories(special_folder):
