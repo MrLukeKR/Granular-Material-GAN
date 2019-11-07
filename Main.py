@@ -172,31 +172,56 @@ def main():
 # \-- | DATA REPRESENTATION CONVERSION SUB-MODULE
         fm.data_directories = fm.prepare_directories(fm.SpecialFolder.SEGMENTED_SCANS)
 
-        print("Converting segments to voxels...")
-
         for data_directory in fm.data_directories:
+            printed_status = False
             fm.current_directory = data_directory.replace(fm.get_directory(fm.SpecialFolder.SEGMENTED_SCANS), '')
 
-            voxel_directory = fm.get_directory(fm.SpecialFolder.VOXEL_DATA) + '/' + fm.current_directory[0:-1]
+            voxel_directory = fm.get_directory(fm.SpecialFolder.VOXEL_DATA) + fm.current_directory[0:-1]
 
             for segment in ("aggregate", "binder", "void"):
-                if fm.file_exists(voxel_directory + '/' + segment + ".h5"):
+                filename = segment + '_' + sm.configuration.get("VOXEL_RESOLUTION")
+
+                if fm.file_exists(voxel_directory + '/' + filename + ".h5"):
                     continue
 
-                print("Loading " + segment + " data...\r\n\t\t", end='')
+                if not printed_status:
+                    print("Converting segments in '" + data_directory + "' to voxels...")
+                    printed_status = True
+
+                print("\tLoading " + segment + " data...\r\n\t\t", end='')
                 images = im.load_images_from_directory(data_directory, segment)
                 voxels = process_voxels(images)
 
-                print("\tSaving " + segment + " voxels...")
-                vp.save_voxels(voxels, voxel_directory, segment)
+                print("\t\tSaving " + segment + " voxels...\r\n\t\t", end='')
+                vp.save_voxels(voxels, voxel_directory, filename)
 
 
             # im.save_voxel_image_collection(voxels, fm.SpecialFolder.VOXEL_DATA, "/Unsegmented/")
 
-
         aggregates = list()
         binders = list()
         voids = list()
+
+        for data_directory in fm.data_directories:
+            fm.current_directory = data_directory.replace(fm.get_directory(fm.SpecialFolder.SEGMENTED_SCANS), '')
+
+            voxel_directory = fm.get_directory(fm.SpecialFolder.VOXEL_DATA) + fm.current_directory[0:-1]
+
+            print("Loading voxels from '" + voxel_directory + "'...")
+
+            for segment in ("aggregate", "binder", "void"):
+                filename = segment + '_' + sm.configuration.get("VOXEL_RESOLUTION")
+                print('\t' + filename)
+                voxels = vp.load_voxels(voxel_directory, filename)
+
+                if segment == "aggregate":
+                    aggregates.append(voxels)
+                elif segment == "binder":
+                    binders.append(voxels)
+                elif segment == "void":
+                    voids.append(voxels)
+
+
 
 # \-- | 3D DATA SEGMENTATION SUB-MODULE
 #        print("Segmenting voxels... ", end='')

@@ -137,14 +137,29 @@ def split_to_voxels(volume_data, cubic_dimension):
 def save_voxels(voxels, location, filename):
     fm.create_if_not_exists(location)
 
-    h5f = h5py.File(location + "/" + filename + ".h5", 'w')
+    filepath = location + "/" + filename + ".h5"
+
+    print("Saving voxel collection to '" + filepath + "'... ", end='')
+    h5f = h5py.File(filepath, 'w')
     h5f.create_dataset(filename, data=voxels)
     h5f.close()
+    print("done!")
 
 
-def save_voxel(voxel, location):
-    if not isinstance(voxel, np.ndarray):
-        raise TypeError("voxel must be of type 'np.ndarray'")
+def load_voxels(location, filename):
+    filepath = location + '/' + filename + ".h5"
+
+    if not fm.file_exists(filepath):
+        raise FileNotFoundError("There is no voxel at '" + filepath + "'")
+
+    h5f = h5py.File(filepath, 'r')
+    voxels = list()
+
+    for key in h5f.keys():
+        dataset = h5f.get(key)[()]
+        voxels.append(dataset)
+
+    return voxels
 
 
 def plot_voxel(voxel):
