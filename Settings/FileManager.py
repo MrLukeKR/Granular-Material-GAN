@@ -1,5 +1,5 @@
 from glob import glob
-from os import walk
+from os import walk, path, makedirs
 
 from Settings import SettingsManager as sm
 from enum import Enum
@@ -82,3 +82,8 @@ def prepare_directories(special_folder):
         data_dir.remove(directory)
 
     return data_dir
+
+
+def create_if_not_exists(directory):
+    if not path.exists(directory):
+        makedirs(directory)

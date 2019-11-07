@@ -2,6 +2,9 @@ import math
 import numpy as np
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
+import h5py
+
+from Settings import FileManager as fm
 
 
 from Settings import SettingsManager as sm
@@ -129,6 +132,19 @@ def split_to_voxels(volume_data, cubic_dimension):
 
     print(pretext + " done!")
     return voxels
+
+
+def save_voxels(voxels, location, filename):
+    fm.create_if_not_exists(location)
+
+    h5f = h5py.File(location + "/" + filename + ".h5", 'w')
+    h5f.create_dataset(filename, data=voxels)
+    h5f.close()
+
+
+def save_voxel(voxel, location):
+    if not isinstance(voxel, np.ndarray):
+        raise TypeError("voxel must be of type 'np.ndarray'")
 
 
 def plot_voxel(voxel):

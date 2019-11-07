@@ -65,8 +65,7 @@ def save_image(image, root_directory, save_location, filename, use_current_direc
     if use_current_directory:
         directory += fm.current_directory
 
-    if not os.path.exists(directory):
-        os.makedirs(directory)
+    fm.create_if_not_exists(directory)
 
     file_loc = directory + filename + '.' + sm.configuration.get("IO_IMAGE_FILETYPE")
 
@@ -117,8 +116,7 @@ def save_voxel_image(voxel, file_name, save_location):
 
     file_loc = directory + file_name + '.' + sm.configuration.get("IO_IMAGE_FILETYPE")
 
-    if not os.path.exists(directory):
-        os.makedirs(directory)
+    fm.create_if_not_exists(directory)
 
     if os.path.isfile(file_loc):
         return
@@ -136,8 +134,7 @@ def save_voxel_image_collection(voxels, root_location, save_location=""):
 
     print("Saving " + str(len(voxels)) + " voxel visualisations to " + directory)
 
-    if not os.path.exists(directory):
-        os.makedirs(directory)
+    fm.create_if_not_exists(directory)
 
     for i in tqdm(range(len(voxels))):
         file_loc = directory + str(i) + '.' + sm.configuration.get("IO_IMAGE_FILETYPE")

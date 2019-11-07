@@ -172,24 +172,26 @@ def main():
 # \-- | DATA REPRESENTATION CONVERSION SUB-MODULE
         fm.data_directories = fm.prepare_directories(fm.SpecialFolder.SEGMENTED_SCANS)
 
+        print("Converting segments to voxels...")
+
+        for data_directory in fm.data_directories:
+            fm.current_directory = data_directory.replace(fm.root_directories[fm.SpecialFolder.SEGMENTED_SCANS.value], '')
+
+            for segment in ("aggregate", "binder", "void"):
+                print("\tLoading " + segment + " data...\r\n\t\t", end='')
+                images = im.load_images_from_directory(data_directory, segment)
+                voxels = process_voxels(images)
+
+                print("\tSaving aggregate voxels...")
+                vp.save_voxels(voxels, "/tmp/lkrtemp/" + fm.current_directory[0:-1], segment)
+
+
+            # im.save_voxel_image_collection(voxels, fm.SpecialFolder.VOXEL_DATA, "/Unsegmented/")
+
+
         aggregates = list()
         binders = list()
         voids = list()
-
-        for data_directory in fm.data_directories:
-            print("Loading aggregate data...\r\n\t", end='')
-            aggregates = im.load_images_from_directory(data_directory, "aggregate")
-            aggregates.append(process_voxels(aggregates))
-
-            print("Loading binder data...\r\n\t", end='')
-            binders = im.load_images_from_directory(data_directory, "binder")
-            binders.append(process_voxels(binders))
-
-            print("Loading void data...\r\n\t", end='')
-            voids = im.load_images_from_directory(data_directory, "void")
-            voids.append(process_voxels(voids))
-
-            # im.save_voxel_image_collection(voxels, fm.SpecialFolder.VOXEL_DATA, "/Unsegmented/")
 
 # \-- | 3D DATA SEGMENTATION SUB-MODULE
 #        print("Segmenting voxels... ", end='')
