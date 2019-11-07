@@ -21,9 +21,13 @@ class SpecialFolder(Enum):
     DATASET_DATA = 8
 
 
-def get_settings_id(special_folder):
+def check_folder_type(special_folder):
     if not isinstance(special_folder, SpecialFolder):
         raise TypeError("special_folder must be of enum type SpecialFolder")
+
+
+def get_settings_id(special_folder):
+    check_folder_type(special_folder)
 
     if special_folder == SpecialFolder.ROOT:
         return "IO_ROOT_DIR"
@@ -58,16 +62,21 @@ def assign_special_folders():
             )
 
 
+def get_directory(special_folder):
+    check_folder_type(special_folder)
+
+    return root_directories[special_folder.value]
+
+
 def get_directories(special_folder):
-    if not isinstance(special_folder, SpecialFolder):
-        raise TypeError("special_folder must be of enum type SpecialFolder")
+    check_folder_type(special_folder)
+
     return [f.replace('\\', '/')
             for f in glob(root_directories[special_folder.value] + "**/", recursive=True)]
 
 
 def prepare_directories(special_folder):
-    if not isinstance(special_folder, SpecialFolder):
-        raise TypeError("special_folder must be of enum type SpecialFolder")
+    check_folder_type(special_folder)
 
     data_dir = get_directories(special_folder)
 
@@ -87,3 +96,7 @@ def prepare_directories(special_folder):
 def create_if_not_exists(directory):
     if not path.exists(directory):
         makedirs(directory)
+
+
+def file_exists(filepath):
+    return path.isfile(filepath)

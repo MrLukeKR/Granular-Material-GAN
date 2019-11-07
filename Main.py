@@ -81,7 +81,7 @@ def main():
                                    if d.split('/')[-2] not in existing_scans)
 
         for data_directory in fm.data_directories:
-            fm.current_directory = data_directory.replace(sm.configuration.get("IO_UNPROCESSED_SCAN_ROOT_DIR"), '')
+            fm.current_directory = data_directory.replace(fm.get_directory(fm.SpecialFolder.UNPROCESSED_SCANS), '')
 
             images = im.load_images_from_directory(data_directory)
             images = preprocess_image_collection(images)
@@ -101,7 +101,7 @@ def main():
 
         for data_directory in fm.data_directories:
             images = im.load_images_from_directory(data_directory)
-            fm.current_directory = data_directory.replace(sm.configuration.get("IO_PROCESSED_SCAN_ROOT_DIR"), '')
+            fm.current_directory = data_directory.replace(fm.get_directory(fm.SpecialFolder.PROCESSED_SCANS), '')
 
             if not fm.current_directory.endswith('/'):
                 fm.current_directory += '/'
@@ -175,15 +175,20 @@ def main():
         print("Converting segments to voxels...")
 
         for data_directory in fm.data_directories:
-            fm.current_directory = data_directory.replace(fm.root_directories[fm.SpecialFolder.SEGMENTED_SCANS.value], '')
+            fm.current_directory = data_directory.replace(fm.get_directory(fm.SpecialFolder.SEGMENTED_SCANS), '')
+
+            voxel_directory = fm.get_directory(fm.SpecialFolder.VOXEL_DATA) + '/' + fm.current_directory[0:-1]
 
             for segment in ("aggregate", "binder", "void"):
-                print("\tLoading " + segment + " data...\r\n\t\t", end='')
+                if fm.file_exists(voxel_directory + '/' + segment + ".h5"):
+                    continue
+
+                print("Loading " + segment + " data...\r\n\t\t", end='')
                 images = im.load_images_from_directory(data_directory, segment)
                 voxels = process_voxels(images)
 
-                print("\tSaving aggregate voxels...")
-                vp.save_voxels(voxels, "/tmp/lkrtemp/" + fm.current_directory[0:-1], segment)
+                print("\tSaving " + segment + " voxels...")
+                vp.save_voxels(voxels, voxel_directory, segment)
 
 
             # im.save_voxel_image_collection(voxels, fm.SpecialFolder.VOXEL_DATA, "/Unsegmented/")

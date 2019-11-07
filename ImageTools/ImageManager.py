@@ -1,18 +1,14 @@
-import os
-import math
 import numpy as np
 import PIL.Image as Image
 import matplotlib.pyplot as plt
 import matplotlib.animation as anim
 import ImageTools.VoxelProcessor as vp
-import MachineLearningTools.GANManager as mlm
 
 
 from os import walk
 from tqdm import tqdm
 from Settings import SettingsManager as sm
 from Settings import FileManager as fm
-from enum import Enum
 
 project_images = list()
 segmentedImages = list()
@@ -29,12 +25,11 @@ def save_plot(filename, save_location, root_directory, use_current_directory):
         directory += '/' + fm.current_directory
     directory += '/' + save_location
 
-    if not os.path.exists(directory):
-        os.makedirs(directory)
+    fm.create_if_not_exists(directory)
 
     file_loc = directory + '/' + filename + '.' + sm.configuration.get("IO_IMAGE_FILETYPE")
 
-    if not os.path.isfile(file_loc):
+    if not fm.file_exists(file_loc):
         if sm.USE_BW:
             plt.savefig(file_loc, cmap='gray', dpi=int(sm.configuration.get("IO_OUTPUT_DPI")))
         else:
@@ -69,7 +64,7 @@ def save_image(image, root_directory, save_location, filename, use_current_direc
 
     file_loc = directory + filename + '.' + sm.configuration.get("IO_IMAGE_FILETYPE")
 
-    if not os.path.isfile(file_loc):
+    if not fm.file_exists(file_loc):
         if len(image.shape) != 2:
             image = np.squeeze(image, 2)
         if sm.USE_BW:
@@ -118,7 +113,7 @@ def save_voxel_image(voxel, file_name, save_location):
 
     fm.create_if_not_exists(directory)
 
-    if os.path.isfile(file_loc):
+    if fm.file_exists(file_loc):
         return
 
     fig = vp.plot_voxel(voxel)
@@ -139,7 +134,7 @@ def save_voxel_image_collection(voxels, root_location, save_location=""):
     for i in tqdm(range(len(voxels))):
         file_loc = directory + str(i) + '.' + sm.configuration.get("IO_IMAGE_FILETYPE")
 
-        if os.path.isfile(file_loc):
+        if fm.file_exists(file_loc):
             continue
 
         fig = vp.plot_voxel(voxels[i])
