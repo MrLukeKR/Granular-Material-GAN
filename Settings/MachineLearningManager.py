@@ -15,14 +15,14 @@ def load_network():
     discriminator = None
     generator = None
 
-    if os.path.isfile(root_dir + "discriminator.h5"):
+    if fm.file_exists(root_dir + "discriminator.h5"):
         print("\tLoading Discriminator... ", end='')
         discriminator = load_model(root_dir + "discriminator.h5")
         print("done!")
     else:
         print("Discriminator network is missing!")
 
-    if os.path.isfile(root_dir + "generator.h5"):
+    if fm.file_exists(root_dir + "generator.h5"):
         print("\tLoading Generator... ", end='')
         generator = load_model(root_dir + "generator.h5")
         print("done!")

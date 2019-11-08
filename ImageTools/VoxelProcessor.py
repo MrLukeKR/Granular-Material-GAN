@@ -157,7 +157,7 @@ def load_voxels(location, filename):
 
     for key in h5f.keys():
         dataset = h5f.get(key)[()]
-        voxels.append(dataset)
+        voxels += list(voxel for voxel in dataset)
 
     return voxels
 

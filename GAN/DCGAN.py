@@ -3,53 +3,117 @@ from GAN import AbstractGAN
 from keras import Sequential
 from keras.optimizers import Adam
 from keras.models import Model
-from keras.layers import Input
+from keras.layers import Input, Flatten, Dense
 from keras.layers.core import Activation
 from keras.layers.convolutional import Conv3D, Deconv3D
 from keras.layers.normalization import BatchNormalization
 from keras.layers.advanced_activations import LeakyReLU
 
+import numpy as np
+
 
 class Network(AbstractGAN.Network):
+    _model = None
+    _discriminator = None
+    _generator = None
+
+    @property
+    def model(self):
+        return self._model
+
+    @model.setter
+    def model(self, value):
+        self._model = value
+
+    @property
+    def generator(self):
+        return self._generator
+
+    @generator.setter
+    def generator(self, value):
+        self._generator = value
+
+    @property
+    def discriminator(self):
+        return self._discriminator
+
+    @discriminator.setter
+    def discriminator(self, value):
+        self._discriminator = value
+
     def __init__(self, data):
         self.create_network(data)
 
     @classmethod
-    def train_network(cls, training_set):
-        pass
+    def create_network(cls, data):
+        print("Initialising Generator Adversarial Network...")
+
+        x = len(data[0])
+        y = len(data[0][0])
+        z = len(data[0][0][0])
+        w = len(data)
+
+        channels = 1  # TODO: Make this variable from the settings file
+
+        discriminator_optimizer = Adam(0.00001, 0.5)
+        combined_optimizer = Adam(0.0001, 0.5)
+
+        cls._discriminator.trainable = False
+
+        cls._discriminator.compile(loss="binary_crossentropy",
+                                   optimizer=discriminator_optimizer,
+                                   metrics=["accuracy"])
+
+        input_voxel = Input(shape=(x, y, z, channels))
+        gen_missing = cls._generator(input_voxel)
+
+        verdict = cls._discriminator(gen_missing)
+
+        cls._model = Model(input_voxel, [gen_missing, verdict])
+        cls._model.compile(loss=["mse", "binary_crossentropy"],
+                           loss_weights=[0.999, 0.001],
+                           optimizer=combined_optimizer)
+
+        return cls._model
+
+    @classmethod
+    def train_network(cls, epochs, batch_size, training_set):
+        print("Training network with: " + str(epochs) + " EPOCHS, " + str(batch_size) + " BATCH SIZE")
+
+        features, labels = training_set
+        features = np.expand_dims(np.array(features), 5)
+        labels = np.expand_dims(np.array(labels), 5)
+
+        valid = np.full((batch_size, 1), 0.9)
+        invalid = np.zeros((batch_size, 1))
+
+        disciminator_losses = np.zeros((epochs, 1))
+        generator_losses = np.zeros((epochs, 1))
+
+        for epoch in range(epochs):
+            idx = np.random.randint(0, len(features), batch_size)
+
+            gen_missing = cls._generator.predict(features[idx])
+
+            discriminator_loss_valid = cls._discriminator.train_on_batch(labels[idx], valid)
+            disciminator_loss_invalid = cls._discriminator.train_on_batch(gen_missing, invalid)
+            discriminator_loss = 0.5 * np.add(disciminator_loss_invalid, discriminator_loss_valid)
+
+            generator_loss = cls._model.train_on_batch(features[idx], [labels[idx], valid])
+
+            print("%d [DIS loss: %f, acc: %.2f%%] [GEN loss: %f, mse: %f]" % (epoch,
+                                                                              discriminator_loss[0],
+                                                                              100 * discriminator_loss[1],
+                                                                              generator_loss[0],
+                                                                              generator_loss[1]))
+
+            disciminator_losses[epoch] = discriminator_loss[0]
+            generator_losses[epoch] = generator_loss[0]
+
 
     @classmethod
     def test_network(cls, testing_set):
         pass
-
-    @classmethod
-    def create_network(cls, data):
-        print("Initialising Generator Adversarial Network...")
-        cls.generator = DCGANGenerator(data, strides=(2, 2, 2), kernelsize=(4, 4, 4), train=True)
-        cls.discriminator = DCGANDiscriminator(0.2, (2, 2, 2), (4, 4, 4), True)
-
-        discongen = Sequential()
-        discongen.add(cls.generator.model)
-        discongen.trainable = False
-        discongen.add(cls.discriminator.model)
-
-        model = Sequential()
-        model.add(cls.generator.model)
-        cls.discriminator.trainable = False
-        model.add(cls.discriminator.model)
-
-        generator_optimisation = Adam(lr=0.01, beta_1=0.5)
-        discriminator_optimisation = Adam(lr=0.000001, beta_1=0.9)
-
-        cls.generator.model.compile(loss='binary_crossentropy', optimizer="SGD")
-        discongen.compile(loss='binary_crossentropy', optimizer=generator_optimisation)
-
-        cls.discriminator.trainable = True
-        cls.discriminator.model.compile(loss='binary_crossentropy', optimizer=discriminator_optimisation)
-
-        batchsize = 30
-
-        return cls.discriminator, cls.generator
 
 
 class DCGANDiscriminator:
@@ -63,45 +127,50 @@ class DCGANDiscriminator:
     def model(self, value):
         self._model = value
 
-    def __init__(self, leak_value, strides, kernel_size, train):
+    def __init__(self, voxels, strides, kernel_size):
         print("\tInitialising Deep Convolutional Generative Adversarial Network (Discriminator)")
 
-        cubesize = 64
+        x = len(voxels[0])
+        y = len(voxels[0][0])
+        z = len(voxels[0][0][0])
+        w = len(voxels)
 
-        inputs = Input(shape=(cubesize, cubesize, cubesize, 1))
+        channels = 1  # TODO: Make this variable from the settings file
 
-        d1 = Conv3D(filters=64, kernel_size=kernel_size,
-                    strides=strides, kernel_initializer='glorot_normal',
-                    bias_initializer='zeros', padding='same')(inputs)
-        d1 = BatchNormalization()(d1, training=train)
-        d1 = LeakyReLU(leak_value)(d1)
+        # VARIABLES ----------------
+        initial_filters = 32
+        activation_alpha = 0.2
+        normalisation_momentum = 0.8
+        encoder_levels = 3
+        # --------------------------
 
-        d2 = Conv3D(filters=128, kernel_size=kernel_size,
-                    strides=strides, kernel_initializer='glorot_normal',
-                    bias_initializer='zeros', padding='same')(d1)
-        d2 = BatchNormalization()(d2, training=train)
-        d2 = LeakyReLU(leak_value)(d2)
+        print("\t\t Input size is: " + str(w) + " (" + str(x) + " * " + str(y) + " * " + str(z) + ") voxels")
 
-        d3 = Conv3D(filters=256, kernel_size=kernel_size,
-                    strides=strides, kernel_initializer='glorot_normal',
-                    bias_initializer='zeros', padding='same')(d2)
-        d3 = BatchNormalization()(d3, training=train)
-        d3 = LeakyReLU(leak_value)(d3)
+        voxel_shape = (x, y, z, channels)
 
-        d4 = Conv3D(filters=512, kernel_size=kernel_size,
-                    strides=strides, kernel_initializer='glorot_normal',
-                    bias_initializer='zeros', padding='same')(d3)
-        d4 = BatchNormalization()(d4, training=train)
-        d4 = LeakyReLU(leak_value)(d4)
+        # START MODEL BUILDING
 
-        d5 = Conv3D(filters=1, kernel_size=kernel_size,
-                    strides=(1, 1, 1), kernel_initializer='glorot_normal',
-                    bias_initializer='zeros', padding='valid')(d4)
-        d5 = BatchNormalization()(d5, training=train)
-        d5 = Activation(activation='sigmoid')(d5)
+        model = Sequential()
 
-        self.model = Model(inputs=inputs, outputs=d5)
-        # model.summary()
+        for level in range(0, encoder_levels):
+            if level == 0:
+                model.add(Conv3D(initial_filters * (pow(2, level)), kernel_size=kernel_size, strides=strides,
+                                 input_shape=voxel_shape, padding="same"))
+            else:
+                model.add(
+                    Conv3D(initial_filters * (pow(2, level)), kernel_size=kernel_size, strides=strides, padding="same"))
+            model.add(LeakyReLU(alpha=activation_alpha))
+            model.add(BatchNormalization(momentum=normalisation_momentum))
+
+        model.add(Flatten())
+        model.add(Dense(1, activation="sigmoid"))
+
+        model.summary()
+
+        input_voxel = Input(shape=voxel_shape)
+        verdict = model(input_voxel)
+
+        self._model = Model(input_voxel, verdict)
 
 
 class DCGANGenerator:
@@ -115,7 +184,7 @@ class DCGANGenerator:
     def model(self, value):
         self._model = value
 
-    def __init__(self, voxels, strides, kernelsize, train):
+    def __init__(self, voxels, strides, kernel_size):
         print("\tInitialising Deep Convolutional Generative Adversarial Network (Generator)")
 
         x = len(voxels[0])
@@ -123,57 +192,43 @@ class DCGANGenerator:
         z = len(voxels[0][0][0])
         w = len(voxels)
 
-        channels = 1
+        channels = 1 # TODO: Make this variable from the settings file
 
-        filters = 512
+        # VARIABLES ----------------
+        initial_filters = 128
+        activation_alpha = 0.2
+        normalisation_momentum = 0.8
+        encoder_levels = 3
+        # --------------------------
 
         print("\t\t Input size is: " + str(w) + " (" + str(x) + " * " + str(y) + " * " + str(z) + ") voxels")
 
-        inputs = Input(shape=(x, y, z, channels))
+        voxel_shape = (x, y, z, channels)
 
-        g1 = Deconv3D(filters=filters, kernel_size=kernelsize,
-                      strides=strides, kernel_initializer='glorot_normal',
-                      bias_initializer='zeros', padding='valid')(inputs)
-        g1 = BatchNormalization()(g1, training=train)
 
-        g1 = Activation(activation='relu')(g1)
+        # START MODEL BUILDING
 
-        filters = int(filters / 2)
+        model = Sequential()
 
-    # ===========================================================================
+        for level in range(0, encoder_levels):
+            if level == 0:
+                model.add(Conv3D(initial_filters * (pow(2, level)), kernel_size=kernel_size, strides=strides, input_shape=voxel_shape, padding="same"))
+            else:
+                model.add(Conv3D(initial_filters * (pow(2, level)), kernel_size=kernel_size, strides=strides, padding="same"))
+            model.add(LeakyReLU(alpha=activation_alpha))
+            model.add(BatchNormalization(momentum=normalisation_momentum))
 
-        g2 = Deconv3D(filters=filters, kernel_size=kernelsize,
-                      strides=strides, kernel_initializer='glorot_normal',
-                      bias_initializer='zeros', padding='same')(g1)
-        g2 = BatchNormalization()(g2, training=train)
-        g2 = Activation(activation='relu')(g2)
+        for level in range(encoder_levels - 1, 0, -1):
+            model.add(Deconv3D(initial_filters * pow(2, level - 1), kernel_size=kernel_size, strides=strides, padding="same"))
+            model.add(Activation("relu"))
+            model.add(BatchNormalization(momentum=normalisation_momentum))
 
-        filters = int(filters / 2)
-    # ===========================================================================
+        model.add(Deconv3D(channels, kernel_size=kernel_size, strides=strides, padding="same"))
+        model.add(Activation("tanh"))
 
-        g3 = Deconv3D(filters=filters, kernel_size=kernelsize,
-                      strides=strides, kernel_initializer='glorot_normal',
-                      bias_initializer='zeros', padding='same')(g2)
-        g3 = BatchNormalization()(g3, training=train)
-        g3 = Activation(activation='relu')(g3)
+        model.summary()
 
-        filters = int(filters / 2)
-    # ===========================================================================
+        input_voxel = Input(shape=voxel_shape)
+        gen_missing = model(input_voxel)
 
-        g4 = Deconv3D(filters=filters, kernel_size=kernelsize,
-                      strides=strides, kernel_initializer='glorot_normal',
-                      bias_initializer='zeros', padding='same')(g3)
-        g4 = BatchNormalization()(g4, training=train)
-        g4 = Activation(activation='relu')(g4)
-
-    # ===========================================================================
-
-        g5 = Deconv3D(filters=1, kernel_size=kernelsize,
-                      strides=strides, kernel_initializer='glorot_normal',
-                      bias_initializer='zeros', padding='same')(g4)
-        g5 = BatchNormalization()(g5, training=train)
-        g5 = Activation(activation='sigmoid')(g5)
-
-        self.model = Model(inputs=inputs, outputs=g5)
-
-        # model.summary()
+        self._model = Model(input_voxel, gen_missing)
