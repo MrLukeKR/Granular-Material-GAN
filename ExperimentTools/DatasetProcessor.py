@@ -18,8 +18,11 @@ def dataset_to_train_and_test(dataset, split_percent):
 def chunks(dataset, n):
     dataset_chunks = list()
 
-    for i in range(0, len(dataset), int(math.floor(len(dataset) / n))):
-        dataset_chunks.append(dataset[i:i+n])
+    jump = math.floor(len(dataset) / n)
+
+    for i in range(n):
+        ind = i * jump
+        dataset_chunks.append(dataset[ind:ind + jump])
 
     return dataset_chunks
 

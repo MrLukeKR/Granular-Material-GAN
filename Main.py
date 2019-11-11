@@ -198,7 +198,6 @@ def main():
                 print("\t\tSaving " + segment + " voxels...\r\n\t\t", end='')
                 vp.save_voxels(voxels, voxel_directory, filename)
 
-
             # im.save_voxel_image_collection(voxels, fm.SpecialFolder.VOXEL_DATA, "/Unsegmented/")
 
         experiment = MethodologyLogger.Logger("", "")

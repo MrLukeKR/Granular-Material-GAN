@@ -2,7 +2,7 @@ from ExperimentTools import MethodologyLogger
 from GAN import AbstractGAN
 
 from keras import Sequential
-from keras.optimizers import Adam
+from keras import optimizers
 from keras.models import Model
 from keras.layers import Input, Flatten, Dense
 from keras.layers.core import Activation
@@ -14,18 +14,11 @@ import numpy as np
 from ImageTools import ImageManager as im
 from Settings import FileManager as fm
 
+
 class Network(AbstractGAN.Network):
-    _model = None
+    _adversarial_model = None
     _discriminator = None
     _generator = None
-
-    @property
-    def model(self):
-        return self._model
-
-    @model.setter
-    def model(self, value):
-        self._model = value
 
     @property
     def generator(self):
@@ -50,33 +43,29 @@ class Network(AbstractGAN.Network):
     def create_network(cls, data):
         print("Initialising Generator Adversarial Network...")
 
-        x = len(data[0])
-        y = len(data[0][0])
-        z = len(data[0][0][0])
-        w = len(data)
+        channels = 1
+        data_shape = (len(data[0]), len(data[0][0]), len(data[0][0][0]), 1)
 
-        channels = 1  # TODO: Make this variable from the settings file
-
-        discriminator_optimizer = Adam(0.00001, 0.5)
-        combined_optimizer = Adam(0.0001, 0.5)
-
+        optimizer = optimizers.Adam(0.0002, 0.5)
         cls._discriminator.trainable = False
 
-        cls._discriminator.compile(loss="binary_crossentropy",
-                                   optimizer=discriminator_optimizer,
-                                   metrics=["accuracy"])
+        cls._discriminator.compile(loss='binary_crossentropy',
+                                   optimizer=optimizer,
+                                   metrics=['accuracy'])
 
-        input_voxel = Input(shape=(x, y, z, channels))
-        gen_missing = cls._generator(input_voxel)
+        masked_vol = Input(shape=data_shape)
+        gen_missing = cls._generator(masked_vol)
 
-        verdict = cls._discriminator(gen_missing)
+        valid = cls._discriminator(gen_missing)
 
-        cls._model = Model(input_voxel, [gen_missing, verdict])
-        cls._model.compile(loss=["mse", "binary_crossentropy"],
-                           loss_weights=[0.999, 0.001],
-                           optimizer=combined_optimizer)
+        cls._adversarial_model = Model(masked_vol, [gen_missing, valid])
+        cls._adversarial_model.compile(loss=['mse', 'binary_crossentropy'],
+                                       loss_weights=[0.999, 0.001],
+                                       optimizer=optimizer)
 
-        return cls._model
+        cls._discriminator.compile(loss='binary_crossentropy',
+                                   optimizer=optimizer,
+                                   metrics=['accuracy'])
 
     @classmethod
     def train_network(cls, epochs, batch_size, features, labels):
@@ -85,45 +74,37 @@ class Network(AbstractGAN.Network):
         features = np.expand_dims(np.array(features), 5)
         labels = np.expand_dims(np.array(labels), 5)
 
-        valid = np.full((batch_size, 1), 0.9)
-        invalid = np.zeros((batch_size, 1))
+        valid = np.ones((batch_size, 1))
+        fake = np.zeros((batch_size, 1))
 
-        disciminator_losses = np.zeros((epochs, 1))
+        discriminator_losses = np.zeros((epochs, 1))
         generator_losses = np.zeros((epochs, 1))
 
         for epoch in range(epochs):
             idx = np.random.randint(0, len(features), batch_size)
 
+            # This is the binder generated for a given aggregate arrangement
             gen_missing = cls._generator.predict(features[idx])
 
-            discriminator_loss_valid = cls._discriminator.train_on_batch(labels[idx], valid)
-            disciminator_loss_invalid = cls._discriminator.train_on_batch(gen_missing, invalid)
-            discriminator_loss = 0.5 * np.add(disciminator_loss_invalid, discriminator_loss_valid)
+            # This trains the discriminator on real samples
+            d_loss_real = cls._discriminator.train_on_batch(labels[idx], valid)
+            # This trains the discriminator on fake samples
+            d_loss_fake = cls._discriminator.train_on_batch(gen_missing, fake)
 
-            generator_loss = cls._model.train_on_batch(features[idx], [labels[idx], valid])
+            d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
+
+            g_loss = cls._adversarial_model.train_on_batch(features[idx], [labels[idx], valid])
 
             print("%d [DIS loss: %f, acc: %.2f%%] [GEN loss: %f, mse: %f]" % (epoch,
-                                                                              discriminator_loss[0],
-                                                                              100 * discriminator_loss[1],
-                                                                              generator_loss[0],
-                                                                              generator_loss[1]))
+                                                                              d_loss[0],
+                                                                              100 * d_loss[1],
+                                                                              g_loss[0],
+                                                                              g_loss[1]))
 
-            disciminator_losses[epoch] = discriminator_loss[0]
-            generator_losses[epoch] = generator_loss[0]
+            discriminator_losses[epoch] = d_loss[0]
+            generator_losses[epoch] = g_loss[0]
 
-            fig, ax = im.plt.subplots()
-            ax.plot(disciminator_losses, label="Discriminator Loss")
-            ax.plot(generator_losses, label="Generator Loss")
-            ax.set(xlabel="Epochs", ylabel="Loss",
-                   title="Training Loss")
-            ax.tick_params(axis='x', which="both", bottom=False)
-            ax.legend(loc="upper right")
-
-            directory = fm.get_directory(fm.SpecialFolder.FIGURES)
-            fm.create_if_not_exists(directory)
-            fig.savefig(directory + '/training_' + MethodologyLogger.Logger.get_timestamp() + '.jpg')
-
-            im.plt.show()
+        return discriminator_losses, generator_losses
 
     @classmethod
     def test_network(cls, testing_set):
