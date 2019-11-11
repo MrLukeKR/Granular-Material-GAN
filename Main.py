@@ -26,6 +26,9 @@ from Settings import FileManager as fm
 import Settings.MachineLearningManager as mlm
 # <<< Machine Learning
 
+# Experiments >>>
+from ExperimentTools import MethodologyLogger, ExperimentRunner, DatasetProcessor
+# <<< Experiments
 
 pool = None
 
@@ -198,70 +201,10 @@ def main():
 
             # im.save_voxel_image_collection(voxels, fm.SpecialFolder.VOXEL_DATA, "/Unsegmented/")
 
-        aggregates = list()
-        binders = list()
-
-        training_sets = 10
-        current_sets = 0
-
-        for data_directory in fm.data_directories:
-            fm.current_directory = data_directory.replace(fm.get_directory(fm.SpecialFolder.SEGMENTED_SCANS), '')
-
-            voxel_directory = fm.get_directory(fm.SpecialFolder.VOXEL_DATA) + fm.current_directory[0:-1]
-
-            print("Loading voxels from '" + voxel_directory + "' (Dataset " + str(current_sets + 1) + ")...")
-
-            for segment in ("aggregate", "binder"):
-                filename = segment + '_' + sm.configuration.get("VOXEL_RESOLUTION")
-                print('\t' + filename)
-                voxels = vp.load_voxels(voxel_directory, filename)
-
-                if segment == "aggregate":
-                    aggregates += voxels
-                elif segment == "binder":
-                    binders += voxels
-
-            current_sets += 1
-
-            if current_sets >= training_sets:
-                break
-
-# \-- | 3D DATA SEGMENTATION SUB-MODULE
-#        print("Segmenting voxels... ", end='')
-#        for v in tqdm(range(len(voxels))):
-#            segmentor3D.segment_image(voxels[v])
-#        print("done!")
+        experiment = MethodologyLogger.Logger("", "")
 
 # | GENERATIVE ADVERSARIAL NETWORK MODULE
-
-        discriminator, generator = mlm.load_network()
-
-        if discriminator is None or generator is None:
-            discriminator = DCGAN.DCGANDiscriminator(aggregates, 2, 5)
-            generator = DCGAN.DCGANGenerator(aggregates, 2, 5)
-
-        DCGAN.Network._discriminator = discriminator
-        DCGAN.Network._generator = generator
-
-        network = DCGAN.Network.create_network(aggregates)
-
-        training_set = list()
-        training_set.append(aggregates)
-        training_set.append(binders)
-
-        DCGAN.Network.train_network(600, 32, training_set)
-
-        # if sm.configuration.get("ENABLE_GAN_TRAINING") == "True":
-            # my_net.train_network()
-
-# \-- | 2D Noise Generation
-        # v_x, v_y = images[0].shape
-        # noise = im.get_noise_image((v_x, v_y))
-
-# \-- | 3D Noise Generation
-        # vX, vY, vZ = voxels[0].shape
-        # noise = get_noise_image((vX, vY, vZ))
-        # im.display_voxel(noise)
+        ExperimentRunner.run_k_fold_cross_validation_experiment(fm.data_directories, 10)
 
 
 if __name__ == "__main__":

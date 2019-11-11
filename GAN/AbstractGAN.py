@@ -8,7 +8,7 @@ class Network:
         raise NotImplementedError("create_network not implemented in abstract base class")
 
     @classmethod
-    def train_network(cls, epochs, batch_size, training_set):
+    def train_network(cls, epochs, batch_size, features, labels):
         raise NotImplementedError("train_network not implemented in abstract base class")
 
     @classmethod

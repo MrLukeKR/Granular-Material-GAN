@@ -1,3 +1,4 @@
+from ExperimentTools import MethodologyLogger
 from GAN import AbstractGAN
 
 from keras import Sequential
@@ -10,7 +11,8 @@ from keras.layers.normalization import BatchNormalization
 from keras.layers.advanced_activations import LeakyReLU
 
 import numpy as np
-
+from ImageTools import ImageManager as im
+from Settings import FileManager as fm
 
 class Network(AbstractGAN.Network):
     _model = None
@@ -77,10 +79,9 @@ class Network(AbstractGAN.Network):
         return cls._model
 
     @classmethod
-    def train_network(cls, epochs, batch_size, training_set):
+    def train_network(cls, epochs, batch_size, features, labels):
         print("Training network with: " + str(epochs) + " EPOCHS, " + str(batch_size) + " BATCH SIZE")
 
-        features, labels = training_set
         features = np.expand_dims(np.array(features), 5)
         labels = np.expand_dims(np.array(labels), 5)
 
@@ -110,6 +111,19 @@ class Network(AbstractGAN.Network):
             disciminator_losses[epoch] = discriminator_loss[0]
             generator_losses[epoch] = generator_loss[0]
 
+            fig, ax = im.plt.subplots()
+            ax.plot(disciminator_losses, label="Discriminator Loss")
+            ax.plot(generator_losses, label="Generator Loss")
+            ax.set(xlabel="Epochs", ylabel="Loss",
+                   title="Training Loss")
+            ax.tick_params(axis='x', which="both", bottom=False)
+            ax.legend(loc="upper right")
+
+            directory = fm.get_directory(fm.SpecialFolder.FIGURES)
+            fm.create_if_not_exists(directory)
+            fig.savefig(directory + '/training_' + MethodologyLogger.Logger.get_timestamp() + '.jpg')
+
+            im.plt.show()
 
     @classmethod
     def test_network(cls, testing_set):

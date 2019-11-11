@@ -1,9 +1,6 @@
 import os
 
-import h5py
 from keras.models import load_model
-
-from GAN import DCGAN
 from Settings import FileManager as fm
 
 
