@@ -1,23 +1,28 @@
 import datetime
 
+from Settings import FileManager as fm
+
 
 class Logger:
-    instance = None
-
-    class __Logger:
-        def __init__(self, log_directory, log_file_name):
-            print("Starting experiment logger (" + str(Logger.get_timestamp()) + ")")
-            Logger.instance.log_file = open(log_directory + '/' + log_file_name + '.log')
+    initialised = False
 
     experiment_id = None
     log_file = None
     log_directory = None
 
-    def __init__(self, log_directory, log_file_name):
-        if not Logger.instance:
-            Logger.instance = Logger.__Logger(log_directory, log_file_name)
+    def __init__(self, log_directory, log_file_name=None):
+        if not Logger.initialised:
+            Logger.initialised = True
         else:
             raise AttributeError("Logger is a singleton and has already been initialised")
+
+        if not log_file_name:
+            log_file_name = "experiment_" + Logger.get_timestamp()
+
+        filepath = log_directory + log_file_name + '.log'
+
+        Logger.log_file = open(filepath, 'w')
+        Logger.print("Starting experiment logger (" + str(Logger.get_timestamp()) + ")")
 
     @staticmethod
     def get_timestamp():
@@ -32,7 +37,7 @@ class Logger:
     @staticmethod
     def save_figure(self, figure, name=None):
         if name is None:
-            name = Logger.get_timestamp()
+            name = "figure_" + Logger.get_timestamp()
 
         figure.save()
 
@@ -40,7 +45,7 @@ class Logger:
 
     @staticmethod
     def print(message, end='\r\n'):
-        if not Logger.instance or not Logger.log_file:
+        if not Logger.log_file:
             raise AssertionError("Logger has not been initialised")
 
         print(message, end=end)

@@ -19,6 +19,7 @@ class SpecialFolder(Enum):
     VOXEL_DATA = 6
     MODEL_DATA = 7
     DATASET_DATA = 8
+    LOGS = 9
 
 
 def check_folder_type(special_folder):
@@ -47,6 +48,8 @@ def get_settings_id(special_folder):
         return "IO_MODEL_ROOT_DIR"
     elif special_folder == SpecialFolder.DATASET_DATA:
         return "IO_DATASET_ROOT_DIR"
+    elif special_folder == SpecialFolder.LOGS:
+        return "IO_LOG_ROOT_DIR"
     else:
         return "NONE"
 
@@ -60,6 +63,10 @@ def assign_special_folders():
                 folder.value,
                 root_directories[SpecialFolder.ROOT.value] + sm.configuration.get(get_settings_id(folder))
             )
+
+    for directory in root_directories:
+        if len(directory) > 0:
+            create_if_not_exists(directory)
 
 
 def get_directory(special_folder):
@@ -96,6 +103,11 @@ def prepare_directories(special_folder):
 def create_if_not_exists(directory):
     if not path.exists(directory):
         makedirs(directory)
+
+
+def create_file(filepath):
+    if not file_exists(filepath):
+        raise NotImplementedError
 
 
 def file_exists(filepath):

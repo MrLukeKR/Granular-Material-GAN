@@ -67,14 +67,22 @@ def process_voxels(images):
     return voxels
 
 
-def main():
+def setup():
     global pool
+
+    sm.load_settings()
+    fm.assign_special_folders()
+
+    MethodologyLogger.Logger(fm.get_directory(fm.SpecialFolder.LOGS))
 
     pool = Pool()
     print_introduction()
 
-    sm.load_settings()
-    fm.assign_special_folders()
+
+def main():
+    global pool
+
+    setup()
 
 # | DATA PREPARATION MODULE
     if sm.configuration.get("ENABLE_PREPROCESSING") == "True":
@@ -200,8 +208,6 @@ def main():
                 vp.save_voxels(voxels, voxel_directory, filename)
 
             # im.save_voxel_image_collection(voxels, fm.SpecialFolder.VOXEL_DATA, "/Unsegmented/")
-
-        experiment = MethodologyLogger.Logger("", "")
 
 # | GENERATIVE ADVERSARIAL NETWORK MODULE
         ExperimentRunner.run_k_fold_cross_validation_experiment(fm.data_directories, 10)

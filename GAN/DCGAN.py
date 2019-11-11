@@ -1,8 +1,6 @@
 from ExperimentTools import MethodologyLogger
 from GAN import AbstractGAN
-
-from keras import Sequential
-from keras import optimizers
+from keras import Sequential, optimizers
 from keras.models import Model
 from keras.layers import Input, Flatten, Dense
 from keras.layers.core import Activation
