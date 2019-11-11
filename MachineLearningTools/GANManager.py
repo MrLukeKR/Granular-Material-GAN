@@ -6,7 +6,9 @@ import Settings.SettingsManager as sm
 
 from tqdm import tqdm
 from MachineLearningTools.ML3D.ImageDataGenerator3D import ImageDataGenerator3D
+from ExperimentTools.MethodologyLogger import Logger
 from Settings import FileManager as fm
+
 
 def train_network_2d(images):
     x_train = list()
@@ -16,16 +18,16 @@ def train_network_2d(images):
     for image in images:
         array_vox = np.array(image)
         if array_vox.shape != (im_res, im_res, sm.image_channels):
-            print("Incorrect shape in [IMAGE " + str(ind) + "]: " + str(image.shape))
+            Logger.print("Incorrect shape in [IMAGE " + str(ind) + "]: " + str(image.shape))
         else:
             x_train.append(array_vox)
         ind += 1
 
     x_train = np.array(x_train, dtype=float)
 
-    print("Input dataset shape: " + str(x_train.shape))
+    Logger.print("Input dataset shape: " + str(x_train.shape))
 
-    print("Saving training data to Numpy files (for memory efficient data usage)...")
+    Logger.print("Saving training data to Numpy files (for memory efficient data usage)...")
 
     data_indices = list(range(len(x_train)))
 
@@ -66,16 +68,16 @@ def train_network_3d(voxels):
     for voxel in voxels:
         array_vox = np.array(voxel)
         if array_vox.shape != (vox_res, vox_res, vox_res, sm.image_channels):
-            print("Incorrect shape in [VOXEL " + str(ind) + "]: " + str(voxel.shape))
+            Logger.print("Incorrect shape in [VOXEL " + str(ind) + "]: " + str(voxel.shape))
         else:
             x_train.append(array_vox)
         ind += 1
 
     x_train = np.array(x_train, dtype=float)
 
-    print("Input dataset shape: " + str(x_train.shape))
+    Logger.print("Input dataset shape: " + str(x_train.shape))
 
-    print("Saving training data to Numpy files (for memory efficient data usage)...")
+    Logger.print("Saving training data to Numpy files (for memory efficient data usage)...")
 
     data_indices = list(range(len(x_train)))
 
@@ -108,4 +110,3 @@ def train_network_3d(voxels):
     wnet.fit(x=x_train, y=x_train, batch_size=int(sm.configuration.get("TRAINING_BATCH_SIZE")), epochs=1, verbose=1)
 
     return wnet
-

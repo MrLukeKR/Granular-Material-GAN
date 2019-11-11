@@ -2,9 +2,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import ImageTools.ImageManager as im
 import scipy.signal as ss
+
+
+from ExperimentTools.MethodologyLogger import Logger
 from scipy import ndimage
-
-
 from tqdm import tqdm
 from sklearn.preprocessing import binarize
 from Settings import SettingsManager as sm
@@ -12,7 +13,7 @@ from skimage import exposure, restoration
 
 
 def remove_empty_scans(images):
-    print("\tRemoving Empty Images... ", end='')
+    Logger.print("\tRemoving Empty Images... ", end='')
     threshold = 0.1 * len(images[0]) * len(images[0][0])
     valid_scans = list()
 
@@ -23,32 +24,32 @@ def remove_empty_scans(images):
         if image_sum >= threshold:
             valid_scans.append(image)
 
-    print("done!")
+    Logger.print("done!")
     return valid_scans
 
 
 def normalise_images(images, pool):
     fixed_images = list()
 
-    print("\tNormalising Images... ", end='')
+    Logger.print("\tNormalising Images... ", end='')
     for ind, res in enumerate(pool.map(normalise_image, images)):
         fixed_images.insert(ind, res)
 
         if sm.configuration.get("ENABLE_IMAGE_SAVING") == "True":
             im.save_image(fixed_images[ind], str(ind), "Pre-processing/Normalised/")
 
-    print("done!")
+    Logger.print("done!")
     return fixed_images
 
 
 def reshape_images(images, pool):
     reshaped_images = list()
 
-    print("\tReshaping Images... ", end='')
+    Logger.print("\tReshaping Images... ", end='')
     for ind, res in enumerate(pool.map(reshape_image, images)):
         reshaped_images.insert(ind, res)
 
-    print("done!")
+    Logger.print("done!")
     return reshaped_images
 
 
@@ -74,16 +75,16 @@ def denoise_images(images, pool):
     total = len(images)
     curr = 0
 
-    print("\tDe-noising Images... ", end='', flush=True)
+    Logger.print("\tDe-noising Images... ", end='', flush=True)
     for ind, res in enumerate(pool.map(denoise_image, images)):
         fixed_images.insert(ind, res)
         curr += 1
-        print("\r\tDe-noising Images... " + str(curr / total * 100) + "%", end='', flush=True)
+        Logger.print("\r\tDe-noising Images... " + str(curr / total * 100) + "%", end='', flush=True)
 
         if sm.configuration.get("ENABLE_IMAGE_SAVING") == "True":
             im.save_image(res, str(ind), "Pre-processing/De-Noised/", "De-Noised")
 
-    print("\r\tDe-noising Images... done!")
+    Logger.print("\r\tDe-noising Images... done!")
     return fixed_images
 
 
@@ -95,7 +96,7 @@ def denoise_image(image):
 
 def remove_anomalies(images):
     fixed_images = list()
-    print("\tResolving X-Ray Intensity Anomalies... ", end='')
+    Logger.print("\tResolving X-Ray Intensity Anomalies... ", end='')
 
     for x in tqdm(range(len(images))):
         fixed_images.append(remove_anomaly(images[x]))
@@ -103,13 +104,13 @@ def remove_anomalies(images):
         if sm.configuration.get("ENABLE_IMAGE_SAVING") == "True":
             im.save_image(fixed_images[x], str(x), "Pre-processing/AnomalyRemoved/", "AnomalyRemoved")
 
-    print("done!")
+    Logger.print("done!")
     return fixed_images
 
 
 def remove_backgrounds(images):
     fixed_images = list()
-    print("\tRemoving backgrounds (air-voids)", end='')
+    Logger.print("\tRemoving backgrounds (air-voids)", end='')
 
     for x in tqdm(range(len(images))):
         fixed_images.append(remove_background(images[x]))
@@ -117,7 +118,7 @@ def remove_backgrounds(images):
         if sm.configuration.get("ENABLE_IMAGE_SAVING") == "True":
             im.save_image(fixed_images[x], str(x), "Pre-processing/BackgroundRemoved/")
 
-    print("done!")
+    Logger.print("done!")
     return fixed_images
 
 

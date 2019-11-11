@@ -4,44 +4,14 @@ import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import h5py
 
-from Settings import FileManager as fm
-
-
-from Settings import SettingsManager as sm
-
-
-def split_voxel_collection_to_segments(voxels):
-    aggregates = list()
-    binders = list()
-    voids = list()
-
-    for voxel in voxels:
-        a, b, v = split_voxel_to_segments(voxel)
-        aggregates.append(a)
-        binders.append(b)
-        voids.append(v)
-
-    return aggregates, binders, voids
-
-
-def split_voxel_to_segments(voxel):
-    aggregate = None
-    binder = None
-    void = None
-
-    raise NotImplementedError("split_voxel_to_segments is not implemented!")
+from Settings import FileManager as fm, SettingsManager as sm
+from ExperimentTools.MethodologyLogger import Logger
 
 
 def split_to_voxels(volume_data, cubic_dimension):
     voxels = list()
-    # Structure of voxel -> uint[cubicDimension][cubicDimension][cubicDimension]
 
     volume = np.array(volume_data,)
-
-    # Voxel normalisation (is this necessary if we normalise the input images?
-    #vol_min = volume.min(axis=(0, 1, 2), keepdims=True)
-    #vol_max = volume.max(axis=(0, 1, 2), keepdims=True)
-    #volume = (volume - vol_min)/(vol_max - vol_min)
 
     # This should be equal to a hypothetical voxelCountZ, since images are square
     voxel_count_x = len(volume) / cubic_dimension
@@ -52,32 +22,32 @@ def split_to_voxels(volume_data, cubic_dimension):
             voxel_count_x != int(voxel_count_x) or \
             voxel_count_y != int(voxel_count_y) or \
             voxel_count_z != int(voxel_count_z):
-        print("Voxel division resulted in a floating-point number:")
+        Logger.print("Voxel division resulted in a floating-point number:")
 
         if str(sm.configuration.get("VOXEL_RESOLVE_METHOD")).upper() == "LOSSY":
-            print("\tUsing LOSSY solution")
+            Logger.print("\tUsing LOSSY solution")
 
             voxel_count_x = math.floor(voxel_count_x)
             voxel_count_y = math.floor(voxel_count_y)
         elif str(sm.configuration.get("VOXEL_RESOLVE_METHOD")).upper() == "PADDING":
-            print("\tUsing PADDING solution")
+            Logger.print("\tUsing PADDING solution")
 
             voxel_count_x = math.ceil(voxel_count_x)
             voxel_count_y = math.ceil(voxel_count_y)
         elif str(sm.configuration.get("VOXEL_RESOLVE_METHOD")).upper() == "EXTRAPOLATE":
-            print("\tEXTRAPOLATE method has not been implemented yet!")
+            Logger.print("\tEXTRAPOLATE method has not been implemented yet!")
 
             # TODO: Write the extrapolating method of voxel segmentation
 
             pass
         elif str(sm.configuration.get("VOXEL_RESOLVE_METHOD")).upper() == "SHRINK":
-            print("\tSHRINK method has not been implemented yet!")
+            Logger.print("\tSHRINK method has not been implemented yet!")
 
             # TODO: Write the shrinking method of voxel segmentation
 
             pass
         elif str(sm.configuration.get("VOXEL_RESOLVE_METHOD")).upper() == "STRETCH":
-            print("\tSTRETCH method has not been implemented yet!")
+            Logger.print("\tSTRETCH method has not been implemented yet!")
 
             # TODO: Write the stretching method of voxel segmentation
 
@@ -98,7 +68,7 @@ def split_to_voxels(volume_data, cubic_dimension):
             z_start = cubic_dimension * z
             z_end = z_start + cubic_dimension
             for y in range(voxel_count_y):
-                print(pretext + " Voxel [DEPTH " + str(z) + "][ROW " + str(y) + "][COL " + str(x) + "]", end='\r', flush=True)
+                Logger.print(pretext + " Voxel [DEPTH " + str(z) + "][ROW " + str(y) + "][COL " + str(x) + "]", end='\r', flush=True)
 
                 y_start = cubic_dimension * y
                 y_end = y_start + cubic_dimension
@@ -108,7 +78,7 @@ def split_to_voxels(volume_data, cubic_dimension):
                 if voxel.shape != (cubic_dimension, cubic_dimension, cubic_dimension):
                     resolver = str(sm.configuration.get("VOXEL_RESOLVE_METHOD")).upper()
 
-                    print("FOUND NON-PERFECT VOXEL, RESOLVING WITH [" + resolver + "]...")
+                    Logger.print("FOUND NON-PERFECT VOXEL, RESOLVING WITH [" + resolver + "]...")
 
                     if resolver == "PADDING":
                         xPad = cubic_dimension - len(voxel)
@@ -128,9 +98,9 @@ def split_to_voxels(volume_data, cubic_dimension):
                 if voxel.shape == (cubic_dimension, cubic_dimension, cubic_dimension):
                     voxels.append(voxel)
                 else:
-                    print("!-- ERROR: Voxel was invalid size --!")
+                    Logger.print("!-- ERROR: Voxel was invalid size --!")
 
-    print(pretext + " done!")
+    Logger.print(pretext + " done!")
     return voxels
 
 
@@ -139,11 +109,11 @@ def save_voxels(voxels, location, filename):
 
     filepath = location + "/" + filename + ".h5"
 
-    print("Saving voxel collection to '" + filepath + "'... ", end='')
+    Logger.print("Saving voxel collection to '" + filepath + "'... ", end='')
     h5f = h5py.File(filepath, 'w')
     h5f.create_dataset(filename, data=voxels)
     h5f.close()
-    print("done!")
+    Logger.print("done!")
 
 
 def load_voxels(location, filename):
@@ -172,11 +142,11 @@ def plot_voxel(voxel):
     vox_size = max(x_len, y_len, z_len)
 
     if x_len < vox_size:
-        print("Padding required along X axis")
+        Logger.print("Padding required along X axis")
     elif y_len < vox_size:
-        print("Padding required along Y axis")
+        Logger.print("Padding required along Y axis")
     elif z_len < vox_size:
-        print("Padding required along Z axis")
+        Logger.print("Padding required along Z axis")
     else:
         vox = vox.reshape((vox_size, vox_size, vox_size))
 

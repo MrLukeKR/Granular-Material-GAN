@@ -28,6 +28,7 @@ import Settings.MachineLearningManager as mlm
 
 # Experiments >>>
 from ExperimentTools import MethodologyLogger, ExperimentRunner, DatasetProcessor
+from ExperimentTools.MethodologyLogger import Logger
 # <<< Experiments
 
 pool = None
@@ -42,7 +43,7 @@ def print_introduction():
 
 
 def preprocess_image_collection(images):
-    print("Pre-processing Image Collection...")
+    Logger.print("Pre-processing Image Collection...")
     processed_images = images
 
     processed_images = preproc.reshape_images(processed_images, pool=pool)
@@ -89,9 +90,9 @@ def main():
             images = im.load_images_from_directory(data_directory)
             images = preprocess_image_collection(images)
 
-            print("Saving processed images... ", end='')
+            Logger.print("Saving processed images... ", end='')
             im.save_images(images, "processed_scan", fm.SpecialFolder.PROCESSED_SCANS)
-            print("done!")
+            Logger.print("done!")
 
 # \-- | DATA LOADING SUB-MODULE
 
@@ -128,49 +129,49 @@ def main():
             segments = list()
             clean_segments = list()
 
-            print("Segmenting images... ", end="", flush=True)
+            Logger.print("Segmenting images... ", end="", flush=True)
             for ind, res in enumerate(pool.map(segmentor2D.segment_image, images)):
                 voids.insert(ind, res[0])
                 aggregates.insert(ind, res[1])
                 binders.insert(ind, res[2])
                 segments.insert(ind, res[3])
-            print("done!")
+            Logger.print("done!")
 
-            print("Post-processing Segment Collection...")
+            Logger.print("Post-processing Segment Collection...")
 
             ENABLE_POSTPROCESSING=False
 
             if ENABLE_POSTPROCESSING:
-                print("\tCleaning Voids...", end="", flush=True)
+                Logger.print("\tCleaning Voids...", end="", flush=True)
                 for ind, res in enumerate(pool.map(postproc.clean_segment, voids)):
                     clean_voids.insert(ind, res)
                 voids = clean_voids
-                print("done!")
+                Logger.print("done!")
 
-                print("\tCleaning Aggregates...", end="", flush=True)
+                Logger.print("\tCleaning Aggregates...", end="", flush=True)
                 for ind, res in enumerate(pool.map(postproc.clean_segment, aggregates)):
                     clean_aggregates.insert(ind, res)
                 aggregates = clean_aggregates
-                print("done!")
+                Logger.print("done!")
 
-                print("\tCleaning Binders...", end="", flush=True)
+                Logger.print("\tCleaning Binders...", end="", flush=True)
                 for ind, res in enumerate(pool.map(postproc.clean_segment, binders)):
                     clean_binders.insert(ind, res)
                 binders = clean_binders
-                print("done!")
+                Logger.print("done!")
 
-                print("\tCleaning Segments...", end="", flush=True)
+                Logger.print("\tCleaning Segments...", end="", flush=True)
                 for ind, res in enumerate(pool.map(postproc.clean_segment, segments)):
                     clean_segments.insert(ind, res)
                 segments = clean_segments
-                print("done!")
+                Logger.print("done!")
 
-            print("Saving segmented images... ", end='')
+            Logger.print("Saving segmented images... ", end='')
             im.save_images(binders, "binder", fm.SpecialFolder.SEGMENTED_SCANS)
             im.save_images(aggregates, "aggregate", fm.SpecialFolder.SEGMENTED_SCANS)
             im.save_images(voids, "void", fm.SpecialFolder.SEGMENTED_SCANS)
             im.save_images(segments, "segment", fm.SpecialFolder.SEGMENTED_SCANS)
-            print("done!")
+            Logger.print("done!")
 
 # \-- | DATA REPRESENTATION CONVERSION SUB-MODULE
         fm.data_directories = fm.prepare_directories(fm.SpecialFolder.SEGMENTED_SCANS)
@@ -188,14 +189,14 @@ def main():
                     continue
 
                 if not printed_status:
-                    print("Converting segments in '" + data_directory + "' to voxels...")
+                    Logger.print("Converting segments in '" + data_directory + "' to voxels...")
                     printed_status = True
 
-                print("\tLoading " + segment + " data...\r\n\t\t", end='')
+                Logger.print("\tLoading " + segment + " data...\r\n\t\t", end='')
                 images = im.load_images_from_directory(data_directory, segment)
                 voxels = process_voxels(images)
 
-                print("\t\tSaving " + segment + " voxels...\r\n\t\t", end='')
+                Logger.print("\t\tSaving " + segment + " voxels...\r\n\t\t", end='')
                 vp.save_voxels(voxels, voxel_directory, filename)
 
             # im.save_voxel_image_collection(voxels, fm.SpecialFolder.VOXEL_DATA, "/Unsegmented/")

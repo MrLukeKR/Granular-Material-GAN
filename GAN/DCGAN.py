@@ -9,10 +9,9 @@ from keras.layers.core import Activation
 from keras.layers.convolutional import Conv3D, Deconv3D
 from keras.layers.normalization import BatchNormalization
 from keras.layers.advanced_activations import LeakyReLU
+from ExperimentTools.MethodologyLogger import Logger
 
 import numpy as np
-from ImageTools import ImageManager as im
-from Settings import FileManager as fm
 
 
 class Network(AbstractGAN.Network):
@@ -41,7 +40,7 @@ class Network(AbstractGAN.Network):
 
     @classmethod
     def create_network(cls, data):
-        print("Initialising Generator Adversarial Network...")
+        Logger.print("Initialising Generator Adversarial Network...")
 
         channels = 1
         data_shape = (len(data[0]), len(data[0][0]), len(data[0][0][0]), 1)
@@ -69,7 +68,7 @@ class Network(AbstractGAN.Network):
 
     @classmethod
     def train_network(cls, epochs, batch_size, features, labels):
-        print("Training network with: " + str(epochs) + " EPOCHS, " + str(batch_size) + " BATCH SIZE")
+        Logger.print("Training network with: " + str(epochs) + " EPOCHS, " + str(batch_size) + " BATCH SIZE")
 
         features = np.expand_dims(np.array(features), 5)
         labels = np.expand_dims(np.array(labels), 5)
@@ -95,7 +94,7 @@ class Network(AbstractGAN.Network):
 
             g_loss = cls._adversarial_model.train_on_batch(features[idx], [labels[idx], valid])
 
-            print("%d [DIS loss: %f, acc: %.2f%%] [GEN loss: %f, mse: %f]" % (epoch,
+            Logger.print("%d [DIS loss: %f, acc: %.2f%%] [GEN loss: %f, mse: %f]" % (epoch,
                                                                               d_loss[0],
                                                                               100 * d_loss[1],
                                                                               g_loss[0],
@@ -123,7 +122,7 @@ class DCGANDiscriminator:
         self._model = value
 
     def __init__(self, voxels, strides, kernel_size):
-        print("\tInitialising Deep Convolutional Generative Adversarial Network (Discriminator)")
+        Logger.print("\tInitialising Deep Convolutional Generative Adversarial Network (Discriminator)")
 
         x = len(voxels[0])
         y = len(voxels[0][0])
@@ -139,7 +138,7 @@ class DCGANDiscriminator:
         encoder_levels = 3
         # --------------------------
 
-        print("\t\t Input size is: " + str(w) + " (" + str(x) + " * " + str(y) + " * " + str(z) + ") voxels")
+        Logger.print("\t\t Input size is: " + str(w) + " (" + str(x) + " * " + str(y) + " * " + str(z) + ") voxels")
 
         voxel_shape = (x, y, z, channels)
 
@@ -160,7 +159,7 @@ class DCGANDiscriminator:
         model.add(Flatten())
         model.add(Dense(1, activation="sigmoid"))
 
-        model.summary()
+        model.summary(print_fn=Logger.print)
 
         input_voxel = Input(shape=voxel_shape)
         verdict = model(input_voxel)
@@ -180,7 +179,7 @@ class DCGANGenerator:
         self._model = value
 
     def __init__(self, voxels, strides, kernel_size):
-        print("\tInitialising Deep Convolutional Generative Adversarial Network (Generator)")
+        Logger.print("\tInitialising Deep Convolutional Generative Adversarial Network (Generator)")
 
         x = len(voxels[0])
         y = len(voxels[0][0])
@@ -196,7 +195,7 @@ class DCGANGenerator:
         encoder_levels = 3
         # --------------------------
 
-        print("\t\t Input size is: " + str(w) + " (" + str(x) + " * " + str(y) + " * " + str(z) + ") voxels")
+        Logger.print("\t\t Input size is: " + str(w) + " (" + str(x) + " * " + str(y) + " * " + str(z) + ") voxels")
 
         voxel_shape = (x, y, z, channels)
 
@@ -221,7 +220,7 @@ class DCGANGenerator:
         model.add(Deconv3D(channels, kernel_size=kernel_size, strides=strides, padding="same"))
         model.add(Activation("tanh"))
 
-        model.summary()
+        model.summary(print_fn=Logger.print)
 
         input_voxel = Input(shape=voxel_shape)
         gen_missing = model(input_voxel)

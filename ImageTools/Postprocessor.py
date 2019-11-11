@@ -1,11 +1,8 @@
 from scipy import ndimage
-import ImageTools.ImageManager as im
-
-
-from tqdm import tqdm
-from sklearn.preprocessing import binarize
 from Settings import SettingsManager as sm
-from skimage import exposure, restoration
+from ExperimentTools.MethodologyLogger import Logger
+
+import ImageTools.ImageManager as im
 
 
 def clean_segments(images, pool):
@@ -14,16 +11,16 @@ def clean_segments(images, pool):
     total = len(images)
     curr = 0
 
-    print("\tMorphologically Cleaning Segments... ", end='\r')
+    Logger.print("\tMorphologically Cleaning Segments... ", end='\r')
     for ind, res in enumerate(pool.map(clean_segment, images)):
         fixed_images.insert(ind, res)
         curr += 1
-        print("\tMorphologically Cleaning Segments... " + str(curr / total * 100) + "%", end='\r', flush=True)
+        Logger.print("\tMorphologically Cleaning Segments... " + str(curr / total * 100) + "%", end='\r', flush=True)
 
         if sm.configuration.get("ENABLE_IMAGE_SAVING") == "True":
             im.save_image(res, str(ind), "Pre-processing/De-Noised/")
 
-    print("\tDe-noising Images... done!")
+    Logger.print("\tDe-noising Images... done!")
     return fixed_images
 
 

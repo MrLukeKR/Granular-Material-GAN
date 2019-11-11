@@ -5,6 +5,9 @@ from scipy import ndimage
 from skimage.viewer import CollectionViewer
 from os import walk
 from tqdm import tqdm
+from ExperimentTools.MethodologyLogger import Logger
+
+
 import numpy as np
 
 
@@ -23,14 +26,14 @@ class ImageCollection:
         viewer.show()
 
     def constrainimages(self, images, dimensions):
-        print("Constraining " + str(len(images)) + " images to " + str(dimensions) + "...")
+        Logger.print("Constraining " + str(len(images)) + " images to " + str(dimensions) + "...")
         for i in tqdm(range(len(images))):
             images[i] = transform.resize(images[i], output_shape=dimensions)
 
         return images
 
     def resizeimages(self, images, factor):
-        print("Resizing " + str(len(images)) + " images by a factor of " + str(factor) + "...")
+        Logger.print("Resizing " + str(len(images)) + " images by a factor of " + str(factor) + "...")
         x, y = images[0].shape
         x = int(x * factor)
         y = int(y * factor)
@@ -45,14 +48,14 @@ class ImageCollection:
         mimsave(saveLocation, self.images)
 
     def thresholdImages(self):
-        print("Thresholding " + str(len(self.images)) + " images...")
+        Logger.print("Thresholding " + str(len(self.images)) + " images...")
         for i in tqdm(range(len(self.images))):  # tqdm is a progress bar tool
             self.threshimages.append(self.images[i] < filters.thresholding.threshold_otsu(self.images[i]))
 
         return self.threshimages
 
     def segmentImages(self):
-        print("Segmenting " + str(len(self.images)) + " images...")
+        Logger.print("Segmenting " + str(len(self.images)) + " images...")
         for i in tqdm(range(len(self.images))):  # tqdm is a progress bar tool
             aggregateEdges = canny(self.images[i])
 
@@ -64,23 +67,23 @@ class ImageCollection:
             self.closedImages.append(transform.rescale(closedAggregates, 0.25))
             self.filledImages.append(transform.rescale(filledAggregates, 0.25))
 
-        print()  # Print a new line after the process bar is finished
-        print("Done")
+        Logger.print()  # Print a new line after the process bar is finished
+        Logger.print("Done")
 
     def applyThreshold(self): pass
 
     def loadImagesFromList(self, filelist):
-        print("Loading " + str(len(filelist)) + " images")
+        Logger.print("Loading " + str(len(filelist)) + " images")
         for i in tqdm(range(len(filelist))):  # tqdm is a progress bar tool
             image = io.imread(filelist[i], True)
             self.images.append(image)
 
-        print()  # Print a new line after the process bar is finished
+        Logger.print()  # Print a new line after the process bar is finished
 
         if len(self.images) > 0:
-            print("Loaded " + str(len(self.images)) + " images successfully!")
+            Logger.print("Loaded " + str(len(self.images)) + " images successfully!")
         else:
-            print("ERROR: No images were loaded!")
+            Logger.print("ERROR: No images were loaded!")
 
     def loadImagesFromDirectory(self, directory):
         files = []
@@ -91,4 +94,4 @@ class ImageCollection:
         if len(files) > 0:
             self.loadImagesFromList(files)
         else:
-            print("ERROR: ImageCollection file list is empty - Loading Failed")
+            Logger.print("ERROR: ImageCollection file list is empty - Loading Failed")

@@ -2,6 +2,8 @@ from ExperimentTools import DatasetProcessor, MethodologyLogger
 from GAN import DCGAN
 from Settings import FileManager as fm, SettingsManager as sm
 from ImageTools import VoxelProcessor as vp, ImageManager as im
+from ExperimentTools.MethodologyLogger import Logger
+
 import numpy as np
 
 
@@ -20,7 +22,7 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
     dummy = np.zeros(shape=(1, vox_res, vox_res, vox_res, sm.image_channels))
 
     for fold in range(k):
-        print("Running Cross Validation Fold " + str(fold + 1) + "/" + str(k))
+        Logger.print("Running Cross Validation Fold " + str(fold + 1) + "/" + str(k))
 
         fold_d_losses = list()
         fold_g_losses = list()
@@ -39,7 +41,7 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
             binders = list()
 
             for directory in training_set:
-                print("\tLoading voxels from " + directory + "... ", end='')
+                Logger.print("\tLoading voxels from " + directory + "... ", end='')
                 fm.current_directory = directory.replace(fm.get_directory(fm.SpecialFolder.SEGMENTED_SCANS), '')
 
                 voxel_directory = fm.get_directory(fm.SpecialFolder.VOXEL_DATA) + fm.current_directory[0:-1]
@@ -47,9 +49,9 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
                 aggregates += vp.load_voxels(voxel_directory, "aggregate_" + sm.configuration.get("VOXEL_RESOLUTION"))
                 binders += vp.load_voxels(voxel_directory, "binder_" + sm.configuration.get("VOXEL_RESOLUTION"))
 
-                print("done!")
+                Logger.print("done!")
 
-            print("\tTraining on set " + str(ind + 1) + '/' + str(len(training_set)) + "... ")
+            Logger.print("\tTraining on set " + str(ind + 1) + '/' + str(len(training_set)) + "... ")
             d_loss, g_loss = DCGAN.Network.train_network(epochs, batch_size, aggregates, binders)
 
             fold_d_losses += d_loss

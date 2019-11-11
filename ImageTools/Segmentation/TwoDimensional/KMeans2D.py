@@ -1,6 +1,4 @@
-import ImageTools.ImageManager as im
 import numpy as np
-from scipy import ndimage
 from sklearn.cluster import KMeans
 
 

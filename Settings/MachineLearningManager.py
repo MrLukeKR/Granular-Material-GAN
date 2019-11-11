@@ -1,5 +1,6 @@
 import os
 
+from ExperimentTools.MethodologyLogger import Logger
 from keras.models import load_model
 from Settings import FileManager as fm
 
@@ -7,30 +8,30 @@ from Settings import FileManager as fm
 # Models are saved as discriminator.h5 and generator.h5, under an experimental ID
 def load_network():
     root_dir = fm.root_directories[fm.SpecialFolder.MODEL_DATA.value]
-    print("Loading Generative Adversarial Network...")
+    Logger.print("Loading Generative Adversarial Network...")
 
     discriminator = None
     generator = None
 
     if fm.file_exists(root_dir + "discriminator.h5"):
-        print("\tLoading Discriminator... ", end='')
+        Logger.print("\tLoading Discriminator... ", end='')
         discriminator = load_model(root_dir + "discriminator.h5")
-        print("done!")
+        Logger.print("done!")
     else:
-        print("Discriminator network is missing!")
+        Logger.print("Discriminator network is missing!")
 
     if fm.file_exists(root_dir + "generator.h5"):
-        print("\tLoading Generator... ", end='')
+        Logger.print("\tLoading Generator... ", end='')
         generator = load_model(root_dir + "generator.h5")
-        print("done!")
+        Logger.print("done!")
     else:
-        print("Generator network is missing!")
+        Logger.print("Generator network is missing!")
 
     return discriminator, generator
 
 
 def save_network(discriminator, generator):
-    print("Saving Generative Adversarial Network Model...")
+    Logger.print("Saving Generative Adversarial Network Model...")
 
     root_dir = fm.root_directories[fm.SpecialFolder.MODEL_DATA.value]
 

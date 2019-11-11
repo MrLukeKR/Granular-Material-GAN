@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as anim
 import ImageTools.VoxelProcessor as vp
 
-
+from ExperimentTools.MethodologyLogger import Logger
 from os import walk
 from tqdm import tqdm
 from Settings import SettingsManager as sm
@@ -74,7 +74,7 @@ def save_image(image, root_directory, save_location, filename, use_current_direc
 
 
 def save_segmentation_plots(images, segments, voids, binders, aggregates):
-    print("Saving plots...")
+    Logger.print("Saving plots...")
 
     fig, ax = plt.subplots(2, 3, figsize=(10, 5))
     for i in tqdm(range(len(images))):
@@ -127,7 +127,7 @@ def save_voxel_image_collection(voxels, root_location, save_location=""):
 
     directory = fm.root_directories[root_location.value] + fm.current_directory + save_location
 
-    print("Saving " + str(len(voxels)) + " voxel visualisations to " + directory)
+    Logger.print("Saving " + str(len(voxels)) + " voxel visualisations to " + directory)
 
     fm.create_if_not_exists(directory)
 
@@ -186,7 +186,7 @@ def save_animation(animation, save_location, frames_per_second):
 
 
 def load_images_from_list(file_list):
-    print("Loading " + str(len(file_list)) + " images")
+    Logger.print("Loading " + str(len(file_list)) + " images")
     file_list.sort()
     ims = list()
     t = tqdm(range(len(file_list)))
@@ -215,12 +215,12 @@ def load_images_from_list(file_list):
 
         ims.append(img)
 
-    print()  # Print a new line after the process bar is finished
+    Logger.print()  # Print a new line after the process bar is finished
 
     if len(ims) > 0:
-        print("Loaded " + str(len(ims)) + " images successfully!")
+        Logger.print("Loaded " + str(len(ims)) + " images successfully!")
     else:
-        print("ERROR: No images were loaded!")
+        Logger.print("ERROR: No images were loaded!")
 
     return ims
 
