@@ -24,8 +24,8 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
     for fold in range(k):
         Logger.print("Running Cross Validation Fold " + str(fold + 1) + "/" + str(k))
 
-        fold_d_losses = list()
-        fold_g_losses = list()
+        fold_d_losses = np.zeros((epochs * len(training_sets)))
+        fold_g_losses = np.zeros((epochs * len(training_sets)))
 
         discriminator = DCGAN.DCGANDiscriminator(dummy, 2, 5)
         generator = DCGAN.DCGANGenerator(dummy, 2, 5)
@@ -46,16 +46,18 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
 
                 voxel_directory = fm.get_directory(fm.SpecialFolder.VOXEL_DATA) + fm.current_directory[0:-1]
 
-                aggregates += vp.load_voxels(voxel_directory, "aggregate_" + sm.configuration.get("VOXEL_RESOLUTION"))
-                binders += vp.load_voxels(voxel_directory, "binder_" + sm.configuration.get("VOXEL_RESOLUTION"))
+                aggregates += list(v for v in vp.load_voxels(voxel_directory, "aggregate_" + sm.configuration.get("VOXEL_RESOLUTION")) if not v.max == 0 and not v.min == 0)
+                binders += list(v for v in vp.load_voxels(voxel_directory, "binder_" + sm.configuration.get("VOXEL_RESOLUTION")) if not v.max == 0 and not v.min == 0)
 
                 Logger.print("done!")
 
-            Logger.print("\tTraining on set " + str(ind + 1) + '/' + str(len(training_set)) + "... ")
-            d_loss, g_loss = DCGAN.Network.train_network(epochs, batch_size, aggregates, binders)
+            im.show_image(vp.plot_voxel(aggregates[200]))
 
-            fold_d_losses += d_loss
-            fold_g_losses += g_loss
+            Logger.print("\tTraining on set " + str(ind + 1) + '/' + str(len(training_set)) + "... ")
+            d_loss, g_loss, images = DCGAN.Network.train_network(epochs, batch_size, aggregates, binders)
+
+            fold_d_losses[ind * epochs: (ind + 1) * epochs] = d_loss
+            fold_g_losses[ind * epochs: (ind + 1) * epochs] = g_loss
 
             ind += 1
 

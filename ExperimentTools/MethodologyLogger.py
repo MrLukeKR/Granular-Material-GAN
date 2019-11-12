@@ -44,9 +44,9 @@ class Logger:
         pass
 
     @staticmethod
-    def print(message, end='\r\n'):
+    def print(message="", end='\r\n', flush=False):
         if not Logger.log_file:
             raise AssertionError("Logger has not been initialised")
 
-        print(message, end=end)
+        print(message, end=end, flush=flush)
         Logger.log_file.write("[" + str(datetime.datetime.now()) + "] " + message + end)

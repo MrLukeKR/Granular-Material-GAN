@@ -8,6 +8,7 @@ from keras.layers.convolutional import Conv3D, Deconv3D
 from keras.layers.normalization import BatchNormalization
 from keras.layers.advanced_activations import LeakyReLU
 from ExperimentTools.MethodologyLogger import Logger
+from ImageTools import ImageManager as im, VoxelProcessor as vp
 
 import numpy as np
 
@@ -60,10 +61,6 @@ class Network(AbstractGAN.Network):
                                        loss_weights=[0.999, 0.001],
                                        optimizer=optimizer)
 
-        cls._discriminator.compile(loss='binary_crossentropy',
-                                   optimizer=optimizer,
-                                   metrics=['accuracy'])
-
     @classmethod
     def train_network(cls, epochs, batch_size, features, labels):
         Logger.print("Training network with: " + str(epochs) + " EPOCHS, " + str(batch_size) + " BATCH SIZE")
@@ -77,12 +74,15 @@ class Network(AbstractGAN.Network):
         discriminator_losses = np.zeros((epochs, 1))
         generator_losses = np.zeros((epochs, 1))
 
+        generated_images = list()
+
         for epoch in range(epochs):
             idx = np.random.randint(0, len(features), batch_size)
 
             # This is the binder generated for a given aggregate arrangement
             gen_missing = cls._generator.predict(features[idx])
 
+            generated_images += gen_missing
             # This trains the discriminator on real samples
             d_loss_real = cls._discriminator.train_on_batch(labels[idx], valid)
             # This trains the discriminator on fake samples
@@ -101,7 +101,27 @@ class Network(AbstractGAN.Network):
             discriminator_losses[epoch] = d_loss[0]
             generator_losses[epoch] = g_loss[0]
 
-        return discriminator_losses, generator_losses
+            generated = list()
+            original = list()
+
+            for voxel in gen_missing:
+                voxel = np.squeeze(voxel)
+                plotted = vp.plot_voxel(voxel)
+                generated.append(plotted)
+                im.plt.imshow(plotted)
+
+            for voxel in labels[idx]:
+                original.append(vp.plot_voxel(voxel))
+
+            for idx in range(len(generated)):
+                fig, axes = im.plt.subplots(1, 2)
+                axes[0] = im.plt.imshow(generated[idx])
+                axes[1] = im.plt.imshow(original[idx])
+
+                im.plt.imshow(fig)
+
+
+        return discriminator_losses, generator_losses, generated_images
 
     @classmethod
     def test_network(cls, testing_set):

@@ -4,6 +4,9 @@ import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import h5py
 
+# DO NOT DELETE THIS! It shows as unused but it is vital to 3D projection
+from mpl_toolkits.mplot3d import axes3d, Axes3D
+
 from Settings import FileManager as fm, SettingsManager as sm
 from ExperimentTools.MethodologyLogger import Logger
 
@@ -156,7 +159,7 @@ def plot_voxel(voxel):
             normalised = np.zeros(vox.shape)
 
         fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
+        ax = fig.add_subplot(111, projection='3d', aspect='auto')
 
         if sm.USE_BW:
             colours = cm.gray(normalised)
