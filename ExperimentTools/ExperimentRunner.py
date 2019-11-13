@@ -46,12 +46,20 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
 
                 voxel_directory = fm.get_directory(fm.SpecialFolder.VOXEL_DATA) + fm.current_directory[0:-1]
 
-                aggregates += list(v for v in vp.load_voxels(voxel_directory, "aggregate_" + sm.configuration.get("VOXEL_RESOLUTION")) if not v.max == 0 and not v.min == 0)
-                binders += list(v for v in vp.load_voxels(voxel_directory, "binder_" + sm.configuration.get("VOXEL_RESOLUTION")) if not v.max == 0 and not v.min == 0)
+                temp_aggregates = vp.load_voxels(voxel_directory, "aggregate_" + sm.configuration.get("VOXEL_RESOLUTION"))
+                temp_binders = vp.load_voxels(voxel_directory, "binder_" + sm.configuration.get("VOXEL_RESOLUTION"))
+
+                for aggregate in temp_aggregates:
+                    if not aggregate.max == 0 and not aggregate.min == 0:
+                        aggregates.append(aggregate)
+
+                for binder in temp_binders:
+                    if not binder.max == 0 and not binder.min == 0:
+                        binders.append(binder)
 
                 Logger.print("done!")
 
-            im.show_image(vp.plot_voxel(aggregates[200]))
+            im.save_voxel_image(aggregates[200], 'tmp', "test")
 
             Logger.print("\tTraining on set " + str(ind + 1) + '/' + str(len(training_set)) + "... ")
             d_loss, g_loss, images = DCGAN.Network.train_network(epochs, batch_size, aggregates, binders)

@@ -138,9 +138,7 @@ def load_voxels(location, filename):
 def plot_voxel(voxel):
     vox = np.array(voxel)
 
-    x_len = len(vox)
-    y_len = len(vox[0])
-    z_len = len(vox[0][0])
+    x_len, y_len, z_len = vox.shape
 
     vox_size = max(x_len, y_len, z_len)
 

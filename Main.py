@@ -147,7 +147,7 @@ def main():
 
             Logger.print("Post-processing Segment Collection...")
 
-            ENABLE_POSTPROCESSING=False
+            ENABLE_POSTPROCESSING=True
 
             if ENABLE_POSTPROCESSING:
                 Logger.print("\tCleaning Voids...", end="", flush=True)
@@ -206,6 +206,7 @@ def main():
 
                 Logger.print("\t\tSaving " + segment + " voxels...\r\n\t\t", end='')
                 vp.save_voxels(voxels, voxel_directory, filename)
+                im.save_voxel_image_collection(voxels, fm.get_directory(fm.SpecialFolder.VOXEL_DATA), "images")
 
             # im.save_voxel_image_collection(voxels, fm.SpecialFolder.VOXEL_DATA, "/Unsegmented/")
 

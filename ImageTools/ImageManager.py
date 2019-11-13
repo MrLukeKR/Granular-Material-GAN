@@ -107,7 +107,7 @@ def save_segmentation_plots(images, segments, voids, binders, aggregates):
 
 
 def save_voxel_image(voxel, file_name, save_location):
-    directory = sm.configuration.get("IO_OUTPUT_ROOT_DIR") + fm.current_directory + save_location
+    directory = sm.configuration.get("IO_ROOT_DIR") + fm.current_directory + save_location
 
     file_loc = directory + file_name + '.' + sm.configuration.get("IO_IMAGE_FILETYPE")
 

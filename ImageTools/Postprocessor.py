@@ -26,8 +26,10 @@ def clean_segments(images, pool):
 
 def clean_segment(image):
     # return restoration.denoise_nl_means(image)
-    open_image = ndimage.binary_opening(image)
-    close_image = ndimage.binary_closing(open_image)
+    # open_image = ndimage.binary_opening(image)
+    # close_image = ndimage.binary_closing(open_image)
 
-    return close_image
+    clean_image = image > 0
+
+    return clean_image
 
