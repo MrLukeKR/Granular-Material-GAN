@@ -147,7 +147,7 @@ def main():
 
             Logger.print("Post-processing Segment Collection...")
 
-            ENABLE_POSTPROCESSING=True
+            ENABLE_POSTPROCESSING=False
 
             if ENABLE_POSTPROCESSING:
                 Logger.print("\tCleaning Voids...", end="", flush=True)
