@@ -132,7 +132,7 @@ def save_voxel_image_collection(voxels, root_location, save_location=""):
     fm.create_if_not_exists(directory)
 
     for i in tqdm(range(len(voxels))):
-        file_loc = directory + str(i) + '.' + sm.configuration.get("IO_IMAGE_FILETYPE")
+        file_loc = directory + '/' + str(i) + '.' + sm.configuration.get("IO_IMAGE_FILETYPE")
 
         if fm.file_exists(file_loc):
             continue
@@ -208,6 +208,14 @@ def load_images_from_list(file_list):
             ra = np.array(r)
             ga = np.array(g)
             ba = np.array(b)
+
+            img = (0.299 * ra + 0.587 * ga + 0.114 * ba)
+        elif img.mode == "RGBA":
+            r, g, b, a = img.split()
+            aa = np.array(a)
+            ra = np.array(r) * aa
+            ga = np.array(g) * aa
+            ba = np.array(b) * aa
 
             img = (0.299 * ra + 0.587 * ga + 0.114 * ba)
 

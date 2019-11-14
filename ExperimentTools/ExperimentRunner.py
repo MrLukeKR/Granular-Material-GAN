@@ -13,6 +13,14 @@ def run_train_test_split_experiment(aggregates, binders, split_percentage):
 
 
 def run_k_fold_cross_validation_experiment(dataset_directories, k):
+    data_length = len(dataset_directories)
+
+    if k > data_length:
+        print("Dataset of size [" + str(data_length) + "] is too small for [" + str(k) + "] folds.")
+        print("Setting k to [" + str(data_length) + "]")
+
+        k = min(k, data_length)
+
     training_sets, testing_sets = DatasetProcessor.dataset_to_k_cross_fold(dataset_directories, k)
 
     epochs = 500
@@ -59,7 +67,8 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
 
                 Logger.print("done!")
 
-            im.save_voxel_image(aggregates[200], 'tmp', "test")
+            # im.save_voxel_image_collection(aggregates[10:15], fm.SpecialFolder.VOXEL_DATA, "figures/PostH5/aggregate")
+            # im.save_voxel_image_collection(binders[10:15], fm.SpecialFolder.VOXEL_DATA, "figures/PostH5/binder")
 
             Logger.print("\tTraining on set " + str(ind + 1) + '/' + str(len(training_set)) + "... ")
             d_loss, g_loss, images = DCGAN.Network.train_network(epochs, batch_size, aggregates, binders)

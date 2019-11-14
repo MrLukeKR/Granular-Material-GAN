@@ -9,6 +9,7 @@ from keras.layers.normalization import BatchNormalization
 from keras.layers.advanced_activations import LeakyReLU
 from ExperimentTools.MethodologyLogger import Logger
 from ImageTools import ImageManager as im, VoxelProcessor as vp
+from Settings import FileManager as fm
 
 import numpy as np
 
@@ -101,25 +102,8 @@ class Network(AbstractGAN.Network):
             discriminator_losses[epoch] = d_loss[0]
             generator_losses[epoch] = g_loss[0]
 
-            generated = list()
-            original = list()
-
-            for voxel in gen_missing:
-                voxel = np.squeeze(voxel)
-                plotted = vp.plot_voxel(voxel)
-                generated.append(plotted)
-                im.plt.imshow(plotted)
-
-            for voxel in labels[idx]:
-                original.append(vp.plot_voxel(voxel))
-
-            for idx in range(len(generated)):
-                fig, axes = im.plt.subplots(1, 2)
-                axes[0] = im.plt.imshow(generated[idx])
-                axes[1] = im.plt.imshow(original[idx])
-
-                im.plt.imshow(fig)
-
+            # im.save_voxel_image_collection(gen_missing, fm.SpecialFolder.VOXEL_DATA, "figures/postGAN/generated")
+            # im.save_voxel_image_collection(labels, fm.SpecialFolder.VOXEL_DATA, "figures/postGAN/expected")
 
         return discriminator_losses, generator_losses, generated_images
 

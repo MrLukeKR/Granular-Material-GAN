@@ -181,7 +181,7 @@ def main():
             im.save_images(segments, "segment", fm.SpecialFolder.SEGMENTED_SCANS)
             Logger.print("done!")
 
-# \-- | DATA REPRESENTATION CONVERSION SUB-MODULE
+# \-- | SEGMENT-TO-VOXEL CONVERSION SUB-MODULE
         fm.data_directories = fm.prepare_directories(fm.SpecialFolder.SEGMENTED_SCANS)
 
         for data_directory in fm.data_directories:
@@ -206,9 +206,7 @@ def main():
 
                 Logger.print("\t\tSaving " + segment + " voxels...\r\n\t\t", end='')
                 vp.save_voxels(voxels, voxel_directory, filename)
-                im.save_voxel_image_collection(voxels, fm.get_directory(fm.SpecialFolder.VOXEL_DATA), "images")
-
-            # im.save_voxel_image_collection(voxels, fm.SpecialFolder.VOXEL_DATA, "/Unsegmented/")
+                # im.save_voxel_image_collection(voxels, fm.SpecialFolder.VOXEL_DATA, "figures/" + segment)
 
 # | GENERATIVE ADVERSARIAL NETWORK MODULE
         ExperimentRunner.run_k_fold_cross_validation_experiment(fm.data_directories, 10)
