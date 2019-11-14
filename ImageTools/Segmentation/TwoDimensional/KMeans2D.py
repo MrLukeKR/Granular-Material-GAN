@@ -7,12 +7,12 @@ def segment_image(image):
         raise Exception("This segmentation method only accepts two-dimensional images. "
                         "The shape given is " + str(image.shape))
 
-    kmeans = KMeans(n_clusters=3).fit(np.reshape(image, (np.prod(image.shape), 1)))
-    segment = np.reshape(kmeans.cluster_centers_[kmeans.labels_], image.shape)
+    k_means = KMeans(n_clusters=3).fit(np.reshape(image, (np.prod(image.shape), 1)))
+    segment = np.reshape(k_means.cluster_centers_[k_means.labels_], image.shape)
 
     voids = segment == np.min(segment)
     aggregates = segment == np.max(segment)
-    binder = (segment * ~(aggregates + voids)) != 0
+    binder = ~(aggregates + voids)
 
     return voids, aggregates, binder, segment
 
