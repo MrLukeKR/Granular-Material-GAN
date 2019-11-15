@@ -59,18 +59,18 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
 
                 for aggregate in temp_aggregates:
                     if not aggregate.max == 0 and not aggregate.min == 0:
-                        aggregates.append(aggregate)
+                        aggregates.append(aggregate * 255)
 
                 for binder in temp_binders:
                     if not binder.max == 0 and not binder.min == 0:
-                        binders.append(binder)
+                        binders.append(binder * 255)
 
                 Logger.print("done!")
 
             # im.save_voxel_image_collection(aggregates[10:15], fm.SpecialFolder.VOXEL_DATA, "figures/PostH5/aggregate")
             # im.save_voxel_image_collection(binders[10:15], fm.SpecialFolder.VOXEL_DATA, "figures/PostH5/binder")
 
-            Logger.print("\tTraining on set " + str(ind + 1) + '/' + str(len(training_set)) + "... ")
+            Logger.print("\tTraining on set " + str(ind + 1) + '/' + str(len(training_sets)) + "... ")
             d_loss, g_loss, images = DCGAN.Network.train_network(epochs, batch_size, aggregates, binders)
 
             fold_d_losses[ind * epochs: (ind + 1) * epochs] = np.squeeze(d_loss)

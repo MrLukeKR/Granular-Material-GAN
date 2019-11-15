@@ -47,14 +47,14 @@ class Network(AbstractGAN.Network):
 
         optimizer = optimizers.Adam(0.0002, 0.5)
 
-        cls._discriminator.trainable = False
-
         cls._discriminator.compile(loss='binary_crossentropy',
                                    optimizer=optimizer,
                                    metrics=['accuracy'])
 
         masked_vol = Input(shape=data_shape)
         gen_missing = cls._generator(masked_vol)
+
+        cls._discriminator.trainable = False
 
         valid = cls._discriminator(gen_missing)
 
@@ -93,6 +93,8 @@ class Network(AbstractGAN.Network):
             d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
 
             g_loss = cls._adversarial_model.train_on_batch(features[idx], [labels[idx], valid])
+
+
 
             Logger.print("%d [DIS loss: %f, acc: %.2f%%] [GEN loss: %f, mse: %f]" % (epoch,
                                                                               d_loss[0],
@@ -135,7 +137,7 @@ class DCGANDiscriminator:
         channels = 1  # TODO: Make this variable from the settings file
 
         # VARIABLES ----------------
-        initial_filters = 64
+        initial_filters = 32
         activation_alpha = 0.2
         normalisation_momentum = 0.8
         encoder_levels = 3
