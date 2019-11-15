@@ -46,6 +46,7 @@ class Network(AbstractGAN.Network):
         data_shape = (len(data[0]), len(data[0][0]), len(data[0][0][0]), 1)
 
         optimizer = optimizers.Adam(0.0002, 0.5)
+
         cls._discriminator.trainable = False
 
         cls._discriminator.compile(loss='binary_crossentropy',
@@ -134,7 +135,7 @@ class DCGANDiscriminator:
         channels = 1  # TODO: Make this variable from the settings file
 
         # VARIABLES ----------------
-        initial_filters = 32
+        initial_filters = 64
         activation_alpha = 0.2
         normalisation_momentum = 0.8
         encoder_levels = 3

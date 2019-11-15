@@ -23,7 +23,7 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
 
     training_sets, testing_sets = DatasetProcessor.dataset_to_k_cross_fold(dataset_directories, k)
 
-    epochs = 500
+    epochs = 5000
     batch_size = 32
 
     vox_res = int(sm.configuration.get("VOXEL_RESOLUTION"))
@@ -73,8 +73,8 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
             Logger.print("\tTraining on set " + str(ind + 1) + '/' + str(len(training_set)) + "... ")
             d_loss, g_loss, images = DCGAN.Network.train_network(epochs, batch_size, aggregates, binders)
 
-            fold_d_losses[ind * epochs: (ind + 1) * epochs] = d_loss
-            fold_g_losses[ind * epochs: (ind + 1) * epochs] = g_loss
+            fold_d_losses[ind * epochs: (ind + 1) * epochs] = np.squeeze(d_loss)
+            fold_g_losses[ind * epochs: (ind + 1) * epochs] = np.squeeze(g_loss)
 
             ind += 1
 

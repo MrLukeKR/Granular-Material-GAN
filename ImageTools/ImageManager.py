@@ -203,19 +203,19 @@ def load_images_from_list(file_list):
         if img.size != (sm.image_resolution, sm.image_resolution):
             img = img.resize((sm.image_resolution, sm.image_resolution))
 
-        if img.mode == "RGB":
-            r, g, b = img.split()
+        if "RGB" in img.mode:
+            r = None
+            g = None
+            b = None
+
+            if img.mode == "RGB":
+                r, g, b = img.split()
+            elif img.mode == "RGBA":
+                r, g, b, _ = img.split()
+
             ra = np.array(r)
             ga = np.array(g)
             ba = np.array(b)
-
-            img = (0.299 * ra + 0.587 * ga + 0.114 * ba)
-        elif img.mode == "RGBA":
-            r, g, b, a = img.split()
-            aa = np.array(a)
-            ra = np.array(r) * aa
-            ga = np.array(g) * aa
-            ba = np.array(b) * aa
 
             img = (0.299 * ra + 0.587 * ga + 0.114 * ba)
 

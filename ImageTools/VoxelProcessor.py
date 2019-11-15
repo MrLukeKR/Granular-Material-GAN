@@ -14,7 +14,7 @@ from ExperimentTools.MethodologyLogger import Logger
 def split_to_voxels(volume_data, cubic_dimension):
     voxels = list()
 
-    volume = np.array(volume_data,)
+    volume = np.array(volume_data)
 
     # This should be equal to a hypothetical voxelCountZ, since images are square
     voxel_count_x = len(volume) / cubic_dimension
