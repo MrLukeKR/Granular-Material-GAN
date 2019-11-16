@@ -1,6 +1,23 @@
 import datetime
+import mysql.connector
+from Settings import SettingsManager as sm
 
 from Settings import FileManager as fm
+
+db = None
+db_cursor = None
+
+
+def initialise_database():
+    global db, db_cursor
+
+    db = mysql.connector.connect(
+        host="localhost",
+        user=sm.configuration.get("DB_USER"),
+        passwd=sm.configuration.get("DB_PASS")
+    )
+
+    db_cursor = db.cursor()
 
 
 class Logger:

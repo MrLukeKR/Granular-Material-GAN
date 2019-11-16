@@ -29,6 +29,7 @@ import Settings.MachineLearningManager as mlm
 # Experiments >>>
 from ExperimentTools import MethodologyLogger, ExperimentRunner, DatasetProcessor
 from ExperimentTools.MethodologyLogger import Logger
+import ExperimentTools.MethodologyLogger
 # <<< Experiments
 
 pool = None
@@ -73,6 +74,7 @@ def setup():
     sm.load_settings()
     fm.assign_special_folders()
 
+    MethodologyLogger.initialise_database()
     MethodologyLogger.Logger(fm.get_directory(fm.SpecialFolder.LOGS))
 
     pool = Pool()
@@ -81,6 +83,7 @@ def setup():
 
 def main():
     global pool
+    global db
 
     setup()
 
