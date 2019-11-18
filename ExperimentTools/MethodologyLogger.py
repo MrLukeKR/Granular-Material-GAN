@@ -18,28 +18,40 @@ def initialise_database():
     )
 
     db_cursor = db.cursor()
+    db.autocommit = True
+
+    db_cursor.execute("USE ***REMOVED***_Phase1;")
 
 
 class Logger:
-    initialised = False
-
+    _initialised = False
     experiment_id = None
+    current_fold = None
+    current_set = None
     log_file = None
-    log_directory = None
 
     def __init__(self, log_directory, log_file_name=None):
-        if not Logger.initialised:
-            Logger.initialised = True
-        else:
-            raise AttributeError("Logger is a singleton and has already been initialised")
+        # try:
+            if not Logger._initialised:
+                db_cursor.execute("INSERT INTO experiments (Timestamp) VALUES (CURRENT_TIMESTAMP);")
 
-        if not log_file_name:
-            log_file_name = "experiment_" + Logger.get_timestamp()
+                db_cursor.execute("SELECT ID FROM experiments ORDER BY Timestamp DESC LIMIT 1;")
+                Logger.experiment_id = db_cursor.fetchall()[0][0]
 
-        filepath = log_directory + log_file_name + '.log'
+                if not log_file_name:
+                    log_file_name = "experiment_" + str(Logger.experiment_id)
 
-        Logger.log_file = open(filepath, 'w')
-        Logger.print("Starting experiment logger (" + str(Logger.get_timestamp()) + ")")
+                filepath = log_directory + log_file_name + '.log'
+
+                Logger.log_file = open(filepath, 'w')
+                Logger.print("Starting experiment logger "
+                             "(Experiment " + str(Logger.experiment_id) + " @ " + str(Logger.get_timestamp()) + ")")
+
+                Logger.initialised = True
+            else:
+                raise AttributeError("Logger is a singleton and has already been initialised")
+        # except Exception as exc:
+        #     print(exc)
 
     @staticmethod
     def get_timestamp():

@@ -15,9 +15,13 @@ import numpy as np
 
 
 class Network(AbstractGAN.Network):
-    _adversarial_model = None
-    _discriminator = None
-    _generator = None
+    @property
+    def adversarial(self):
+        return self._adversarial
+
+    @adversarial.setter
+    def adversarial(self, value):
+        self._adversarial = value
 
     @property
     def generator(self):
@@ -47,21 +51,21 @@ class Network(AbstractGAN.Network):
 
         optimizer = optimizers.Adam(0.0002, 0.5)
 
-        cls._discriminator.compile(loss='binary_crossentropy',
-                                   optimizer=optimizer,
-                                   metrics=['accuracy'])
+        cls.discriminator.compile(loss='binary_crossentropy',
+                                  optimizer=optimizer,
+                                  metrics=['accuracy'])
 
         masked_vol = Input(shape=data_shape)
-        gen_missing = cls._generator(masked_vol)
+        gen_missing = cls.generator(masked_vol)
 
-        cls._discriminator.trainable = False
+        cls.discriminator.trainable = False
 
-        valid = cls._discriminator(gen_missing)
+        valid = cls.discriminator(gen_missing)
 
-        cls._adversarial_model = Model(masked_vol, [gen_missing, valid])
-        cls._adversarial_model.compile(loss=['mse', 'binary_crossentropy'],
-                                       loss_weights=[0.999, 0.001],
-                                       optimizer=optimizer)
+        cls.adversarial = Model(masked_vol, [gen_missing, valid])
+        cls.adversarial.compile(loss=['mse', 'binary_crossentropy'],
+                                loss_weights=[0.999, 0.001],
+                                optimizer=optimizer)
 
     @classmethod
     def train_network(cls, epochs, batch_size, features, labels):
@@ -82,19 +86,17 @@ class Network(AbstractGAN.Network):
             idx = np.random.randint(0, len(features), batch_size)
 
             # This is the binder generated for a given aggregate arrangement
-            gen_missing = cls._generator.predict(features[idx])
+            gen_missing = cls.generator.predict(features[idx])
 
             generated_images += gen_missing
             # This trains the discriminator on real samples
-            d_loss_real = cls._discriminator.train_on_batch(labels[idx], valid)
+            d_loss_real = cls.discriminator.train_on_batch(labels[idx], valid)
             # This trains the discriminator on fake samples
-            d_loss_fake = cls._discriminator.train_on_batch(gen_missing, fake)
+            d_loss_fake = cls.discriminator.train_on_batch(gen_missing, fake)
 
             d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
 
-            g_loss = cls._adversarial_model.train_on_batch(features[idx], [labels[idx], valid])
-
-
+            g_loss = cls.adversarial.train_on_batch(features[idx], [labels[idx], valid])
 
             Logger.print("%d [DIS loss: %f, acc: %.2f%%] [GEN loss: %f, mse: %f]" % (epoch,
                                                                               d_loss[0],
@@ -104,6 +106,16 @@ class Network(AbstractGAN.Network):
 
             discriminator_losses[epoch] = d_loss[0]
             generator_losses[epoch] = g_loss[0]
+
+            sql = "INSERT INTO training (ExperimentID, Fold, Epoch, TrainingSet, DiscriminatorLoss, " \
+                  "DiscriminatorAccuracy, GeneratorLoss, GeneratorMSE) " \
+                  "VALUES (%s, %s, %s, %s, %s, %s, %s, %s);"
+
+            val = (Logger.experiment_id, Logger.current_fold + 1, epoch + 1, Logger.current_set + 1,
+                   float(d_loss[0]), float(d_loss[1]), float(g_loss[0]), float(g_loss[1]))
+
+            MethodologyLogger.db_cursor.execute(sql, val)
+            MethodologyLogger.db.commit()
 
             # im.save_voxel_image_collection(gen_missing, fm.SpecialFolder.VOXEL_DATA, "figures/postGAN/generated")
             # im.save_voxel_image_collection(labels, fm.SpecialFolder.VOXEL_DATA, "figures/postGAN/expected")
@@ -126,7 +138,8 @@ class DCGANDiscriminator:
     def model(self, value):
         self._model = value
 
-    def __init__(self, voxels, strides, kernel_size):
+    def __init__(self, voxels, strides, kernel_size,
+                 initial_filters, activation_alpha, normalisation_momentum, encoder_levels):
         Logger.print("\tInitialising Deep Convolutional Generative Adversarial Network (Discriminator)")
 
         x = len(voxels[0])
@@ -135,13 +148,6 @@ class DCGANDiscriminator:
         w = len(voxels)
 
         channels = 1  # TODO: Make this variable from the settings file
-
-        # VARIABLES ----------------
-        initial_filters = 32
-        activation_alpha = 0.2
-        normalisation_momentum = 0.8
-        encoder_levels = 3
-        # --------------------------
 
         Logger.print("\t\t Input size is: " + str(w) + " (" + str(x) + " * " + str(y) + " * " + str(z) + ") voxels")
 
@@ -183,7 +189,8 @@ class DCGANGenerator:
     def model(self, value):
         self._model = value
 
-    def __init__(self, voxels, strides, kernel_size):
+    def __init__(self, voxels, strides, kernel_size,
+                 initial_filters, activation_alpha, normalisation_momentum, encoder_levels):
         Logger.print("\tInitialising Deep Convolutional Generative Adversarial Network (Generator)")
 
         x = len(voxels[0])
@@ -192,13 +199,6 @@ class DCGANGenerator:
         w = len(voxels)
 
         channels = 1 # TODO: Make this variable from the settings file
-
-        # VARIABLES ----------------
-        initial_filters = 128
-        activation_alpha = 0.2
-        normalisation_momentum = 0.8
-        encoder_levels = 3
-        # --------------------------
 
         Logger.print("\t\t Input size is: " + str(w) + " (" + str(x) + " * " + str(y) + " * " + str(z) + ") voxels")
 

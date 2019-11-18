@@ -1,6 +1,6 @@
 from ExperimentTools import DatasetProcessor, MethodologyLogger
 from GAN import DCGAN
-from Settings import FileManager as fm, SettingsManager as sm
+from Settings import FileManager as fm, SettingsManager as sm, MachineLearningManager as mlm
 from ImageTools import VoxelProcessor as vp, ImageManager as im
 from ExperimentTools.MethodologyLogger import Logger
 
@@ -23,28 +23,64 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
 
     training_sets, testing_sets = DatasetProcessor.dataset_to_k_cross_fold(dataset_directories, k)
 
-    epochs = 5000
+    epochs = 500
     batch_size = 32
 
     vox_res = int(sm.configuration.get("VOXEL_RESOLUTION"))
     dummy = np.zeros(shape=(1, vox_res, vox_res, vox_res, sm.image_channels))
 
+    gen_filters = 128
+    gen_activation_alpha = 0.2
+    gen_normalisation_momentum = 0.8
+    gen_levels = 3
+    gen_strides = 2
+    gen_kernel_size = 5
+
+    dis_filters = 32
+    dis_activation_alpha = 0.2
+    dis_normalisation_momentum = 0.8
+    dis_levels = 3
+    dis_strides = 2
+    dis_kernel_size = 5
+
+    sql = "INSERT INTO experiment_settings (ExperimentID, NetworkType, Folds, Epochs, BatchSize, " \
+          "GeneratorStrides, GeneratorKernelSize, GeneratorNumberOfLevels, GeneratorFilters, " \
+          "GeneratorNormalisationMomenturm, GeneratorActivationAlpha, " \
+          "DiscriminatorStrides, DiscriminatorKernelSize, DiscriminatorNumberOfLevels, DiscriminatorFilters, " \
+          "DiscriminatorNormalisationMomenturm, DiscriminatorOptimisationAlpha) " \
+          "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"
+
+    experiment_id = Logger.experiment_id
+
+    val = (experiment_id, "DCGAN (Deep Convolutional Generative Adversarial Network)", k, epochs, batch_size,
+           gen_strides, gen_kernel_size, gen_levels, gen_filters, gen_normalisation_momentum, gen_activation_alpha,
+           dis_strides, dis_kernel_size, dis_levels, dis_filters, dis_normalisation_momentum,
+           dis_activation_alpha)
+
+    MethodologyLogger.db_cursor.execute(sql, val)
+
     for fold in range(k):
         Logger.print("Running Cross Validation Fold " + str(fold + 1) + "/" + str(k))
+        Logger.current_fold = fold
 
         fold_d_losses = np.zeros((epochs * len(training_sets)))
         fold_g_losses = np.zeros((epochs * len(training_sets)))
 
-        discriminator = DCGAN.DCGANDiscriminator(dummy, 2, 5)
-        generator = DCGAN.DCGANGenerator(dummy, 2, 5)
+        discriminator = DCGAN.DCGANDiscriminator(dummy, dis_strides, dis_kernel_size, dis_filters,
+                                                 dis_activation_alpha, dis_normalisation_momentum, dis_levels)
 
-        DCGAN.Network._discriminator = discriminator.model
-        DCGAN.Network._generator = generator.model
+        generator = DCGAN.DCGANGenerator(dummy, gen_strides, gen_kernel_size, gen_filters, gen_activation_alpha,
+                                         gen_normalisation_momentum, gen_levels)
+
+        DCGAN.Network.discriminator = discriminator.model
+        DCGAN.Network.generator = generator.model
 
         DCGAN.Network.create_network(dummy)
 
-        ind = 0
-        for training_set in training_sets[fold]:
+        for ind in range(len(training_sets[fold])):
+            training_set = training_sets[fold][ind]
+            Logger.current_set = ind
+
             aggregates = list()
             binders = list()
 
@@ -73,11 +109,6 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
             Logger.print("\tTraining on set " + str(ind + 1) + '/' + str(len(training_sets)) + "... ")
             d_loss, g_loss, images = DCGAN.Network.train_network(epochs, batch_size, aggregates, binders)
 
-            fold_d_losses[ind * epochs: (ind + 1) * epochs] = np.squeeze(d_loss)
-            fold_g_losses[ind * epochs: (ind + 1) * epochs] = np.squeeze(g_loss)
-
-            ind += 1
-
         fig, ax = im.plt.subplots()
         ax.plot(np.array(fold_d_losses), label="Discriminator Loss")
         ax.plot(np.array(fold_g_losses), label="Generator Loss")
@@ -89,6 +120,9 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
         directory = fm.get_directory(fm.SpecialFolder.RESULTS) + "/Figures"
         fm.create_if_not_exists(directory)
         fig.savefig(directory + '/training_' + MethodologyLogger.Logger.get_timestamp() + '.jpg')
+
+        mlm.save_network(DCGAN.Network.discriminator, DCGAN.Network.generator,
+                         Logger.experiment_id, "Fold" + str(fold))
 
         testing_set = testing_sets[fold]
 

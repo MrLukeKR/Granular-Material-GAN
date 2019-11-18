@@ -30,7 +30,7 @@ def load_network():
     return discriminator, generator
 
 
-def save_network(discriminator, generator):
+def save_network(discriminator, generator, experimentID, filename=None):
     Logger.print("Saving Generative Adversarial Network Model...")
 
     root_dir = fm.root_directories[fm.SpecialFolder.MODEL_DATA.value]
@@ -38,8 +38,10 @@ def save_network(discriminator, generator):
     if not os.path.exists(root_dir):
         os.makedirs(root_dir)
 
-    discriminator.model.save(root_dir + "discriminator.h5")
-    generator.model.save(root_dir + "generator.h5")
+    filepath = root_dir + experimentID + '_' + filename + '_'
+
+    discriminator.model.save(filepath + "discriminator.h5")
+    generator.model.save(filepath + "generator.h5")
 
 
 def prepare_dataset(voxels, training_split):

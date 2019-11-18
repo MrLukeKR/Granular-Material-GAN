@@ -2,6 +2,7 @@ class Network:
     def __init__(self):
         self._generator = None
         self._discriminator = None
+        self._adversarial = None
 
     @classmethod
     def create_network(cls, data):
@@ -14,6 +15,14 @@ class Network:
     @classmethod
     def test_network(cls, testing_set):
         raise NotImplementedError("test_network not implemented in abstract base class")
+
+    @property
+    def adversarial(self):
+        return self._adversarial
+
+    @adversarial.setter
+    def adversarial(self, value):
+        self._adversarial = value
 
     @property
     def generator(self):
