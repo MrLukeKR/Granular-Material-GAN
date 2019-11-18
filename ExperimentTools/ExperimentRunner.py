@@ -94,12 +94,10 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
                 temp_binders = vp.load_voxels(voxel_directory, "binder_" + sm.configuration.get("VOXEL_RESOLUTION"))
 
                 for aggregate in temp_aggregates:
-                    if not aggregate.max == 0 and not aggregate.min == 0:
-                        aggregates.append(aggregate * 255)
+                    aggregates.append(aggregate * 255)
 
                 for binder in temp_binders:
-                    if not binder.max == 0 and not binder.min == 0:
-                        binders.append(binder * 255)
+                    binders.append(binder * 255)
 
                 Logger.print("done!")
 

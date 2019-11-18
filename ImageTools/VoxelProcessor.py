@@ -11,7 +11,12 @@ from Settings import FileManager as fm, SettingsManager as sm
 from ExperimentTools.MethodologyLogger import Logger
 
 
-def split_to_voxels(volume_data, cubic_dimension):
+def voxels_to_volume(voxels):
+
+    pass
+
+
+def volume_to_voxels(volume_data, cubic_dimension):
     voxels = list()
 
     volume = np.array(volume_data)

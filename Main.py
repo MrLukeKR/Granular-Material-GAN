@@ -61,7 +61,7 @@ def process_voxels(images):
     voxels = list()
 
     if sm.configuration.get("ENABLE_VOXEL_SEPARATION") == "True":
-        voxels = vp.split_to_voxels(images, int(sm.configuration.get("VOXEL_RESOLUTION")))
+        voxels = vp.volume_to_voxels(images, int(sm.configuration.get("VOXEL_RESOLUTION")))
 
         if sm.configuration.get("ENABLE_VOXEL_INPUT_SAVING") == "True":
             im.save_voxel_images(voxels, "Unsegmented")

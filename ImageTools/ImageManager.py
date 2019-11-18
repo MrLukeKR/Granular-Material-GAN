@@ -1,7 +1,6 @@
 import numpy as np
 import PIL.Image as Image
 import matplotlib.pyplot as plt
-import matplotlib.animation as anim
 import ImageTools.VoxelProcessor as vp
 
 from ExperimentTools.MethodologyLogger import Logger
@@ -171,20 +170,6 @@ def display_voxel(voxel):
     plt.show()
 
 
-def generate_animation(images):
-    ims = []
-
-    for img in images:
-        ims.append([plt.imshow(np.reshape(img, newshape=(1024, 1024)))])
-    fig = plt.figure()
-
-    return anim.ArtistAnimation(fig, ims, interval=50, blit=True, repeat_delay=1000)
-
-
-def save_animation(animation, save_location, frames_per_second):
-    animation.save(save_location, fps=frames_per_second, extra_args=['-vcodec', 'libx264'])
-
-
 def load_images_from_list(file_list):
     Logger.print("Loading " + str(len(file_list)) + " images")
     file_list.sort()
@@ -246,14 +231,6 @@ def load_images_from_directory(directory, containing_keyword=None):
         files = list(f for f in files if containing_keyword in f)
 
     return load_images_from_list(files)
-
-
-def get_noise_image(shape):
-    noise = np.random.normal(0, 1, size=shape)
-    noise = np.array(noise > 0).astype(np.uint8)
-    noise = noise.reshape(shape)
-
-    return noise
 
 
 def segment_vox(data):

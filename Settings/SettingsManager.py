@@ -1,6 +1,7 @@
 import numpy as np
 
 from Settings import FileManager as fm
+import os
 
 settings_file = []
 configuration = dict()
@@ -10,7 +11,7 @@ image_channels = 1
 segmentation_amount = 3
 segmentation_mode = "3D"
 enable_normalisation = True
-kernel_size = 5
+display_available = os.environ["DISPLAY"] is not None
 
 # Reduction factor of downscaling an image (imres * resc) (DO NOT EDIT!)
 rescale_amount = 2 ** rescale_factor
