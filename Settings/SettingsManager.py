@@ -11,7 +11,7 @@ image_channels = 1
 segmentation_amount = 3
 segmentation_mode = "3D"
 enable_normalisation = True
-display_available = os.environ["DISPLAY"] is not None
+display_available = os.environ.get("DISPLAY") is not None
 
 # Reduction factor of downscaling an image (imres * resc) (DO NOT EDIT!)
 rescale_amount = 2 ** rescale_factor

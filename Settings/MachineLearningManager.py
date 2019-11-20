@@ -38,27 +38,8 @@ def save_network(discriminator, generator, experimentID, filename=None):
     if not os.path.exists(root_dir):
         os.makedirs(root_dir)
 
-    filepath = root_dir + experimentID + '_' + filename + '_'
+    filepath = root_dir + "Experiment-" + str(experimentID) + '_' + filename + '_'
 
-    discriminator.model.save(filepath + "discriminator.h5")
-    generator.model.save(filepath + "generator.h5")
+    discriminator.save(filepath + "discriminator.h5")
+    generator.save(filepath + "generator.h5")
 
-
-def prepare_dataset(voxels, training_split):
-    if training_split >= 1:
-        raise ValueError("training_split must be less than 1")
-    elif training_split <= 0:
-        raise ValueError("training_split must be greater than 0")
-
-    # TODO: Shuffle voxels
-    # TODO: Split to training/testing
-
-    training_set = list()
-    testing_set = list()
-
-    return training_set, testing_set
-
-
-def save_dataset(training_set, testing_set):
-
-    pass

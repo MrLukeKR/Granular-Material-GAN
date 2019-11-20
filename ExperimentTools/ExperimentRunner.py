@@ -47,7 +47,7 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
           "GeneratorStrides, GeneratorKernelSize, GeneratorNumberOfLevels, GeneratorFilters, " \
           "GeneratorNormalisationMomenturm, GeneratorActivationAlpha, " \
           "DiscriminatorStrides, DiscriminatorKernelSize, DiscriminatorNumberOfLevels, DiscriminatorFilters, " \
-          "DiscriminatorNormalisationMomenturm, DiscriminatorOptimisationAlpha) " \
+          "DiscriminatorNormalisationMomenturm, DiscriminatorActivationAlpha) " \
           "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"
 
     experiment_id = Logger.experiment_id
@@ -120,7 +120,7 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
         fig.savefig(directory + '/training_' + MethodologyLogger.Logger.get_timestamp() + '.jpg')
 
         mlm.save_network(DCGAN.Network.discriminator, DCGAN.Network.generator,
-                         Logger.experiment_id, "Fold" + str(fold))
+                         Logger.experiment_id, "Fold-" + str(fold + 1))
 
         testing_set = testing_sets[fold]
 
