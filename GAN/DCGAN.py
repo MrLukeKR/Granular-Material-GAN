@@ -8,9 +8,9 @@ from keras.layers.convolutional import Conv3D, Deconv3D
 from keras.layers.normalization import BatchNormalization
 from keras.layers.advanced_activations import LeakyReLU
 from ExperimentTools.MethodologyLogger import Logger
-from ImageTools import ImageManager as im, VoxelProcessor as vp
-from Settings import FileManager as fm
+import matplotlib.animation as anim
 
+import matplotlib.pyplot as plt
 import numpy as np
 
 
@@ -46,7 +46,6 @@ class Network(AbstractGAN.Network):
     def create_network(cls, data):
         Logger.print("Initialising Generator Adversarial Network...")
 
-        channels = 1
         data_shape = (len(data[0]), len(data[0][0]), len(data[0][0][0]), 1)
 
         optimizer = optimizers.Adam(0.0002, 0.5)
@@ -71,16 +70,42 @@ class Network(AbstractGAN.Network):
     def train_network(cls, epochs, batch_size, features, labels):
         Logger.print("Training network with: " + str(epochs) + " EPOCHS, " + str(batch_size) + " BATCH SIZE")
 
+        plt.ion()
+        fig = plt.figure()
+
+        error_ax = fig.add_subplot(211)
+        acc_ax = fig.add_subplot(212)
+
+        x = []
+
+        discriminator_losses = []
+        discriminator_accuracies = []
+        generator_losses = []
+        generator_MSEs = []
+
+        error, = error_ax.plot([], [], '-r')
+        acc, = acc_ax.plot([], [], '-o')
+
+        def init():
+            error.set_data([], [], '-r')
+            acc.set_data([], [], '-b')
+
+        def animate(i):
+            error_ax.clear()
+            error_ax.plot(x, discriminator_losses)
+            acc_ax.clear()
+            acc_ax.plot(x, discriminator_accuracies)
+
         features = np.expand_dims(np.array(features), 5)
         labels = np.expand_dims(np.array(labels), 5)
 
         valid = np.ones((batch_size, 1))
         fake = np.zeros((batch_size, 1))
 
-        discriminator_losses = np.zeros((epochs, 1))
-        generator_losses = np.zeros((epochs, 1))
-
         generated_images = list()
+
+        ani = anim.FuncAnimation(fig, animate, init_func=init, interval=1000, blit=True)
+        plt.show()
 
         for epoch in range(epochs):
             idx = np.random.randint(0, len(features), batch_size)
@@ -104,18 +129,22 @@ class Network(AbstractGAN.Network):
                                                                               g_loss[0],
                                                                               g_loss[1]))
 
-            discriminator_losses[epoch] = d_loss[0]
-            generator_losses[epoch] = g_loss[0]
+            x.append(len(x) + 1)
+            discriminator_losses.append(d_loss[0])
+            discriminator_accuracies.append(d_loss[1])
+            generator_losses.append(g_loss[0])
+            #generator_MSEs.append(g_loss[1])
 
-            sql = "INSERT INTO training (ExperimentID, Fold, Epoch, TrainingSet, DiscriminatorLoss, " \
-                  "DiscriminatorAccuracy, GeneratorLoss, GeneratorMSE) " \
-                  "VALUES (%s, %s, %s, %s, %s, %s, %s, %s);"
+            if MethodologyLogger.database_connected:
+                sql = "INSERT INTO training (ExperimentID, Fold, Epoch, TrainingSet, DiscriminatorLoss, " \
+                      "DiscriminatorAccuracy, GeneratorLoss, GeneratorMSE) " \
+                      "VALUES (%s, %s, %s, %s, %s, %s, %s, %s);"
 
-            val = (Logger.experiment_id, Logger.current_fold + 1, epoch + 1, Logger.current_set + 1,
-                   float(d_loss[0]), float(d_loss[1]), float(g_loss[0]), float(g_loss[1]))
+                val = (Logger.experiment_id, Logger.current_fold + 1, epoch + 1, Logger.current_set + 1,
+                       float(d_loss[0]), float(d_loss[1]), float(g_loss[0]), float(g_loss[1]))
 
-            MethodologyLogger.db_cursor.execute(sql, val)
-            MethodologyLogger.db.commit()
+                MethodologyLogger.db_cursor.execute(sql, val)
+                MethodologyLogger.db.commit()
 
             # im.save_voxel_image_collection(gen_missing, fm.SpecialFolder.VOXEL_DATA, "figures/postGAN/generated")
             # im.save_voxel_image_collection(labels, fm.SpecialFolder.VOXEL_DATA, "figures/postGAN/expected")

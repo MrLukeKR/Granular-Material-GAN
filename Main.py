@@ -1,10 +1,3 @@
-from GAN import DCGAN
-
-# File I/O >>>
-from glob import glob
-from os import walk
-# <<< File I/O
-
 # Utilities >>>
 from multiprocessing import Pool
 # <<< Utilities
@@ -15,21 +8,15 @@ import ImageTools.Postprocessor as postproc
 import ImageTools.VoxelProcessor as vp
 import ImageTools.ImageManager as im
 
-from ImageTools.Segmentation.ThreeDimensional import StackedOtsu2D as segmentor3D
 from ImageTools.Segmentation.TwoDimensional import KMeans2D as segmentor2D
 
 from Settings import SettingsManager as sm
 from Settings import FileManager as fm
 # <<< Image Processing
 
-# Machine Learning >>>
-import Settings.MachineLearningManager as mlm
-# <<< Machine Learning
-
 # Experiments >>>
-from ExperimentTools import MethodologyLogger, ExperimentRunner, DatasetProcessor
+from ExperimentTools import MethodologyLogger, ExperimentRunner
 from ExperimentTools.MethodologyLogger import Logger
-import ExperimentTools.MethodologyLogger
 # <<< Experiments
 
 pool = None

@@ -43,21 +43,22 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
     dis_strides = 2
     dis_kernel_size = 5
 
-    sql = "INSERT INTO experiment_settings (ExperimentID, NetworkType, Folds, Epochs, BatchSize, " \
-          "GeneratorStrides, GeneratorKernelSize, GeneratorNumberOfLevels, GeneratorFilters, " \
-          "GeneratorNormalisationMomenturm, GeneratorActivationAlpha, " \
-          "DiscriminatorStrides, DiscriminatorKernelSize, DiscriminatorNumberOfLevels, DiscriminatorFilters, " \
-          "DiscriminatorNormalisationMomenturm, DiscriminatorActivationAlpha) " \
-          "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"
+    if MethodologyLogger.database_connected:
+        sql = "INSERT INTO experiment_settings (ExperimentID, NetworkType, Folds, Epochs, BatchSize, " \
+            "GeneratorStrides, GeneratorKernelSize, GeneratorNumberOfLevels, GeneratorFilters, " \
+            "GeneratorNormalisationMomenturm, GeneratorActivationAlpha, " \
+            "DiscriminatorStrides, DiscriminatorKernelSize, DiscriminatorNumberOfLevels, DiscriminatorFilters, " \
+            "DiscriminatorNormalisationMomenturm, DiscriminatorActivationAlpha) " \
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"
 
-    experiment_id = Logger.experiment_id
+        experiment_id = Logger.experiment_id
 
-    val = (experiment_id, "DCGAN (Deep Convolutional Generative Adversarial Network)", k, epochs, batch_size,
+        val = (experiment_id, "DCGAN (Deep Convolutional Generative Adversarial Network)", k, epochs, batch_size,
            gen_strides, gen_kernel_size, gen_levels, gen_filters, gen_normalisation_momentum, gen_activation_alpha,
            dis_strides, dis_kernel_size, dis_levels, dis_filters, dis_normalisation_momentum,
            dis_activation_alpha)
 
-    MethodologyLogger.db_cursor.execute(sql, val)
+        MethodologyLogger.db_cursor.execute(sql, val)
 
     for fold in range(k):
         Logger.print("Running Cross Validation Fold " + str(fold + 1) + "/" + str(k))

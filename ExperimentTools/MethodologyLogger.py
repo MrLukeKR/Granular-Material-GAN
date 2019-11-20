@@ -2,25 +2,29 @@ import datetime
 import mysql.connector
 from Settings import SettingsManager as sm
 
-from Settings import FileManager as fm
-
 db = None
 db_cursor = None
+database_connected = False
 
 
 def initialise_database():
-    global db, db_cursor
+    global db, db_cursor, database_connected
 
-    db = mysql.connector.connect(
-        host="localhost",
-        user=sm.configuration.get("DB_USER"),
-        passwd=sm.configuration.get("DB_PASS")
-    )
+    try:
+        db = mysql.connector.connect(
+            host="localhost",
+            user=sm.configuration.get("DB_USER"),
+            passwd=sm.configuration.get("DB_PASS")
+        )
 
-    db_cursor = db.cursor()
-    db.autocommit = True
+        db_cursor = db.cursor()
+        db.autocommit = True
 
-    db_cursor.execute("USE ***REMOVED***_Phase1;")
+        db_cursor.execute("USE ***REMOVED***_Phase1;")
+
+        database_connected = True
+    except Exception as exc:
+        print(exc)
 
 
 class Logger:
@@ -31,12 +35,16 @@ class Logger:
     log_file = None
 
     def __init__(self, log_directory, log_file_name=None):
-        # try:
+        try:
             if not Logger._initialised:
-                db_cursor.execute("INSERT INTO experiments (Timestamp) VALUES (CURRENT_TIMESTAMP);")
+                if database_connected:
+                    db_cursor.execute("INSERT INTO experiments (Timestamp) VALUES (CURRENT_TIMESTAMP);")
 
-                db_cursor.execute("SELECT ID FROM experiments ORDER BY Timestamp DESC LIMIT 1;")
-                Logger.experiment_id = db_cursor.fetchall()[0][0]
+                    db_cursor.execute("SELECT ID FROM experiments ORDER BY Timestamp DESC LIMIT 1;")
+                    Logger.experiment_id = db_cursor.fetchall()[0][0]
+
+                if not Logger.experiment_id:
+                    Logger.experiment_id = Logger.get_timestamp()
 
                 if not log_file_name:
                     log_file_name = "experiment_" + str(Logger.experiment_id)
@@ -50,8 +58,8 @@ class Logger:
                 Logger.initialised = True
             else:
                 raise AttributeError("Logger is a singleton and has already been initialised")
-        # except Exception as exc:
-        #     print(exc)
+        except Exception as exc:
+            print(exc)
 
     @staticmethod
     def get_timestamp():
@@ -64,7 +72,7 @@ class Logger:
         return d + '-' + t
 
     @staticmethod
-    def save_figure(self, figure, name=None):
+    def save_figure(figure, name=None):
         if name is None:
             name = "figure_" + Logger.get_timestamp()
 
