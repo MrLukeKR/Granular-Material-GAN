@@ -3,6 +3,7 @@ from GAN import DCGAN
 from Settings import FileManager as fm, SettingsManager as sm, MachineLearningManager as mlm
 from ImageTools import VoxelProcessor as vp, ImageManager as im
 from ExperimentTools.MethodologyLogger import Logger
+from multiprocessing import Pool
 
 import numpy as np
 
@@ -94,36 +95,93 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
                 temp_aggregates = vp.load_voxels(voxel_directory, "aggregate_" + sm.configuration.get("VOXEL_RESOLUTION"))
                 temp_binders = vp.load_voxels(voxel_directory, "binder_" + sm.configuration.get("VOXEL_RESOLUTION"))
 
-                for aggregate in temp_aggregates:
-                    aggregates.append(aggregate * 255)
+                for voxel_ind in range(len(temp_aggregates)):
+                    if np.min(temp_aggregates[voxel_ind]) != np.max(temp_aggregates[voxel_ind]) and np.min(temp_binders[voxel_ind]) != np.max(
+                        temp_binders[voxel_ind]):
+                        binder = temp_binders[voxel_ind]
+                        aggregate = temp_aggregates[voxel_ind]
 
-                for binder in temp_binders:
-                    binders.append(binder * 255)
+                        aggregates.append(aggregate * 255)
+                        binders.append(binder * 255)
 
                 Logger.print("done!")
 
             # im.save_voxel_image_collection(aggregates[10:15], fm.SpecialFolder.VOXEL_DATA, "figures/PostH5/aggregate")
             # im.save_voxel_image_collection(binders[10:15], fm.SpecialFolder.VOXEL_DATA, "figures/PostH5/binder")
 
-            Logger.print("\tTraining on set " + str(ind + 1) + '/' + str(len(training_sets)) + "... ")
+            Logger.print("\tTraining on set " + str(ind + 1) + '/' + str(len(training_sets[fold])) + "... ")
             d_loss, g_loss, images = DCGAN.Network.train_network(epochs, batch_size, aggregates, binders)
 
-        fig, ax = im.plt.subplots()
-        ax.plot(np.array(fold_d_losses), label="Discriminator Loss")
-        ax.plot(np.array(fold_g_losses), label="Generator Loss")
-        ax.set(xlabel="Epochs", ylabel="Loss",
-               title="Training Loss")
-        ax.tick_params(axis='x', which="both", bottom=False)
-        ax.legend(loc="upper right")
+            directory = fm.get_directory(fm.SpecialFolder.RESULTS) + "/Figures/Experiment-" + str(Logger.experiment_id) + '/Training'
+            fm.create_if_not_exists(directory)
+            im.plt.gcf().savefig(directory + '/Experiment-' + str(Logger.experiment_id) + '_Fold-' + str(fold) + '_TrainingSet-' + str(ind) + '.jpg')
+            im.plt.close(im.plt.gcf())
 
-        directory = fm.get_directory(fm.SpecialFolder.RESULTS) + "/Figures"
-        fm.create_if_not_exists(directory)
-        fig.savefig(directory + '/training_' + MethodologyLogger.Logger.get_timestamp() + '.jpg')
+            mlm.save_network(DCGAN.Network.discriminator, DCGAN.Network.generator,
+                             Logger.experiment_id, "Fold-" + str(fold + 1))
 
-        mlm.save_network(DCGAN.Network.discriminator, DCGAN.Network.generator,
-                         Logger.experiment_id, "Fold-" + str(fold + 1))
+        test_generator = DCGAN.Network.generator
 
-        testing_set = testing_sets[fold]
+        Logger.print("Testing GAN on unseen aggregate voxels...")
+
+        for testing_set in testing_sets[fold]:
+            if not isinstance(testing_set, list):
+                testing_set = list(testing_sets[fold])
+
+            test_aggregates = list()
+            test_binders = list()
+
+            for directory in testing_set:
+                Logger.print("\tLoading voxels from " + directory + "... ", end='')
+                fm.current_directory = directory.replace(fm.get_directory(fm.SpecialFolder.SEGMENTED_SCANS), '')
+
+                voxel_directory = fm.get_directory(fm.SpecialFolder.VOXEL_DATA) + fm.current_directory[0:-1]
+
+                temp_aggregates = vp.load_voxels(voxel_directory,
+                                                 "aggregate_" + sm.configuration.get("VOXEL_RESOLUTION"))
+                temp_binders = vp.load_voxels(voxel_directory, "binder_" + sm.configuration.get("VOXEL_RESOLUTION"))
+
+                for ind in range(len(temp_aggregates)):
+                    if np.min(temp_aggregates[ind]) != np.max(temp_aggregates[ind]) and np.min(temp_binders[ind]) != np.max(temp_binders[ind]):
+                        binder = temp_binders[ind]
+                        aggregate = temp_aggregates[ind]
+
+                        test_aggregates.append(aggregate * 255)
+                        test_binders.append(binder * 255)
+
+                Logger.print("done!")
+
+                test = np.array(test_aggregates)
+                test = np.expand_dims(test, 4)
+
+                results = list((test_generator.predict(test) > 0) * 255.0)
+
+                pool = Pool()
+
+                directory = fm.get_directory(fm.SpecialFolder.RESULTS) + "/Figures/Experiment-" + str(
+                    Logger.experiment_id) + "/Outputs"
+                fm.create_if_not_exists(directory)
+
+                def process_voxels():
+                    fig = im.plt.figure(figsize=(10, 5))
+                    ax_expected = fig.add_subplot(1, 2, 1, projection='3d')
+                    ax_expected.title.set_text("Expected")
+
+                    ax_actual = fig.add_subplot(1, 2, 2, projection='3d')
+                    ax_actual.title.set_text("Actual")
+
+                    ax_expected.voxels(test_aggregates[ind], facecolors='w', edgecolors='w')
+                    ax_expected.voxels(test_binders[ind], facecolors='k', edgecolors='k')
+
+                    ax_actual.voxels(test_aggregates[ind], facecolors='w', edgecolors='w')
+                    ax_actual.voxels(np.squeeze(results[ind]), facecolors='k', edgecolors='k')
+
+                    im.plt.gcf().savefig(directory + '/Experiment-' + str(Logger.experiment_id) + '_Fold-' + str(
+                        fold) + '_Voxel-' + str(ind) + '.jpg')
+                    im.plt.close(im.plt.gcf())
+
+                for ind, res in pool.imap(process_voxels, range(len(results))):
+                    continue
 
 
 def run_on_existing_gan(aggregates, binders):
