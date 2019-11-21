@@ -115,7 +115,8 @@ class Network(AbstractGAN.Network):
         features = np.expand_dims(np.array(features), 5)
         labels = np.expand_dims(np.array(labels), 5)
 
-        valid = np.ones((batch_size, 1))
+        # One sided label smoothing
+        valid = np.full((batch_size, 1), 0.9)
         fake = np.zeros((batch_size, 1))
 
         generated_images = list()

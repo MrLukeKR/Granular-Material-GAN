@@ -154,7 +154,7 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
                 test = np.array(test_aggregates)
                 test = np.expand_dims(test, 4)
 
-                results = list((test_generator.predict(test) > 0) * 255.0)
+                results = list((test_generator.predict(test) > 0.5) * 255)
 
                 pool = Pool()
 
@@ -162,7 +162,7 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
                     Logger.experiment_id) + "/Outputs"
                 fm.create_if_not_exists(directory)
 
-                def process_voxels():
+                for ind in range(len(results)):
                     fig = im.plt.figure(figsize=(10, 5))
                     ax_expected = fig.add_subplot(1, 2, 1, projection='3d')
                     ax_expected.title.set_text("Expected")
@@ -179,9 +179,6 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
                     im.plt.gcf().savefig(directory + '/Experiment-' + str(Logger.experiment_id) + '_Fold-' + str(
                         fold) + '_Voxel-' + str(ind) + '.jpg')
                     im.plt.close(im.plt.gcf())
-
-                for ind, res in pool.imap(process_voxels, range(len(results))):
-                    continue
 
 
 def run_on_existing_gan(aggregates, binders):
