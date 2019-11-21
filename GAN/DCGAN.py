@@ -8,7 +8,7 @@ from keras.layers.convolutional import Conv3D, Deconv3D
 from keras.layers.normalization import BatchNormalization
 from keras.layers.advanced_activations import LeakyReLU
 from ExperimentTools.MethodologyLogger import Logger
-import matplotlib.animation as anim
+from Settings import SettingsManager as sm
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -70,31 +70,47 @@ class Network(AbstractGAN.Network):
     def train_network(cls, epochs, batch_size, features, labels):
         Logger.print("Training network with: " + str(epochs) + " EPOCHS, " + str(batch_size) + " BATCH SIZE")
 
-        plt.ion()
-        fig = plt.figure()
-
-        error_ax = fig.add_subplot(211)
-        acc_ax = fig.add_subplot(212)
-
-        x = []
-
         discriminator_losses = []
         discriminator_accuracies = []
         generator_losses = []
         generator_MSEs = []
 
-        error, = error_ax.plot([], [], '-r')
-        acc, = acc_ax.plot([], [], '-o')
+        if sm.display_available:
+            fig = plt.figure()
 
-        def init():
-            error.set_data([], [], '-r')
-            acc.set_data([], [], '-b')
+            gen_error_ax = fig.add_subplot(3, 1, 1)
+            dis_error_ax = fig.add_subplot(3, 1, 2)
+            acc_ax = fig.add_subplot(3, 1, 3)
+
+            x = []
+
+            plt.show(block=False)
 
         def animate(i):
-            error_ax.clear()
-            error_ax.plot(x, discriminator_losses)
+            if not sm.display_available:
+                pass
+            gen_error_ax.clear()
+            dis_error_ax.clear()
             acc_ax.clear()
-            acc_ax.plot(x, discriminator_accuracies)
+
+            gen_error_ax.plot(x, generator_losses, '-g', label="Generator Loss")
+            gen_error_ax.plot(x, generator_MSEs, '-b', label="Generator MSE")
+
+            dis_error_ax.plot(x, discriminator_losses, '-r', label="Discriminator Loss")
+
+            acc_ax.plot(x, discriminator_accuracies, '-m', label="Discriminator Accuracy")
+
+            gen_error_ax.set_xlabel("Epochs")
+            acc_ax.set_xlabel("Epochs")
+            dis_error_ax.set_xlabel("Epochs")
+
+            gen_error_ax.set_ylabel("Error")
+            dis_error_ax.set_ylabel("Error")
+
+            acc_ax.set_ylabel("Accuracy")
+            gen_error_ax.legend(loc="upper right")
+            dis_error_ax.legend(loc="upper right")
+            acc_ax.legend(loc="upper right")
 
         features = np.expand_dims(np.array(features), 5)
         labels = np.expand_dims(np.array(labels), 5)
@@ -103,9 +119,6 @@ class Network(AbstractGAN.Network):
         fake = np.zeros((batch_size, 1))
 
         generated_images = list()
-
-        ani = anim.FuncAnimation(fig, animate, init_func=init, interval=1000, blit=True)
-        plt.show()
 
         for epoch in range(epochs):
             idx = np.random.randint(0, len(features), batch_size)
@@ -129,11 +142,16 @@ class Network(AbstractGAN.Network):
                                                                               g_loss[0],
                                                                               g_loss[1]))
 
-            x.append(len(x) + 1)
             discriminator_losses.append(d_loss[0])
             discriminator_accuracies.append(d_loss[1])
             generator_losses.append(g_loss[0])
-            #generator_MSEs.append(g_loss[1])
+            generator_MSEs.append(g_loss[1])
+
+            if sm.display_available:
+                x.append(len(x) + 1)
+                animate(epoch)
+                plt.draw()
+                plt.pause(0.1)
 
             if MethodologyLogger.database_connected:
                 sql = "INSERT INTO training (ExperimentID, Fold, Epoch, TrainingSet, DiscriminatorLoss, " \
