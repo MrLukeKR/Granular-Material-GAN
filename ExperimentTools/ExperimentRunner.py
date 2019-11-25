@@ -92,12 +92,17 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
 
                 voxel_directory = fm.get_directory(fm.SpecialFolder.VOXEL_DATA) + fm.current_directory[0:-1]
 
-                temp_aggregates, dimensions = vp.load_voxels(voxel_directory, "aggregate_" + sm.configuration.get("VOXEL_RESOLUTION"))
-                temp_binders = vp.load_voxels(voxel_directory, "binder_" + sm.configuration.get("VOXEL_RESOLUTION"))
+                temp_aggregates, aggregate_dimensions = vp.load_voxels(voxel_directory, "aggregate_" + sm.configuration.get("VOXEL_RESOLUTION"))
+                temp_binders, binder_dimensions = vp.load_voxels(voxel_directory, "binder_" + sm.configuration.get("VOXEL_RESOLUTION"))
+
+                if aggregate_dimensions != binder_dimensions:
+                    raise ValueError("Aggregate and binder core dimensions must be the same!")
+                else:
+                    dimensions = aggregate_dimensions
 
                 for voxel_ind in range(len(temp_aggregates)):
-                    if np.min(temp_aggregates[voxel_ind]) != np.max(temp_aggregates[voxel_ind]) and np.min(temp_binders[voxel_ind]) != np.max(
-                        temp_binders[voxel_ind]):
+                    if np.min(temp_aggregates[voxel_ind]) != np.max(temp_aggregates[voxel_ind]) and \
+                            np.min(temp_binders[voxel_ind]) != np.max(temp_binders[voxel_ind]):
                         binder = temp_binders[voxel_ind]
                         aggregate = temp_aggregates[voxel_ind]
 

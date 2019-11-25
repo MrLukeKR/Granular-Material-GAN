@@ -1,8 +1,14 @@
 import os
 
+from tensorflow.python.client import device_lib
 from ExperimentTools.MethodologyLogger import Logger
 from tensorflow.keras.models import load_model
 from Settings import FileManager as fm
+
+
+def get_available_gpus():
+    local_device_protos = device_lib.list_local_devices()
+    return [x.name for x in local_device_protos if x.device_type == 'GPU']
 
 
 # Models are saved as discriminator.h5 and generator.h5, under an experimental ID

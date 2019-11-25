@@ -1,7 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
+from Settings import MachineLearningManager as mlm
 
+from tensorflow import keras
 from ExperimentTools import MethodologyLogger
 from GAN import AbstractGAN
 from tensorflow.keras import Sequential, optimizers
@@ -62,6 +64,11 @@ class Network(AbstractGAN.Network):
         cls.adversarial.compile(loss=['mse', 'binary_crossentropy'],
                                 loss_weights=[0.999, 0.001],
                                 optimizer=optimizer)
+
+        gpus = len(mlm.get_available_gpus())
+
+        if gpus >= 2:
+            keras.utils.multi_gpu_model(cls.adversarial, gpus=gpus, cpu_merge=True, cpu_relocation=False)
 
     @classmethod
     def train_network(cls, epochs, batch_size, features, labels):
