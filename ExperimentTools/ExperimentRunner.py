@@ -24,7 +24,7 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
 
     training_sets, testing_sets = DatasetProcessor.dataset_to_k_cross_fold(dataset_directories, k)
 
-    epochs = 500
+    epochs = 1000
     batch_size = 32
 
     vox_res = int(sm.configuration.get("VOXEL_RESOLUTION"))
@@ -92,7 +92,7 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
 
                 voxel_directory = fm.get_directory(fm.SpecialFolder.VOXEL_DATA) + fm.current_directory[0:-1]
 
-                temp_aggregates = vp.load_voxels(voxel_directory, "aggregate_" + sm.configuration.get("VOXEL_RESOLUTION"))
+                temp_aggregates, dimensions = vp.load_voxels(voxel_directory, "aggregate_" + sm.configuration.get("VOXEL_RESOLUTION"))
                 temp_binders = vp.load_voxels(voxel_directory, "binder_" + sm.configuration.get("VOXEL_RESOLUTION"))
 
                 for voxel_ind in range(len(temp_aggregates)):
@@ -155,8 +155,6 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
                 test = np.expand_dims(test, 4)
 
                 results = list((test_generator.predict(test) > 0.5) * 255)
-
-                pool = Pool()
 
                 directory = fm.get_directory(fm.SpecialFolder.RESULTS) + "/Figures/Experiment-" + str(
                     Logger.experiment_id) + "/Outputs"

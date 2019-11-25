@@ -11,7 +11,10 @@ image_channels = 1
 segmentation_amount = 3
 segmentation_mode = "3D"
 enable_normalisation = True
-display_available = os.environ.get("DISPLAY") is not None
+display_available = "DISPLAY" in os.environ
+if not display_available:
+    exit_val = os.system('python -c "import matplotlib.pyplot as plt; plt.figure()"')
+    display_available = (exit_val == 0)
 
 # Reduction factor of downscaling an image (imres * resc) (DO NOT EDIT!)
 rescale_amount = 2 ** rescale_factor

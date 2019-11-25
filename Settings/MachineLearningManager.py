@@ -1,7 +1,7 @@
 import os
 
 from ExperimentTools.MethodologyLogger import Logger
-from keras.models import load_model
+from tensorflow.keras.models import load_model
 from Settings import FileManager as fm
 
 

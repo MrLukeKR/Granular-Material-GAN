@@ -48,11 +48,11 @@ def process_voxels(images):
     voxels = list()
 
     if sm.configuration.get("ENABLE_VOXEL_SEPARATION") == "True":
-        voxels = vp.volume_to_voxels(images, int(sm.configuration.get("VOXEL_RESOLUTION")))
+        voxels, dimensions = vp.volume_to_voxels(images, int(sm.configuration.get("VOXEL_RESOLUTION")))
 
         if sm.configuration.get("ENABLE_VOXEL_INPUT_SAVING") == "True":
             im.save_voxel_images(voxels, "Unsegmented")
-    return voxels
+    return voxels, dimensions
 
 
 def setup():
@@ -192,10 +192,10 @@ def main():
 
                 Logger.print("\tLoading " + segment + " data...\r\n\t\t", end='')
                 images = im.load_images_from_directory(data_directory, segment)
-                voxels = process_voxels(images)
+                voxels, dimensions = process_voxels(images)
 
                 Logger.print("\t\tSaving " + segment + " voxels...\r\n\t\t", end='')
-                vp.save_voxels(voxels, voxel_directory, filename)
+                vp.save_voxels(voxels, dimensions, voxel_directory, filename)
                 # im.save_voxel_image_collection(voxels, fm.SpecialFolder.VOXEL_DATA, "figures/" + segment)
 
 # | GENERATIVE ADVERSARIAL NETWORK MODULE

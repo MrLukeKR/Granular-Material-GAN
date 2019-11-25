@@ -1,17 +1,14 @@
-from ExperimentTools import MethodologyLogger
-from GAN import AbstractGAN
-from keras import Sequential, optimizers
-from keras.models import Model
-from keras.layers import Input, Flatten, Dense
-from keras.layers.core import Activation
-from keras.layers.convolutional import Conv3D, Deconv3D
-from keras.layers.normalization import BatchNormalization
-from keras.layers.advanced_activations import LeakyReLU
-from ExperimentTools.MethodologyLogger import Logger
-from Settings import SettingsManager as sm
-
 import matplotlib.pyplot as plt
 import numpy as np
+import tensorflow as tf
+
+from ExperimentTools import MethodologyLogger
+from GAN import AbstractGAN
+from tensorflow.keras import Sequential, optimizers
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Input, Flatten, Dense, Activation, Conv3D, Conv3DTranspose as Deconv3D, BatchNormalization, LeakyReLU
+from ExperimentTools.MethodologyLogger import Logger
+from Settings import SettingsManager as sm
 
 
 class Network(AbstractGAN.Network):
@@ -70,25 +67,22 @@ class Network(AbstractGAN.Network):
     def train_network(cls, epochs, batch_size, features, labels):
         Logger.print("Training network with: " + str(epochs) + " EPOCHS, " + str(batch_size) + " BATCH SIZE")
 
+        x = []
         discriminator_losses = []
         discriminator_accuracies = []
         generator_losses = []
         generator_MSEs = []
 
+        fig = plt.figure()
+
+        gen_error_ax = fig.add_subplot(3, 1, 1)
+        dis_error_ax = fig.add_subplot(3, 1, 2)
+        acc_ax = fig.add_subplot(3, 1, 3)
+
         if sm.display_available:
-            fig = plt.figure()
-
-            gen_error_ax = fig.add_subplot(3, 1, 1)
-            dis_error_ax = fig.add_subplot(3, 1, 2)
-            acc_ax = fig.add_subplot(3, 1, 3)
-
-            x = []
-
             plt.show(block=False)
 
         def animate(i):
-            if not sm.display_available:
-                pass
             gen_error_ax.clear()
             dis_error_ax.clear()
             acc_ax.clear()

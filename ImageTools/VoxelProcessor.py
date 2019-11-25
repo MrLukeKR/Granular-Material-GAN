@@ -61,6 +61,7 @@ def volume_to_voxels(volume_data, cubic_dimension):
 
             pass
 
+    dimensions = (voxel_count_x, voxel_count_y, voxel_count_z)
     pretext = "Separating data volume into " + str(int(voxel_count_x * voxel_count_y * voxel_count_z)) + " voxels..."
 
     print(pretext, end='\r', flush=True)
@@ -109,17 +110,18 @@ def volume_to_voxels(volume_data, cubic_dimension):
                     Logger.print("!-- ERROR: Voxel was invalid size --!")
 
     Logger.print(pretext + " done!")
-    return voxels
+    return voxels, dimensions
 
 
-def save_voxels(voxels, location, filename):
+def save_voxels(voxels, dimensions, location, filename):
     fm.create_if_not_exists(location)
 
     filepath = location + "/" + filename + ".h5"
 
     Logger.print("Saving voxel collection to '" + filepath + "'... ", end='')
     h5f = h5py.File(filepath, 'w')
-    h5f.create_dataset(filename, data=voxels)
+    h5f.create_dataset("voxels", data=voxels)
+    h5f.create_dataset("dimensions", data=dimensions)
     h5f.close()
     Logger.print("done!")
 
@@ -132,12 +134,12 @@ def load_voxels(location, filename):
 
     h5f = h5py.File(filepath, 'r')
     voxels = list()
+    dimensions = h5f['dimensions']
 
-    for key in h5f.keys():
-        dataset = h5f.get(key)[()]
-        voxels += list(voxel for voxel in dataset)
+    dataset = h5f['voxels']
+    voxels += list(voxel for voxel in dataset)
 
-    return voxels
+    return voxels, dimensions
 
 
 def plot_voxel(voxel):
