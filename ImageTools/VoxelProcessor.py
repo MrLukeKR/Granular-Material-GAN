@@ -120,7 +120,7 @@ def save_voxels(voxels, dimensions, location, filename):
 
     Logger.print("Saving voxel collection to '" + filepath + "'... ", end='')
     h5f = h5py.File(filepath, 'w')
-    h5f.create_dataset("voxels", data=voxels, compression="gzip", compression_opts=3, shuffle=True)
+    h5f.create_dataset("voxels", data=voxels, compression="gzip", compression_opts=5, shuffle=True)
     h5f.create_dataset("dimensions", data=dimensions)
     h5f.close()
     Logger.print("done!")

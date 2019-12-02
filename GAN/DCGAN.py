@@ -65,11 +65,6 @@ class Network(AbstractGAN.Network):
                                 loss_weights=[0.999, 0.001],
                                 optimizer=optimizer)
 
-        gpus = len(mlm.get_available_gpus())
-
-        if gpus >= 2:
-            keras.utils.multi_gpu_model(cls.adversarial, gpus=gpus, cpu_merge=True, cpu_relocation=False)
-
     @classmethod
     def train_network(cls, epochs, batch_size, features, labels):
         Logger.print("Training network with: " + str(epochs) + " EPOCHS, " + str(batch_size) + " BATCH SIZE")

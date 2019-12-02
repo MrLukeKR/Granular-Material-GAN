@@ -3,9 +3,11 @@ from GAN import DCGAN
 from Settings import FileManager as fm, SettingsManager as sm, MachineLearningManager as mlm
 from ImageTools import VoxelProcessor as vp, ImageManager as im
 from ExperimentTools.MethodologyLogger import Logger
-from multiprocessing import Pool
+import tensorflow as tf
 
 import numpy as np
+
+strategy = tf.distribute.MirroredStrategy()
 
 
 def run_train_test_split_experiment(aggregates, binders, split_percentage):
@@ -68,16 +70,17 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
         fold_d_losses = np.zeros((epochs * len(training_sets)))
         fold_g_losses = np.zeros((epochs * len(training_sets)))
 
-        discriminator = DCGAN.DCGANDiscriminator(dummy, dis_strides, dis_kernel_size, dis_filters,
+        with strategy.scope():
+            discriminator = DCGAN.DCGANDiscriminator(dummy, dis_strides, dis_kernel_size, dis_filters,
                                                  dis_activation_alpha, dis_normalisation_momentum, dis_levels)
 
-        generator = DCGAN.DCGANGenerator(dummy, gen_strides, gen_kernel_size, gen_filters, gen_activation_alpha,
+            generator = DCGAN.DCGANGenerator(dummy, gen_strides, gen_kernel_size, gen_filters, gen_activation_alpha,
                                          gen_normalisation_momentum, gen_levels)
 
-        DCGAN.Network.discriminator = discriminator.model
-        DCGAN.Network.generator = generator.model
+            DCGAN.Network.discriminator = discriminator.model
+            DCGAN.Network.generator = generator.model
 
-        DCGAN.Network.create_network(dummy)
+            DCGAN.Network.create_network(dummy)
 
         for ind in range(len(training_sets[fold])):
             training_set = training_sets[fold][ind]
