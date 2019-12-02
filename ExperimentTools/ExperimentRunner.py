@@ -142,12 +142,14 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
 
                 voxel_directory = fm.get_directory(fm.SpecialFolder.VOXEL_DATA) + fm.current_directory[0:-1]
 
-                temp_aggregates = vp.load_voxels(voxel_directory,
+                temp_aggregates, temp_aggregate_dimensions = vp.load_voxels(voxel_directory,
                                                  "aggregate_" + sm.configuration.get("VOXEL_RESOLUTION"))
-                temp_binders = vp.load_voxels(voxel_directory, "binder_" + sm.configuration.get("VOXEL_RESOLUTION"))
+                temp_binders, temp_binder_dimensions = vp.load_voxels(voxel_directory, "binder_"
+                                                                      + sm.configuration.get("VOXEL_RESOLUTION"))
 
                 for ind in range(len(temp_aggregates)):
-                    if np.min(temp_aggregates[ind]) != np.max(temp_aggregates[ind]) and np.min(temp_binders[ind]) != np.max(temp_binders[ind]):
+                    if np.min(temp_aggregates[ind]) != np.max(temp_aggregates[ind]) and\
+                            np.min(temp_binders[ind]) != np.max(temp_binders[ind]):
                         binder = temp_binders[ind]
                         aggregate = temp_aggregates[ind]
 
@@ -159,29 +161,34 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
                 test = np.array(test_aggregates)
                 test = np.expand_dims(test, 4)
 
-                results = list((test_generator.predict(test) > 0.5) * 255)
+                results = list(test_generator.predict(test) * 255)
 
                 directory = fm.get_directory(fm.SpecialFolder.RESULTS) + "/Figures/Experiment-" + str(
                     Logger.experiment_id) + "/Outputs"
                 fm.create_if_not_exists(directory)
 
-                for ind in range(len(results)):
-                    fig = im.plt.figure(figsize=(10, 5))
-                    ax_expected = fig.add_subplot(1, 2, 1, projection='3d')
-                    ax_expected.title.set_text("Expected")
+                DISPLAY_VOXELS = False
 
-                    ax_actual = fig.add_subplot(1, 2, 2, projection='3d')
-                    ax_actual.title.set_text("Actual")
+                vp.save_voxels(test_binders, temp_aggregate_dimensions, fm.SpecialFolder.GENERATED_VOXEL_DATA, "Test")
 
-                    ax_expected.voxels(test_aggregates[ind], facecolors='w', edgecolors='w')
-                    ax_expected.voxels(test_binders[ind], facecolors='k', edgecolors='k')
+                if DISPLAY_VOXELS:
+                    for ind in range(len(results)):
+                        fig = im.plt.figure(figsize=(10, 5))
+                        ax_expected = fig.add_subplot(1, 2, 1, projection='3d')
+                        ax_expected.title.set_text("Expected")
 
-                    ax_actual.voxels(test_aggregates[ind], facecolors='w', edgecolors='w')
-                    ax_actual.voxels(np.squeeze(results[ind]), facecolors='k', edgecolors='k')
+                        ax_actual = fig.add_subplot(1, 2, 2, projection='3d')
+                        ax_actual.title.set_text("Actual")
 
-                    im.plt.gcf().savefig(directory + '/Experiment-' + str(Logger.experiment_id) + '_Fold-' + str(
-                        fold) + '_Voxel-' + str(ind) + '.jpg')
-                    im.plt.close(im.plt.gcf())
+                        ax_expected.voxels(test_aggregates[ind], facecolors='w', edgecolors='w')
+                        ax_expected.voxels(test_binders[ind], facecolors='k', edgecolors='k')
+
+                        ax_actual.voxels(test_aggregates[ind], facecolors='w', edgecolors='w')
+                        ax_actual.voxels(np.squeeze(results[ind]), facecolors='k', edgecolors='k')
+
+                        im.plt.gcf().savefig(directory + '/Experiment-' + str(Logger.experiment_id) + '_Fold-' + str(
+                            fold) + '_Voxel-' + str(ind) + '.jpg')
+                        im.plt.close(im.plt.gcf())
 
 
 def run_on_existing_gan(aggregates, binders):

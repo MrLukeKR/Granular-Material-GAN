@@ -20,6 +20,7 @@ class SpecialFolder(Enum):
     MODEL_DATA = 7
     DATASET_DATA = 8
     LOGS = 9
+    GENERATED_VOXEL_DATA = 10
 
 
 def check_folder_type(special_folder):
@@ -42,6 +43,8 @@ def get_settings_id(special_folder):
         return "IO_EXPERIMENT_ROOT_DIR"
     elif special_folder == SpecialFolder.RESULTS:
         return "IO_RESULTS_ROOT_DIR"
+    elif special_folder == SpecialFolder.GENERATED_VOXEL_DATA:
+        return "IO_GENERATED_VOXEL_ROOT_DIR"
     elif special_folder == SpecialFolder.VOXEL_DATA:
         return "IO_VOXEL_DATA_ROOT_DIR"
     elif special_folder == SpecialFolder.MODEL_DATA:
