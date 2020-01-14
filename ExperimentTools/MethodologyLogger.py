@@ -12,7 +12,8 @@ def initialise_database():
 
     try:
         db = mysql.connector.connect(
-            host="localhost",
+            host=sm.configuration.get("DB_HOST"),
+            port=sm.configuration.get("DB_PORT"),
             user=sm.configuration.get("DB_USER"),
             passwd=sm.configuration.get("DB_PASS")
         )

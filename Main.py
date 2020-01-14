@@ -1,4 +1,5 @@
 # Utilities >>>
+import os
 from multiprocessing import Pool
 # <<< Utilities
 
@@ -17,6 +18,8 @@ from Settings import FileManager as fm
 # Experiments >>>
 from ExperimentTools import MethodologyLogger, ExperimentRunner
 from ExperimentTools.MethodologyLogger import Logger
+
+from Settings import MachineLearningManager as mlm
 # <<< Experiments
 
 pool = None
@@ -30,7 +33,7 @@ def print_introduction():
     print()
 
 
-def preprocess_image_collection(images):
+def apply_preprocessing_pipeline(images):
     Logger.print("Pre-processing Image Collection...")
     processed_images = images
 
@@ -68,137 +71,214 @@ def setup():
     print_introduction()
 
 
+def segment_images():
+    existing_scans = set(fm.prepare_directories(fm.SpecialFolder.SEGMENTED_SCANS))
+    existing_scans = list(map(lambda x: x.split('/')[-2], existing_scans))
+
+    fm.data_directories = list(d for d in fm.prepare_directories(fm.SpecialFolder.PROCESSED_SCANS)
+                               if d.split('/')[-2] not in existing_scans)
+
+    for data_directory in fm.data_directories:
+        images = im.load_images_from_directory(data_directory)
+        fm.current_directory = data_directory.replace(fm.get_directory(fm.SpecialFolder.PROCESSED_SCANS), '')
+
+        if not fm.current_directory.endswith('/'):
+            fm.current_directory += '/'
+        sm.images = images
+
+        #        ind = 0
+        #        for image in images:
+        #            im.save_image(image, str(ind), 'data/core/train/image/', False)
+        #            ind += 1
+
+        # \-- | 2D DATA SEGMENTATION SUB-MODULE
+        voids = list()
+        clean_voids = list()
+
+        aggregates = list()
+        clean_aggregates = list()
+
+        binders = list()
+        clean_binders = list()
+
+        segments = list()
+        clean_segments = list()
+
+        Logger.print("Segmenting images... ", end="", flush=True)
+        for ind, res in enumerate(pool.map(segmentor2D.segment_image, images)):
+            voids.insert(ind, res[0])
+            aggregates.insert(ind, res[1])
+            binders.insert(ind, res[2])
+            segments.insert(ind, res[3])
+        Logger.print("done!")
+
+        Logger.print("Post-processing Segment Collection...")
+
+        ENABLE_POSTPROCESSING = False
+
+        if ENABLE_POSTPROCESSING:
+            Logger.print("\tCleaning Voids...", end="", flush=True)
+            for ind, res in enumerate(pool.map(postproc.clean_segment, voids)):
+                clean_voids.insert(ind, res)
+            voids = clean_voids
+            Logger.print("done!")
+
+            Logger.print("\tCleaning Aggregates...", end="", flush=True)
+            for ind, res in enumerate(pool.map(postproc.clean_segment, aggregates)):
+                clean_aggregates.insert(ind, res)
+            aggregates = clean_aggregates
+            Logger.print("done!")
+
+            Logger.print("\tCleaning Binders...", end="", flush=True)
+            for ind, res in enumerate(pool.map(postproc.clean_segment, binders)):
+                clean_binders.insert(ind, res)
+            binders = clean_binders
+            Logger.print("done!")
+
+            Logger.print("\tCleaning Segments...", end="", flush=True)
+            for ind, res in enumerate(pool.map(postproc.clean_segment, segments)):
+                clean_segments.insert(ind, res)
+            segments = clean_segments
+            Logger.print("done!")
+
+        Logger.print("Saving segmented images... ", end='')
+        im.save_images(binders, "binder", fm.SpecialFolder.SEGMENTED_SCANS)
+        im.save_images(aggregates, "aggregate", fm.SpecialFolder.SEGMENTED_SCANS)
+        im.save_images(voids, "void", fm.SpecialFolder.SEGMENTED_SCANS)
+        im.save_images(segments, "segment", fm.SpecialFolder.SEGMENTED_SCANS)
+        Logger.print("done!")
+
+
+def preprocess_images():
+    existing_scans = set(fm.prepare_directories(fm.SpecialFolder.PROCESSED_SCANS))
+    existing_scans = list(map(lambda x: x.split('/')[-2], existing_scans))
+
+    fm.data_directories = list(d for d in fm.prepare_directories(fm.SpecialFolder.UNPROCESSED_SCANS)
+                               if d.split('/')[-2] not in existing_scans)
+
+    for data_directory in fm.data_directories:
+        fm.current_directory = data_directory.replace(fm.get_directory(fm.SpecialFolder.UNPROCESSED_SCANS), '')
+
+        images = im.load_images_from_directory(data_directory)
+        images = apply_preprocessing_pipeline(images)
+
+        Logger.print("Saving processed images... ", end='')
+        im.save_images(images, "processed_scan", fm.SpecialFolder.PROCESSED_SCANS)
+        Logger.print("done!")
+
+
+def generate_voxels():
+    fm.data_directories = fm.prepare_directories(fm.SpecialFolder.SEGMENTED_SCANS)
+
+    for data_directory in fm.data_directories:
+        printed_status = False
+        fm.current_directory = data_directory.replace(fm.get_directory(fm.SpecialFolder.SEGMENTED_SCANS), '')
+
+        voxel_directory = fm.get_directory(fm.SpecialFolder.VOXEL_DATA) + fm.current_directory[0:-1]
+
+        for segment in ("aggregate", "binder"):
+            filename = segment + '_' + sm.configuration.get("VOXEL_RESOLUTION")
+
+            if fm.file_exists(voxel_directory + '/' + filename + ".h5"):
+                continue
+
+            if not printed_status:
+                Logger.print("Converting segments in '" + data_directory + "' to voxels...")
+                printed_status = True
+
+            Logger.print("\tLoading " + segment + " data...\r\n\t\t", end='')
+            images = im.load_images_from_directory(data_directory, segment)
+            voxels, dimensions = process_voxels(images)
+
+            Logger.print("\t\tSaving " + segment + " voxels...\r\n\t\t", end='')
+            vp.save_voxels(voxels, dimensions, voxel_directory, filename)
+            # im.save_voxel_image_collection(voxels, fm.SpecialFolder.VOXEL_DATA, "figures/" + segment)
+
+
 def main():
-    global pool
-    global db
+    global pool, db
 
     setup()
 
 # | DATA PREPARATION MODULE
     if sm.configuration.get("ENABLE_PREPROCESSING") == "True":
-        existing_scans = set(fm.prepare_directories(fm.SpecialFolder.PROCESSED_SCANS))
-        existing_scans = list(map(lambda x: x.split('/')[-2], existing_scans))
-
-        fm.data_directories = list(d for d in fm.prepare_directories(fm.SpecialFolder.UNPROCESSED_SCANS)
-                                   if d.split('/')[-2] not in existing_scans)
-
-        for data_directory in fm.data_directories:
-            fm.current_directory = data_directory.replace(fm.get_directory(fm.SpecialFolder.UNPROCESSED_SCANS), '')
-
-            images = im.load_images_from_directory(data_directory)
-            images = preprocess_image_collection(images)
-
-            Logger.print("Saving processed images... ", end='')
-            im.save_images(images, "processed_scan", fm.SpecialFolder.PROCESSED_SCANS)
-            Logger.print("done!")
+        preprocess_images()
 
 # \-- | DATA LOADING SUB-MODULE
-
     if sm.configuration.get("ENABLE_SEGMENTATION") == "True":
-        existing_scans = set(fm.prepare_directories(fm.SpecialFolder.SEGMENTED_SCANS))
-        existing_scans = list(map(lambda x: x.split('/')[-2], existing_scans))
+        segment_images()
 
-        fm.data_directories = list(d for d in fm.prepare_directories(fm.SpecialFolder.PROCESSED_SCANS)
-                                   if d.split('/')[-2] not in existing_scans)
-
-        for data_directory in fm.data_directories:
-            images = im.load_images_from_directory(data_directory)
-            fm.current_directory = data_directory.replace(fm.get_directory(fm.SpecialFolder.PROCESSED_SCANS), '')
-
-            if not fm.current_directory.endswith('/'):
-                fm.current_directory += '/'
-            sm.images = images
-
-    #        ind = 0
-    #        for image in images:
-    #            im.save_image(image, str(ind), 'data/core/train/image/', False)
-    #            ind += 1
-
-    # \-- | 2D DATA SEGMENTATION SUB-MODULE
-            voids = list()
-            clean_voids = list()
-
-            aggregates = list()
-            clean_aggregates = list()
-
-            binders = list()
-            clean_binders = list()
-
-            segments = list()
-            clean_segments = list()
-
-            Logger.print("Segmenting images... ", end="", flush=True)
-            for ind, res in enumerate(pool.map(segmentor2D.segment_image, images)):
-                voids.insert(ind, res[0])
-                aggregates.insert(ind, res[1])
-                binders.insert(ind, res[2])
-                segments.insert(ind, res[3])
-            Logger.print("done!")
-
-            Logger.print("Post-processing Segment Collection...")
-
-            ENABLE_POSTPROCESSING=False
-
-            if ENABLE_POSTPROCESSING:
-                Logger.print("\tCleaning Voids...", end="", flush=True)
-                for ind, res in enumerate(pool.map(postproc.clean_segment, voids)):
-                    clean_voids.insert(ind, res)
-                voids = clean_voids
-                Logger.print("done!")
-
-                Logger.print("\tCleaning Aggregates...", end="", flush=True)
-                for ind, res in enumerate(pool.map(postproc.clean_segment, aggregates)):
-                    clean_aggregates.insert(ind, res)
-                aggregates = clean_aggregates
-                Logger.print("done!")
-
-                Logger.print("\tCleaning Binders...", end="", flush=True)
-                for ind, res in enumerate(pool.map(postproc.clean_segment, binders)):
-                    clean_binders.insert(ind, res)
-                binders = clean_binders
-                Logger.print("done!")
-
-                Logger.print("\tCleaning Segments...", end="", flush=True)
-                for ind, res in enumerate(pool.map(postproc.clean_segment, segments)):
-                    clean_segments.insert(ind, res)
-                segments = clean_segments
-                Logger.print("done!")
-
-            Logger.print("Saving segmented images... ", end='')
-            im.save_images(binders, "binder", fm.SpecialFolder.SEGMENTED_SCANS)
-            im.save_images(aggregates, "aggregate", fm.SpecialFolder.SEGMENTED_SCANS)
-            im.save_images(voids, "void", fm.SpecialFolder.SEGMENTED_SCANS)
-            im.save_images(segments, "segment", fm.SpecialFolder.SEGMENTED_SCANS)
-            Logger.print("done!")
-
+    generate_voxels()
 # \-- | SEGMENT-TO-VOXEL CONVERSION SUB-MODULE
-        fm.data_directories = fm.prepare_directories(fm.SpecialFolder.SEGMENTED_SCANS)
+    cursor = MethodologyLogger.db_cursor
 
-        for data_directory in fm.data_directories:
-            printed_status = False
-            fm.current_directory = data_directory.replace(fm.get_directory(fm.SpecialFolder.SEGMENTED_SCANS), '')
+    query = "SELECT * FROM ***REMOVED***_Phase1.experiments;"
 
-            voxel_directory = fm.get_directory(fm.SpecialFolder.VOXEL_DATA) + fm.current_directory[0:-1]
+    cursor.execute(query)
+    experiments = cursor.fetchall()
 
-            for segment in ("aggregate", "binder"):
-                filename = segment + '_' + sm.configuration.get("VOXEL_RESOLUTION")
+    if cursor.rowcount > 0:
+        user_input = input("Would you like to load a previous model? [Y/N] > ")
 
-                if fm.file_exists(voxel_directory + '/' + filename + ".h5"):
+        if user_input[0].upper() == "Y":
+            print("The following experiments are available:")
+            for experiment in experiments:
+                query = "SELECT * FROM ***REMOVED***_Phase1.experiment_settings WHERE ExperimentID = " + str(experiment[0]) + ";"
+
+                cursor.execute(query)
+                settings = cursor.fetchall()
+
+                if len(settings) == 0:
                     continue
 
-                if not printed_status:
-                    Logger.print("Converting segments in '" + data_directory + "' to voxels...")
-                    printed_status = True
+                print("Experiment [" + str(experiment[0]) + "] @ " + str(experiment[1]) + " ", end='')
+                print(settings)
 
-                Logger.print("\tLoading " + segment + " data...\r\n\t\t", end='')
-                images = im.load_images_from_directory(data_directory, segment)
-                voxels, dimensions = process_voxels(images)
+            choice = ""
+            ids = [x[0] for x in experiments]
 
-                Logger.print("\t\tSaving " + segment + " voxels...\r\n\t\t", end='')
-                vp.save_voxels(voxels, dimensions, voxel_directory, filename)
-                # im.save_voxel_image_collection(voxels, fm.SpecialFolder.VOXEL_DATA, "figures/" + segment)
+            while not choice.isnumeric():
+                choice = input("Enter the experiment ID to load > ")
 
-# | GENERATIVE ADVERSARIAL NETWORK MODULE
+                if choice.isnumeric() and int(choice) not in ids:
+                    print("That experiment ID does not exist")
+                    choice = ""
+
+            print("Loading experiment [" + choice + "]")
+            model_location_prefix = sm.configuration.get("IO_ROOT_DIR") + "/" + sm.configuration.get("IO_MODEL_ROOT_DIR")
+
+            models = [model for model in os.listdir(model_location_prefix)
+                      if os.path.isfile(os.path.join(model_location_prefix, model))
+                      and "Experiment-" + str(choice) in model]
+
+            # TODO: Pair generator and discriminator locations and delete if only one or the other exists
+
+            if len(models) > 1:
+                print("Multiple models are available with this experiment:")
+                ids = range(len(models))
+
+                for id in ids:
+                    print("[" + str(id) + "] " + models[id])
+
+                choice = ""
+                while not choice.isnumeric():
+                    choice = input("Which model would you like to load? > ")
+                    if choice.isnumeric() and int(choice) not in ids:
+                        print("That model does not exist!")
+                        choice = ""
+
+            elif len(models) == 0:
+                print("No models were found for this experiment!")
+                exit(0)
+            else:
+                choice = 0
+
+            print("Loading model '" + models[int(choice)] + "'...")
+            loaded_discriminator, loaded_generator = mlm.load_network()
+
+        # TODO: Load latest model from database
+    else:
+        # | GENERATIVE ADVERSARIAL NETWORK MODULE
         ExperimentRunner.run_k_fold_cross_validation_experiment(fm.data_directories, 10)
 
 

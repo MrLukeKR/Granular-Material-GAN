@@ -12,7 +12,7 @@ def get_available_gpus():
 
 
 # Models are saved as discriminator.h5 and generator.h5, under an experimental ID
-def load_network():
+def load_network(discriminator_location, generator_location):
     root_dir = fm.root_directories[fm.SpecialFolder.MODEL_DATA.value]
     Logger.print("Loading Generative Adversarial Network...")
 
@@ -21,14 +21,14 @@ def load_network():
 
     if fm.file_exists(root_dir + "discriminator.h5"):
         Logger.print("\tLoading Discriminator... ", end='')
-        discriminator = load_model(root_dir + "discriminator.h5")
+        discriminator = load_model(discriminator_location)
         Logger.print("done!")
     else:
         Logger.print("Discriminator network is missing!")
 
     if fm.file_exists(root_dir + "generator.h5"):
         Logger.print("\tLoading Generator... ", end='')
-        generator = load_model(root_dir + "generator.h5")
+        generator = load_model(generator_location)
         Logger.print("done!")
     else:
         Logger.print("Generator network is missing!")
