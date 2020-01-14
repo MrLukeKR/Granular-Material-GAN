@@ -1,5 +1,7 @@
 import os
 
+from tensorflow_core.python.client import device_lib
+
 from ExperimentTools import DatasetProcessor, MethodologyLogger
 from GAN import DCGAN
 from Settings import FileManager as fm, SettingsManager as sm, MachineLearningManager as mlm
@@ -48,9 +50,9 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
     if MethodologyLogger.database_connected:
         sql = "INSERT INTO experiment_settings (ExperimentID, NetworkType, Folds, Epochs, BatchSize, " \
             "GeneratorStrides, GeneratorKernelSize, GeneratorNumberOfLevels, GeneratorFilters, " \
-            "GeneratorNormalisationMomenturm, GeneratorActivationAlpha, " \
+            "GeneratorNormalisationMomentum, GeneratorActivationAlpha, " \
             "DiscriminatorStrides, DiscriminatorKernelSize, DiscriminatorNumberOfLevels, DiscriminatorFilters, " \
-            "DiscriminatorNormalisationMomenturm, DiscriminatorActivationAlpha) " \
+            "DiscriminatorNormalisationMomentum, DiscriminatorActivationAlpha) " \
             "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"
 
         experiment_id = Logger.experiment_id
@@ -79,13 +81,23 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
         discriminator_location = filepath + "discriminator.h5"
         generator_location  = filepath + "generator.h5"
 
-        with tf.device('gpu:0'):
-            discriminator = DCGAN.DCGANDiscriminator(dummy, dis_strides, dis_kernel_size, dis_filters,
+        local_device_protos = device_lib.list_local_devices()
+        gpu_count = len([x.name for x in local_device_protos if x.device_type == 'GPU'])
+
+        if gpu_count == 2:
+            with tf.device('gpu:0'):
+                discriminator = DCGAN.DCGANDiscriminator(dummy, dis_strides, dis_kernel_size, dis_filters,
                                                  dis_activation_alpha, dis_normalisation_momentum, dis_levels)
 
-        with tf.device('gpu:1'):
-            generator = DCGAN.DCGANGenerator(dummy, gen_strides, gen_kernel_size, gen_filters, gen_activation_alpha,
+            with tf.device('gpu:1'):
+                generator = DCGAN.DCGANGenerator(dummy, gen_strides, gen_kernel_size, gen_filters, gen_activation_alpha,
                                          gen_normalisation_momentum, gen_levels)
+        else:
+            discriminator = DCGAN.DCGANDiscriminator(dummy, dis_strides, dis_kernel_size, dis_filters,
+                                                     dis_activation_alpha, dis_normalisation_momentum, dis_levels)
+
+            generator = DCGAN.DCGANGenerator(dummy, gen_strides, gen_kernel_size, gen_filters, gen_activation_alpha,
+                                             gen_normalisation_momentum, gen_levels)
 
         DCGAN.Network.discriminator = discriminator.model
         DCGAN.Network.generator = generator.model

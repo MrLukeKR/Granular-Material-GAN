@@ -64,6 +64,7 @@ def setup():
     sm.load_settings()
     fm.assign_special_folders()
 
+    MethodologyLogger.connect_to_database()
     MethodologyLogger.initialise_database()
     MethodologyLogger.Logger(fm.get_directory(fm.SpecialFolder.LOGS))
 
@@ -289,10 +290,27 @@ def load_model_from_database():
         raise ValueError
 
 
+def main_menu():
+    print("[CLEARDB] Reinitialise database")
+    print("[1] Create New Model")
+    print("[2] Load Existing Model")
+
+    user_input = input("Enter a menu option > ")
+
+    if user_input.upper() == "CLEARDB":
+        MethodologyLogger.reinitialise_database()
+    elif user_input == "1":
+        ExperimentRunner.run_k_fold_cross_validation_experiment(fm.data_directories, 10)
+    elif user_input == "2":
+        load_model_from_database()
+
+
 def main():
     global pool
 
     setup()
+
+    print("Please wait while data collections are pre-processed...")
 
 # | DATA PREPARATION MODULE
     if sm.configuration.get("ENABLE_PREPROCESSING") == "True":
@@ -305,15 +323,7 @@ def main():
     generate_voxels()
 # \-- | SEGMENT-TO-VOXEL CONVERSION SUB-MODULE
 
-    print("[1] Create New Model")
-    print("[2] Load Existing Model")
-
-    user_input = input("Enter a menu option > ")
-
-    if user_input[0] == "1":
-        ExperimentRunner.run_k_fold_cross_validation_experiment(fm.data_directories, 10)
-    elif user_input[0] == "2":
-        load_model_from_database()
+    main_menu()
 
         # | GENERATIVE ADVERSARIAL NETWORK MODULE
 

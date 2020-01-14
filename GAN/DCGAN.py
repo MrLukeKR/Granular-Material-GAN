@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
+from tensorflow_core.python.client import device_lib
+
 from Settings import MachineLearningManager as mlm
 
 from ExperimentTools import MethodologyLogger
@@ -50,19 +52,32 @@ class Network(AbstractGAN.Network):
         data_shape = (len(data[0]), len(data[0][0]), len(data[0][0][0]), 1)
 
         optimizer = optimizers.Adam(0.0002, 0.5)
-        with tf.device('gpu:0'):
-            cls.discriminator.compile(loss='binary_crossentropy',
+
+        local_device_protos = device_lib.list_local_devices()
+        gpu_count = len([x.name for x in local_device_protos if x.device_type == 'GPU'])
+
+        masked_vol = Input(shape=data_shape)
+
+        if gpu_count == 2:
+            with tf.device('gpu:0'):
+                cls.discriminator.compile(loss='binary_crossentropy',
                                   optimizer=optimizer,
                                   metrics=['accuracy'])
 
-        masked_vol = Input(shape=data_shape)
-        with tf.device('gpu:1'):
-            gen_missing = cls.generator(masked_vol)
+            with tf.device('gpu:1'):
+                gen_missing = cls.generator(masked_vol)
 
-        with tf.device('gpu:0'):
+            with tf.device('gpu:0'):
+                cls.discriminator.trainable = False
+        else:
+            cls.discriminator.compile(loss='binary_crossentropy',
+                                      optimizer=optimizer,
+                                      metrics=['accuracy'])
+
+            gen_missing = cls.generator(masked_vol)
             cls.discriminator.trainable = False
 
-            valid = cls.discriminator(gen_missing)
+        valid = cls.discriminator(gen_missing)
 
         cls.adversarial = Model(masked_vol, [gen_missing, valid])
         cls.adversarial.compile(loss=['mse', 'binary_crossentropy'],
