@@ -3,7 +3,6 @@ import numpy as np
 import tensorflow as tf
 from Settings import MachineLearningManager as mlm
 
-from tensorflow import keras
 from ExperimentTools import MethodologyLogger
 from GAN import AbstractGAN
 from tensorflow.keras import Sequential, optimizers
@@ -11,6 +10,9 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Flatten, Dense, Activation, Conv3D, Conv3DTranspose as Deconv3D, BatchNormalization, LeakyReLU
 from ExperimentTools.MethodologyLogger import Logger
 from Settings import SettingsManager as sm
+
+
+ENABLE_NORMALISATION = False
 
 
 class Network(AbstractGAN.Network):
@@ -48,17 +50,19 @@ class Network(AbstractGAN.Network):
         data_shape = (len(data[0]), len(data[0][0]), len(data[0][0][0]), 1)
 
         optimizer = optimizers.Adam(0.0002, 0.5)
-
-        cls.discriminator.compile(loss='binary_crossentropy',
+        with tf.device('gpu:0'):
+            cls.discriminator.compile(loss='binary_crossentropy',
                                   optimizer=optimizer,
                                   metrics=['accuracy'])
 
         masked_vol = Input(shape=data_shape)
-        gen_missing = cls.generator(masked_vol)
+        with tf.device('gpu:1'):
+            gen_missing = cls.generator(masked_vol)
 
-        cls.discriminator.trainable = False
+        with tf.device('gpu:0'):
+            cls.discriminator.trainable = False
 
-        valid = cls.discriminator(gen_missing)
+            valid = cls.discriminator(gen_missing)
 
         cls.adversarial = Model(masked_vol, [gen_missing, valid])
         cls.adversarial.compile(loss=['mse', 'binary_crossentropy'],
@@ -121,17 +125,21 @@ class Network(AbstractGAN.Network):
             idx = np.random.randint(0, len(features), batch_size)
 
             # This is the binder generated for a given aggregate arrangement
-            gen_missing = cls.generator.predict(features[idx])
+            with tf.device('gpu:1'):
+                gen_missing = cls.generator.predict(features[idx])
 
             generated_images += gen_missing
-            # This trains the discriminator on real samples
-            d_loss_real = cls.discriminator.train_on_batch(labels[idx], valid)
-            # This trains the discriminator on fake samples
-            d_loss_fake = cls.discriminator.train_on_batch(gen_missing, fake)
+
+            with tf.device('gpu:0'):
+                # This trains the discriminator on real samples
+                d_loss_real = cls.discriminator.train_on_batch(labels[idx], valid)
+                # This trains the discriminator on fake samples
+                d_loss_fake = cls.discriminator.train_on_batch(gen_missing, fake)
 
             d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
 
-            g_loss = cls.adversarial.train_on_batch(features[idx], [labels[idx], valid])
+            with tf.device('gpu:1'):
+                g_loss = cls.adversarial.train_on_batch(features[idx], [labels[idx], valid])
 
             Logger.print("%d [DIS loss: %f, acc: %.2f%%] [GEN loss: %f, mse: %f]" % (epoch,
                                                                               d_loss[0],
@@ -209,7 +217,8 @@ class DCGANDiscriminator:
                 model.add(
                     Conv3D(initial_filters * (pow(2, level)), kernel_size=kernel_size, strides=strides, padding="same"))
             model.add(LeakyReLU(alpha=activation_alpha))
-            model.add(BatchNormalization(momentum=normalisation_momentum))
+            if ENABLE_NORMALISATION:
+                model.add(BatchNormalization(momentum=normalisation_momentum))
 
         model.add(Flatten())
         model.add(Dense(1, activation="sigmoid"))
@@ -259,12 +268,14 @@ class DCGANGenerator:
             else:
                 model.add(Conv3D(initial_filters * (pow(2, level)), kernel_size=kernel_size, strides=strides, padding="same"))
             model.add(LeakyReLU(alpha=activation_alpha))
-            model.add(BatchNormalization(momentum=normalisation_momentum))
+            if ENABLE_NORMALISATION:
+                model.add(BatchNormalization(momentum=normalisation_momentum))
 
         for level in range(encoder_levels - 1, 0, -1):
             model.add(Deconv3D(initial_filters * pow(2, level - 1), kernel_size=kernel_size, strides=strides, padding="same"))
             model.add(Activation("relu"))
-            model.add(BatchNormalization(momentum=normalisation_momentum))
+            if ENABLE_NORMALISATION:
+                model.add(BatchNormalization(momentum=normalisation_momentum))
 
         model.add(Deconv3D(channels, kernel_size=kernel_size, strides=strides, padding="same"))
         model.add(Activation("tanh"))

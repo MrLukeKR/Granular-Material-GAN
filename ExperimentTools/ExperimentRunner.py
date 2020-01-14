@@ -7,9 +7,6 @@ import tensorflow as tf
 
 import numpy as np
 
-strategy = tf.distribute.MirroredStrategy()
-
-
 def run_train_test_split_experiment(aggregates, binders, split_percentage):
 
     pass
@@ -27,7 +24,7 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
     training_sets, testing_sets = DatasetProcessor.dataset_to_k_cross_fold(dataset_directories, k)
 
     epochs = 1000
-    batch_size = 32
+    batch_size = 64
 
     vox_res = int(sm.configuration.get("VOXEL_RESOLUTION"))
     dummy = np.zeros(shape=(1, vox_res, vox_res, vox_res, sm.image_channels))
@@ -70,17 +67,18 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
         fold_d_losses = np.zeros((epochs * len(training_sets)))
         fold_g_losses = np.zeros((epochs * len(training_sets)))
 
-        with strategy.scope():
+        with tf.device('gpu:0'):
             discriminator = DCGAN.DCGANDiscriminator(dummy, dis_strides, dis_kernel_size, dis_filters,
                                                  dis_activation_alpha, dis_normalisation_momentum, dis_levels)
 
+        with tf.device('gpu:1'):
             generator = DCGAN.DCGANGenerator(dummy, gen_strides, gen_kernel_size, gen_filters, gen_activation_alpha,
                                          gen_normalisation_momentum, gen_levels)
 
-            DCGAN.Network.discriminator = discriminator.model
-            DCGAN.Network.generator = generator.model
+        DCGAN.Network.discriminator = discriminator.model
+        DCGAN.Network.generator = generator.model
 
-            DCGAN.Network.create_network(dummy)
+        DCGAN.Network.create_network(dummy)
 
         for ind in range(len(training_sets[fold])):
             training_set = training_sets[fold][ind]
@@ -118,6 +116,7 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
             # im.save_voxel_image_collection(binders[10:15], fm.SpecialFolder.VOXEL_DATA, "figures/PostH5/binder")
 
             Logger.print("\tTraining on set " + str(ind + 1) + '/' + str(len(training_sets[fold])) + "... ")
+
             d_loss, g_loss, images = DCGAN.Network.train_network(epochs, batch_size, aggregates, binders)
 
             directory = fm.get_directory(fm.SpecialFolder.RESULTS) + "/Figures/Experiment-" + str(Logger.experiment_id) + '/Training'
