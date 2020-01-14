@@ -5,7 +5,7 @@
       <paths name="***REMOVED***@***REMOVED***:22">
         <serverdata>
           <mappings>
-            <mapping deploy="/home/***REMOVED***/pych-env/granular-material-gan" local="$PROJECT_DIR$" />
+            <mapping deploy="/tmp/granular-material-gan" local="$PROJECT_DIR$" web="/" />
           </mappings>
         </serverdata>
       </paths>

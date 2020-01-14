@@ -128,22 +128,22 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
             mlm.save_network(DCGAN.Network.discriminator, DCGAN.Network.generator,
                              Logger.experiment_id, "Fold-" + str(fold + 1))
 
-        test_generator = DCGAN.Network.generator
+        test_network(testing_sets, fold, DCGAN.Network.generator)
 
-        Logger.print("Testing GAN on unseen aggregate voxels...")
 
-        for testing_set in testing_sets[fold]:
-            if not isinstance(testing_set, list):
-                testing_set = list(testing_sets[fold])
+def test_network(testing_sets, fold, test_generator):
+    Logger.print("Testing GAN on unseen aggregate voxels...")
 
-            test_aggregates = list()
-            test_binders = list()
+    for testing_set in testing_sets[fold]:
+        if not isinstance(testing_set, list):
+            testing_set = list(testing_sets[fold])
 
-            for directory in testing_set:
-                Logger.print("\tLoading voxels from " + directory + "... ", end='')
-                fm.current_directory = directory.replace(fm.get_directory(fm.SpecialFolder.SEGMENTED_SCANS), '')
+        test_aggregates = list()
+        test_binders = list()
 
-                voxel_directory = fm.get_directory(fm.SpecialFolder.VOXEL_DATA) + fm.current_directory[0:-1]
+        for directory in testing_set:
+            Logger.print("\tLoading voxels from " + directory + "... ", end='')
+            fm.current_directory = directory.replace(fm.get_directory(fm.SpecialFolder.SEGMENTED_SCANS), '')
 
                 temp_aggregates, temp_aggregate_dimensions = vp.load_voxels(voxel_directory,
                                                  "aggregate_" + sm.configuration.get("VOXEL_RESOLUTION"))
@@ -156,19 +156,25 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
                         binder = temp_binders[ind]
                         aggregate = temp_aggregates[ind]
 
-                        test_aggregates.append(aggregate * 255)
-                        test_binders.append(binder * 255)
+            for ind in range(len(temp_aggregates)):
+                if np.min(temp_aggregates[ind]) != np.max(temp_aggregates[ind]) and np.min(temp_binders[ind]) != np.max(
+                        temp_binders[ind]):
+                    binder = temp_binders[ind]
+                    aggregate = temp_aggregates[ind]
 
-                Logger.print("done!")
+                    test_aggregates.append(aggregate * 255)
+                    test_binders.append(binder * 255)
 
-                test = np.array(test_aggregates)
-                test = np.expand_dims(test, 4)
+            Logger.print("done!")
+
+            test = np.array(test_aggregates)
+            test = np.expand_dims(test, 4)
 
                 results = list(test_generator.predict(test) * 255)
 
-                directory = fm.get_directory(fm.SpecialFolder.RESULTS) + "/Figures/Experiment-" + str(
-                    Logger.experiment_id) + "/Outputs"
-                fm.create_if_not_exists(directory)
+            directory = fm.get_directory(fm.SpecialFolder.RESULTS) + "/Figures/Experiment-" + str(
+                Logger.experiment_id) + "/Outputs"
+            fm.create_if_not_exists(directory)
 
                 DISPLAY_VOXELS = False
 
