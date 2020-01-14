@@ -125,63 +125,66 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
             mlm.save_network(DCGAN.Network.discriminator, DCGAN.Network.generator,
                              Logger.experiment_id, "Fold-" + str(fold + 1))
 
-        test_generator = DCGAN.Network.generator
+        test_network(testing_sets, fold, DCGAN.Network.generator)
 
-        Logger.print("Testing GAN on unseen aggregate voxels...")
 
-        for testing_set in testing_sets[fold]:
-            if not isinstance(testing_set, list):
-                testing_set = list(testing_sets[fold])
+def test_network(testing_sets, fold, test_generator):
+    Logger.print("Testing GAN on unseen aggregate voxels...")
 
-            test_aggregates = list()
-            test_binders = list()
+    for testing_set in testing_sets[fold]:
+        if not isinstance(testing_set, list):
+            testing_set = list(testing_sets[fold])
 
-            for directory in testing_set:
-                Logger.print("\tLoading voxels from " + directory + "... ", end='')
-                fm.current_directory = directory.replace(fm.get_directory(fm.SpecialFolder.SEGMENTED_SCANS), '')
+        test_aggregates = list()
+        test_binders = list()
 
-                voxel_directory = fm.get_directory(fm.SpecialFolder.VOXEL_DATA) + fm.current_directory[0:-1]
+        for directory in testing_set:
+            Logger.print("\tLoading voxels from " + directory + "... ", end='')
+            fm.current_directory = directory.replace(fm.get_directory(fm.SpecialFolder.SEGMENTED_SCANS), '')
 
-                temp_aggregates = vp.load_voxels(voxel_directory,
-                                                 "aggregate_" + sm.configuration.get("VOXEL_RESOLUTION"))
-                temp_binders = vp.load_voxels(voxel_directory, "binder_" + sm.configuration.get("VOXEL_RESOLUTION"))
+            voxel_directory = fm.get_directory(fm.SpecialFolder.VOXEL_DATA) + fm.current_directory[0:-1]
 
-                for ind in range(len(temp_aggregates)):
-                    if np.min(temp_aggregates[ind]) != np.max(temp_aggregates[ind]) and np.min(temp_binders[ind]) != np.max(temp_binders[ind]):
-                        binder = temp_binders[ind]
-                        aggregate = temp_aggregates[ind]
+            temp_aggregates = vp.load_voxels(voxel_directory,
+                                             "aggregate_" + sm.configuration.get("VOXEL_RESOLUTION"))
+            temp_binders = vp.load_voxels(voxel_directory, "binder_" + sm.configuration.get("VOXEL_RESOLUTION"))
 
-                        test_aggregates.append(aggregate * 255)
-                        test_binders.append(binder * 255)
+            for ind in range(len(temp_aggregates)):
+                if np.min(temp_aggregates[ind]) != np.max(temp_aggregates[ind]) and np.min(temp_binders[ind]) != np.max(
+                        temp_binders[ind]):
+                    binder = temp_binders[ind]
+                    aggregate = temp_aggregates[ind]
 
-                Logger.print("done!")
+                    test_aggregates.append(aggregate * 255)
+                    test_binders.append(binder * 255)
 
-                test = np.array(test_aggregates)
-                test = np.expand_dims(test, 4)
+            Logger.print("done!")
 
-                results = list((test_generator.predict(test) > 0.5) * 255)
+            test = np.array(test_aggregates)
+            test = np.expand_dims(test, 4)
 
-                directory = fm.get_directory(fm.SpecialFolder.RESULTS) + "/Figures/Experiment-" + str(
-                    Logger.experiment_id) + "/Outputs"
-                fm.create_if_not_exists(directory)
+            results = list((test_generator.predict(test) > 0.5) * 255)
 
-                for ind in range(len(results)):
-                    fig = im.plt.figure(figsize=(10, 5))
-                    ax_expected = fig.add_subplot(1, 2, 1, projection='3d')
-                    ax_expected.title.set_text("Expected")
+            directory = fm.get_directory(fm.SpecialFolder.RESULTS) + "/Figures/Experiment-" + str(
+                Logger.experiment_id) + "/Outputs"
+            fm.create_if_not_exists(directory)
 
-                    ax_actual = fig.add_subplot(1, 2, 2, projection='3d')
-                    ax_actual.title.set_text("Actual")
+            for ind in range(len(results)):
+                fig = im.plt.figure(figsize=(10, 5))
+                ax_expected = fig.add_subplot(1, 2, 1, projection='3d')
+                ax_expected.title.set_text("Expected")
 
-                    ax_expected.voxels(test_aggregates[ind], facecolors='w', edgecolors='w')
-                    ax_expected.voxels(test_binders[ind], facecolors='k', edgecolors='k')
+                ax_actual = fig.add_subplot(1, 2, 2, projection='3d')
+                ax_actual.title.set_text("Actual")
 
-                    ax_actual.voxels(test_aggregates[ind], facecolors='w', edgecolors='w')
-                    ax_actual.voxels(np.squeeze(results[ind]), facecolors='k', edgecolors='k')
+                ax_expected.voxels(test_aggregates[ind], facecolors='w', edgecolors='w')
+                ax_expected.voxels(test_binders[ind], facecolors='k', edgecolors='k')
 
-                    im.plt.gcf().savefig(directory + '/Experiment-' + str(Logger.experiment_id) + '_Fold-' + str(
-                        fold) + '_Voxel-' + str(ind) + '.jpg')
-                    im.plt.close(im.plt.gcf())
+                ax_actual.voxels(test_aggregates[ind], facecolors='w', edgecolors='w')
+                ax_actual.voxels(np.squeeze(results[ind]), facecolors='k', edgecolors='k')
+
+                im.plt.gcf().savefig(directory + '/Experiment-' + str(Logger.experiment_id) + '_Fold-' + str(
+                    fold) + '_Voxel-' + str(ind) + '.jpg')
+                im.plt.close(im.plt.gcf())
 
 
 def run_on_existing_gan(aggregates, binders):
