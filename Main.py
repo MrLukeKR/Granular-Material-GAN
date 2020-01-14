@@ -195,8 +195,107 @@ def generate_voxels():
             # im.save_voxel_image_collection(voxels, fm.SpecialFolder.VOXEL_DATA, "figures/" + segment)
 
 
+def load_model_from_database():
+    cursor = MethodologyLogger.db_cursor
+
+    query = "SELECT * FROM ***REMOVED***_Phase1.experiments;"
+
+    cursor.execute(query)
+    experiments = cursor.fetchall()
+
+    if cursor.rowcount == 0:
+        print("There are no experiments in the database")
+        exit(0)
+    elif cursor.rowcount == 1:
+        choice = 0
+    else:
+        print("The following experiments are available:")
+        for experiment in experiments:
+            query = "SELECT * FROM ***REMOVED***_Phase1.experiment_settings WHERE ExperimentID = " + str(experiment[0]) + ";"
+
+            cursor.execute(query)
+            settings = cursor.fetchall()
+
+            if len(settings) == 0:
+                continue
+
+            print("Experiment [" + str(experiment[0]) + "] @ " + str(experiment[1]) + " ", end='')
+            print(settings)
+
+        choice = ""
+        ids = [x[0] for x in experiments]
+
+        while not choice.isnumeric():
+            choice = input("Enter the experiment ID to load > ")
+
+            if choice.isnumeric() and int(choice) not in ids:
+                print("That experiment ID does not exist")
+                choice = ""
+
+    print("Loading experiment [" + experiments[choice][0] + "]")
+    model_location_prefix = sm.configuration.get("IO_ROOT_DIR") + sm.configuration.get("IO_MODEL_ROOT_DIR")
+
+    models = [model for model in os.listdir(model_location_prefix)
+              if os.path.isfile(os.path.join(model_location_prefix, model))
+              and "Experiment-" + str(choice) in model]
+
+    joint_models = list()
+
+    for model in models:
+        filename_parts = model.split("_")
+        prefix = model.replace(filename_parts[-1], "")
+
+        generator = prefix + "generator.h5"
+        discriminator = prefix + "discriminator.h5"
+
+    if generator in models and discriminator in models and not (generator, discriminator) in joint_models:
+        joint_models.append((generator, discriminator))
+
+    print(joint_models)
+
+    # TODO: Pair generator and discriminator locations and delete if only one or the other exists
+
+    if len(joint_models) > 1:
+        print("Multiple models are available with this experiment:")
+        ids = range(len(joint_models))
+
+        for id in ids:
+            prefix = joint_models[id][0].split("_")[-1]
+            prefix = joint_models[id][0].replace('_' + prefix, "")
+            print("[" + str(id) + "] " + prefix)
+
+        choice = ""
+        while not choice.isnumeric():
+            choice = input("Which model would you like to load? > ")
+            if choice.isnumeric() and int(choice) not in ids:
+                print("That model does not exist!")
+                choice = ""
+
+    elif len(joint_models) == 0:
+        print("No models were found for this experiment!")
+        exit(0)
+    else:
+        choice = 0
+
+    selected_model = joint_models[int(choice)]
+
+    print("Loading model '" + selected_model[0].replace('_' + selected_model[0].split("_")[-1], "") + "'...")
+    loaded_discriminator, loaded_generator = mlm.load_network(model_location_prefix + selected_model[1],
+                                                              model_location_prefix + selected_model[0])
+
+    if loaded_discriminator is not None and loaded_generator is not None:
+        print("Model successfully loaded")
+
+        loaded_generator.summary()
+        loaded_discriminator.summary()
+    else:
+        print("Error loading model!")
+        raise ValueError
+    # TODO: Load latest model from database
+
+
 def main():
-    global pool, db
+    global pool
 
     setup()
 
@@ -210,76 +309,18 @@ def main():
 
     generate_voxels()
 # \-- | SEGMENT-TO-VOXEL CONVERSION SUB-MODULE
-    cursor = MethodologyLogger.db_cursor
 
-    query = "SELECT * FROM ***REMOVED***_Phase1.experiments;"
+    print("[1] Create New Model")
+    print("[2] Load Existing Model")
 
-    cursor.execute(query)
-    experiments = cursor.fetchall()
+    user_input = input("Enter a menu option > ")
 
-    if cursor.rowcount > 0:
-        user_input = input("Would you like to load a previous model? [Y/N] > ")
-
-        if user_input[0].upper() == "Y":
-            print("The following experiments are available:")
-            for experiment in experiments:
-                query = "SELECT * FROM ***REMOVED***_Phase1.experiment_settings WHERE ExperimentID = " + str(experiment[0]) + ";"
-
-                cursor.execute(query)
-                settings = cursor.fetchall()
-
-                if len(settings) == 0:
-                    continue
-
-                print("Experiment [" + str(experiment[0]) + "] @ " + str(experiment[1]) + " ", end='')
-                print(settings)
-
-            choice = ""
-            ids = [x[0] for x in experiments]
-
-            while not choice.isnumeric():
-                choice = input("Enter the experiment ID to load > ")
-
-                if choice.isnumeric() and int(choice) not in ids:
-                    print("That experiment ID does not exist")
-                    choice = ""
-
-            print("Loading experiment [" + choice + "]")
-            model_location_prefix = sm.configuration.get("IO_ROOT_DIR") + "/" + sm.configuration.get("IO_MODEL_ROOT_DIR")
-
-            models = [model for model in os.listdir(model_location_prefix)
-                      if os.path.isfile(os.path.join(model_location_prefix, model))
-                      and "Experiment-" + str(choice) in model]
-
-            # TODO: Pair generator and discriminator locations and delete if only one or the other exists
-
-            if len(models) > 1:
-                print("Multiple models are available with this experiment:")
-                ids = range(len(models))
-
-                for id in ids:
-                    print("[" + str(id) + "] " + models[id])
-
-                choice = ""
-                while not choice.isnumeric():
-                    choice = input("Which model would you like to load? > ")
-                    if choice.isnumeric() and int(choice) not in ids:
-                        print("That model does not exist!")
-                        choice = ""
-
-            elif len(models) == 0:
-                print("No models were found for this experiment!")
-                exit(0)
-            else:
-                choice = 0
-
-            print("Loading model '" + models[int(choice)] + "'...")
-            loaded_discriminator, loaded_generator = mlm.load_network()
-
-        # TODO: Load latest model from database
-    else:
-        # | GENERATIVE ADVERSARIAL NETWORK MODULE
+    if user_input[0] == "1":
         ExperimentRunner.run_k_fold_cross_validation_experiment(fm.data_directories, 10)
+    elif user_input[0] == "2":
+        load_model_from_database()
+
+        # | GENERATIVE ADVERSARIAL NETWORK MODULE
 
 
 if __name__ == "__main__":

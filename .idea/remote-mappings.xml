@@ -3,7 +3,13 @@
   <component name="RemoteMappingsManager">
     <list>
       <list>
-        <remote-mappings server-id="python@sftp://***REMOVED***@***REMOVED***:22/opt/anaconda3/bin/python" />
+        <remote-mappings server-id="python@sftp://***REMOVED***@***REMOVED***:22/opt/anaconda3/bin/python">
+          <settings>
+            <list>
+              <mapping local-root="&lt;Project Root&gt;" remote-root="/tmp/granular-material-gan" />
+            </list>
+          </settings>
+        </remote-mappings>
       </list>
     </list>
   </component>

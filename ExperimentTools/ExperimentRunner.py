@@ -144,14 +144,14 @@ def test_network(testing_sets, fold, test_generator):
             Logger.print("\tLoading voxels from " + directory + "... ", end='')
             fm.current_directory = directory.replace(fm.get_directory(fm.SpecialFolder.SEGMENTED_SCANS), '')
 
-                temp_aggregates, temp_aggregate_dimensions = vp.load_voxels(voxel_directory,
+            temp_aggregates, temp_aggregate_dimensions = vp.load_voxels(voxel_directory,
                                                  "aggregate_" + sm.configuration.get("VOXEL_RESOLUTION"))
-                temp_binders, temp_binder_dimensions = vp.load_voxels(voxel_directory, "binder_"
+            temp_binders, temp_binder_dimensions = vp.load_voxels(voxel_directory, "binder_"
                                                                       + sm.configuration.get("VOXEL_RESOLUTION"))
 
-                for ind in range(len(temp_aggregates)):
-                    if np.min(temp_aggregates[ind]) != np.max(temp_aggregates[ind]) and\
-                            np.min(temp_binders[ind]) != np.max(temp_binders[ind]):
+            for ind in range(len(temp_aggregates)):
+                if np.min(temp_aggregates[ind]) != np.max(temp_aggregates[ind]) and\
+                        np.min(temp_binders[ind]) != np.max(temp_binders[ind]):
                         binder = temp_binders[ind]
                         aggregate = temp_aggregates[ind]
 
@@ -169,34 +169,34 @@ def test_network(testing_sets, fold, test_generator):
             test = np.array(test_aggregates)
             test = np.expand_dims(test, 4)
 
-                results = list(test_generator.predict(test) * 255)
+            results = list(test_generator.predict(test) * 255)
 
             directory = fm.get_directory(fm.SpecialFolder.RESULTS) + "/Figures/Experiment-" + str(
                 Logger.experiment_id) + "/Outputs"
             fm.create_if_not_exists(directory)
 
-                DISPLAY_VOXELS = False
+            DISPLAY_VOXELS = False
 
-                vp.save_voxels(test_binders, temp_aggregate_dimensions, fm.SpecialFolder.GENERATED_VOXEL_DATA, "Test")
+            vp.save_voxels(test_binders, temp_aggregate_dimensions, fm.SpecialFolder.GENERATED_VOXEL_DATA, "Test")
 
-                if DISPLAY_VOXELS:
-                    for ind in range(len(results)):
-                        fig = im.plt.figure(figsize=(10, 5))
-                        ax_expected = fig.add_subplot(1, 2, 1, projection='3d')
-                        ax_expected.title.set_text("Expected")
+            if DISPLAY_VOXELS:
+                 for ind in range(len(results)):
+                     fig = im.plt.figure(figsize=(10, 5))
+                     ax_expected = fig.add_subplot(1, 2, 1, projection='3d')
+                     ax_expected.title.set_text("Expected")
 
-                        ax_actual = fig.add_subplot(1, 2, 2, projection='3d')
-                        ax_actual.title.set_text("Actual")
+                     ax_actual = fig.add_subplot(1, 2, 2, projection='3d')
+                     ax_actual.title.set_text("Actual")
 
-                        ax_expected.voxels(test_aggregates[ind], facecolors='w', edgecolors='w')
-                        ax_expected.voxels(test_binders[ind], facecolors='k', edgecolors='k')
+                     ax_expected.voxels(test_aggregates[ind], facecolors='w', edgecolors='w')
+                     ax_expected.voxels(test_binders[ind], facecolors='k', edgecolors='k')
 
-                        ax_actual.voxels(test_aggregates[ind], facecolors='w', edgecolors='w')
-                        ax_actual.voxels(np.squeeze(results[ind]), facecolors='k', edgecolors='k')
+                     ax_actual.voxels(test_aggregates[ind], facecolors='w', edgecolors='w')
+                     ax_actual.voxels(np.squeeze(results[ind]), facecolors='k', edgecolors='k')
 
-                        im.plt.gcf().savefig(directory + '/Experiment-' + str(Logger.experiment_id) + '_Fold-' + str(
+                     im.plt.gcf().savefig(directory + '/Experiment-' + str(Logger.experiment_id) + '_Fold-' + str(
                             fold) + '_Voxel-' + str(ind) + '.jpg')
-                        im.plt.close(im.plt.gcf())
+                     im.plt.close(im.plt.gcf())
 
 
 def run_on_existing_gan(aggregates, binders):
