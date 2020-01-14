@@ -1,3 +1,5 @@
+import os
+
 from ExperimentTools import DatasetProcessor, MethodologyLogger
 from GAN import DCGAN
 from Settings import FileManager as fm, SettingsManager as sm, MachineLearningManager as mlm
@@ -67,6 +69,16 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
         fold_d_losses = np.zeros((epochs * len(training_sets)))
         fold_g_losses = np.zeros((epochs * len(training_sets)))
 
+        root_dir = fm.root_directories[fm.SpecialFolder.MODEL_DATA.value]
+
+        if not os.path.exists(root_dir):
+            os.makedirs(root_dir)
+
+        filepath = root_dir + "Experiment-" + str(Logger.experiment_id) + '_' + "Fold-" + str(fold + 1) + '_'
+
+        discriminator_location = filepath + "discriminator.h5"
+        generator_location  = filepath + "generator.h5"
+
         with tf.device('gpu:0'):
             discriminator = DCGAN.DCGANDiscriminator(dummy, dis_strides, dis_kernel_size, dis_filters,
                                                  dis_activation_alpha, dis_normalisation_momentum, dis_levels)
@@ -121,11 +133,11 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
 
             directory = fm.get_directory(fm.SpecialFolder.RESULTS) + "/Figures/Experiment-" + str(Logger.experiment_id) + '/Training'
             fm.create_if_not_exists(directory)
-            im.plt.gcf().savefig(directory + '/Experiment-' + str(Logger.experiment_id) + '_Fold-' + str(fold) + '_TrainingSet-' + str(ind) + '.jpg')
+            im.plt.gcf().savefig(directory + '/Experiment-' + str(Logger.experiment_id) + '_Fold-' + str(fold) + '_TrainingSet-' + str(ind) + '.svg')
             im.plt.close(im.plt.gcf())
 
-            mlm.save_network(DCGAN.Network.discriminator, DCGAN.Network.generator,
-                             Logger.experiment_id, "Fold-" + str(fold + 1))
+            generator.model.save_weights(generator_location)
+            discriminator.model.save_weights(discriminator_location)
 
         test_network(testing_sets, fold, DCGAN.Network.generator)
 

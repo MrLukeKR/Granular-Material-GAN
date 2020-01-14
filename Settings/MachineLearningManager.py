@@ -33,18 +33,3 @@ def load_network(discriminator_location, generator_location):
         Logger.print("Generator network is missing!")
 
     return discriminator, generator
-
-
-def save_network(discriminator, generator, experimentID, filename=None):
-    Logger.print("Saving Generative Adversarial Network Model...")
-
-    root_dir = fm.root_directories[fm.SpecialFolder.MODEL_DATA.value]
-
-    if not os.path.exists(root_dir):
-        os.makedirs(root_dir)
-
-    filepath = root_dir + "Experiment-" + str(experimentID) + '_' + filename + '_'
-
-    discriminator.save(filepath + "discriminator.h5")
-    generator.save(filepath + "generator.h5")
-

@@ -251,10 +251,6 @@ def load_model_from_database():
     if generator in models and discriminator in models and not (generator, discriminator) in joint_models:
         joint_models.append((generator, discriminator))
 
-    print(joint_models)
-
-    # TODO: Pair generator and discriminator locations and delete if only one or the other exists
-
     if len(joint_models) > 1:
         print("Multiple models are available with this experiment:")
         ids = range(len(joint_models))
@@ -291,7 +287,6 @@ def load_model_from_database():
     else:
         print("Error loading model!")
         raise ValueError
-    # TODO: Load latest model from database
 
 
 def main():
