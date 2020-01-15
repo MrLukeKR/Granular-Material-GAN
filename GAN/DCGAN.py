@@ -53,12 +53,9 @@ class Network(AbstractGAN.Network):
 
         optimizer = optimizers.Adam(0.0002, 0.5)
 
-        local_device_protos = device_lib.list_local_devices()
-        gpu_count = len([x.name for x in local_device_protos if x.device_type == 'GPU'])
-
         masked_vol = Input(shape=data_shape)
 
-        if gpu_count == 2:
+        if mlm.get_available_gpus() == 2:
             with tf.device('gpu:0'):
                 cls.discriminator.compile(loss='binary_crossentropy',
                                   optimizer=optimizer,
@@ -140,20 +137,28 @@ class Network(AbstractGAN.Network):
             idx = np.random.randint(0, len(features), batch_size)
 
             # This is the binder generated for a given aggregate arrangement
-            with tf.device('gpu:1'):
+            if mlm.get_available_gpus() == 2:
+                with tf.device('gpu:1'):
+                    gen_missing = cls.generator.predict(features[idx])
+            else:
                 gen_missing = cls.generator.predict(features[idx])
-
             generated_images += gen_missing
 
-            with tf.device('gpu:0'):
-                # This trains the discriminator on real samples
+            if mlm.get_available_gpus() == 2:
+                with tf.device('gpu:0'):
+                    # This trains the discriminator on real samples
+                    d_loss_real = cls.discriminator.train_on_batch(labels[idx], valid)
+                    # This trains the discriminator on fake samples
+                    d_loss_fake = cls.discriminator.train_on_batch(gen_missing, fake)
+            else:
                 d_loss_real = cls.discriminator.train_on_batch(labels[idx], valid)
-                # This trains the discriminator on fake samples
                 d_loss_fake = cls.discriminator.train_on_batch(gen_missing, fake)
-
             d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
 
-            with tf.device('gpu:1'):
+            if mlm.get_available_gpus() == 2:
+                with tf.device('gpu:1'):
+                    g_loss = cls.adversarial.train_on_batch(features[idx], [labels[idx], valid])
+            else:
                 g_loss = cls.adversarial.train_on_batch(features[idx], [labels[idx], valid])
 
             Logger.print("%d [DIS loss: %f, acc: %.2f%%] [GEN loss: %f, mse: %f]" % (epoch,

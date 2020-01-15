@@ -1,5 +1,7 @@
 import datetime
 import mysql.connector
+from tensorflow_core.python.client import device_lib
+
 from Settings import SettingsManager as sm
 
 db = None
@@ -106,6 +108,7 @@ def initialise_database():
         exit(-1)
 
     print("done!")
+
 
 class Logger:
     _initialised = False
