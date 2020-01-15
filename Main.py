@@ -21,8 +21,11 @@ from ExperimentTools.MethodologyLogger import Logger
 
 from Settings import MachineLearningManager as mlm
 # <<< Experiments
+from Settings import MessageTools as mt
+from Settings.MessageTools import print_notice
 
 pool = None
+model_loaded = None
 
 
 def print_introduction():
@@ -289,22 +292,65 @@ def load_model_from_database():
         raise ValueError
 
 
+def experiment_menu():
+    print("- Experiment Menu -")
+    print("")
+    print("[1] K-Cross Fold Validation (Batch Training)")
+    print("[2] K-Cross Fold Validation (Entire Dataset Generator)")
+    print("[3] Single Model (Batch Training)")
+    print("[4] Single Model (Entire Dataset Generator)")
+    print("")
+
+    user_input = input("")
+
+    MethodologyLogger.Logger(fm.get_directory(fm.SpecialFolder.LOGS))
+    if user_input == "1":
+        ExperimentRunner.run_k_fold_cross_validation_experiment(fm.data_directories, 10)
+    elif user_input == "2":
+        raise NotImplementedError
+    elif user_input == "3":
+        raise NotImplementedError
+    elif user_input == "4":
+        raise NotImplementedError
+
+
 def main_menu():
-    print("[EXIT] End program")
+    global model_loaded
+    if model_loaded is None:
+        print_notice("No Model Loaded", mt.MessagePrefix.INFORMATION)
+    else:
+        print_notice("Model Loaded: " + model_loaded, mt.MessagePrefix.INFORMATION)
+
+    print("")
+    print("!-- ADMIN TOOLS --!")
     print("[CLEARDB] Reinitialise database")
-    print("[1] Create New Model")
+    print("")
+    print("- Main Menu -")
+    print("[1] Create New Network")
     print("[2] Load Existing Model")
+    print("[3] Train Model")
+    print("[4] Run Model")
+
+    print("")
+    print("[EXIT] End program")
 
     user_input = input("Enter a menu option > ")
 
     if user_input.upper() == "CLEARDB":
         MethodologyLogger.reinitialise_database()
     elif user_input == "1":
-        MethodologyLogger.Logger(fm.get_directory(fm.SpecialFolder.LOGS))
-        ExperimentRunner.run_k_fold_cross_validation_experiment(fm.data_directories, 10)
+        pass
     elif user_input == "2":
         load_model_from_database()
+    elif user_input == "3":
+        if model_loaded is not None:
+            experiment_menu()
+        else:
+            print_notice("Please load a model first!", mt.MessagePrefix.WARNING)
+    elif user_input == "4":
+        pass
 
+    print("")
     return user_input
 
 
@@ -313,7 +359,7 @@ def main():
 
     setup()
 
-    print("Please wait while data collections are pre-processed...")
+    print("Please wait while data collections are processed...")
 
 # | DATA PREPARATION MODULE
     if sm.configuration.get("ENABLE_PREPROCESSING") == "True":

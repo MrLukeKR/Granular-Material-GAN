@@ -174,12 +174,6 @@ def test_network(testing_sets, fold, test_generator):
                                                                       + sm.configuration.get("VOXEL_RESOLUTION"))
 
             for ind in range(len(temp_aggregates)):
-                if np.min(temp_aggregates[ind]) != np.max(temp_aggregates[ind]) and\
-                        np.min(temp_binders[ind]) != np.max(temp_binders[ind]):
-                        binder = temp_binders[ind]
-                        aggregate = temp_aggregates[ind]
-
-            for ind in range(len(temp_aggregates)):
                 if np.min(temp_aggregates[ind]) != np.max(temp_aggregates[ind]) and np.min(temp_binders[ind]) != np.max(
                         temp_binders[ind]):
                     binder = temp_binders[ind]
