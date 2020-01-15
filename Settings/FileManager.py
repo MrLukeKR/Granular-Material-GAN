@@ -60,12 +60,22 @@ def get_settings_id(special_folder):
 def assign_special_folders():
     root_directories.insert(SpecialFolder.ROOT.value, sm.configuration.get(get_settings_id(SpecialFolder.ROOT)))
 
+    missing_key=False
+
     for folder in SpecialFolder:
+        if sm.configuration.get(get_settings_id(folder)) is None:
+            print(str(folder) + " is not in the configuration file!")
+            missing_key = True
+            continue
+
         if folder != SpecialFolder.ROOT:
             root_directories.insert(
                 folder.value,
                 root_directories[SpecialFolder.ROOT.value] + sm.configuration.get(get_settings_id(folder))
             )
+
+    if missing_key:
+        raise KeyError
 
     for directory in root_directories:
         if len(directory) > 0:

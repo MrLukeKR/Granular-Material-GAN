@@ -66,7 +66,6 @@ def setup():
 
     MethodologyLogger.connect_to_database()
     MethodologyLogger.initialise_database()
-    MethodologyLogger.Logger(fm.get_directory(fm.SpecialFolder.LOGS))
 
     pool = Pool()
     print_introduction()
@@ -291,6 +290,7 @@ def load_model_from_database():
 
 
 def main_menu():
+    print("[EXIT] End program")
     print("[CLEARDB] Reinitialise database")
     print("[1] Create New Model")
     print("[2] Load Existing Model")
@@ -300,9 +300,12 @@ def main_menu():
     if user_input.upper() == "CLEARDB":
         MethodologyLogger.reinitialise_database()
     elif user_input == "1":
+        MethodologyLogger.Logger(fm.get_directory(fm.SpecialFolder.LOGS))
         ExperimentRunner.run_k_fold_cross_validation_experiment(fm.data_directories, 10)
     elif user_input == "2":
         load_model_from_database()
+
+    return user_input
 
 
 def main():
@@ -323,7 +326,8 @@ def main():
     generate_voxels()
 # \-- | SEGMENT-TO-VOXEL CONVERSION SUB-MODULE
 
-    main_menu()
+    while main_menu() != "EXIT":
+        continue
 
         # | GENERATIVE ADVERSARIAL NETWORK MODULE
 

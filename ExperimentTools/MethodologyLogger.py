@@ -19,6 +19,7 @@ def reinitialise_database():
     print("Deleting database... ", end='')
     db_cursor.execute("DROP DATABASE ***REMOVED***_Phase1;")
     print("done!")
+    Logger.initialised = False
 
     initialise_database()
 

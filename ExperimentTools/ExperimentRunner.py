@@ -145,7 +145,7 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
 
             directory = fm.get_directory(fm.SpecialFolder.RESULTS) + "/Figures/Experiment-" + str(Logger.experiment_id) + '/Training'
             fm.create_if_not_exists(directory)
-            im.plt.gcf().savefig(directory + '/Experiment-' + str(Logger.experiment_id) + '_Fold-' + str(fold) + '_TrainingSet-' + str(ind) + '.svg')
+            im.plt.gcf().savefig(directory + '/Experiment-' + str(Logger.experiment_id) + '_Fold-' + str(fold) + '_TrainingSet-' + str(ind) + '.pdf')
             im.plt.close(im.plt.gcf())
 
             generator.model.save_weights(generator_location)
