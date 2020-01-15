@@ -207,7 +207,7 @@ def load_model_from_database():
     experiments = cursor.fetchall()
 
     if cursor.rowcount == 0:
-        print("There are no experiments in the database")
+        print_notice("There are no experiments in the database", mt.MessagePrefix.WARNING)
         exit(0)
     elif cursor.rowcount == 1:
         choice = 0
@@ -232,10 +232,10 @@ def load_model_from_database():
             choice = input("Enter the experiment ID to load > ")
 
             if choice.isnumeric() and int(choice) not in ids:
-                print("That experiment ID does not exist")
+                print_notice("That experiment ID does not exist", mt.MessagePrefix.WARNING)
                 choice = ""
 
-    print("Loading experiment [" + experiments[choice][0] + "]")
+    print_notice("Loading experiment [" + experiments[choice][0] + "]", mt.MessagePrefix.INFORMATION)
     model_location_prefix = sm.configuration.get("IO_ROOT_DIR") + sm.configuration.get("IO_MODEL_ROOT_DIR")
 
     models = [model for model in os.listdir(model_location_prefix)
@@ -255,7 +255,7 @@ def load_model_from_database():
         joint_models.append((generator, discriminator))
 
     if len(joint_models) > 1:
-        print("Multiple models are available with this experiment:")
+        print_notice("Multiple models are available with this experiment:", mt.MessagePrefix.INFORMATION)
         ids = range(len(joint_models))
 
         for id in ids:
@@ -267,39 +267,42 @@ def load_model_from_database():
         while not choice.isnumeric():
             choice = input("Which model would you like to load? > ")
             if choice.isnumeric() and int(choice) not in ids:
-                print("That model does not exist!")
+                print_notice("That model does not exist!", mt.MessagePrefix.WARNING)
                 choice = ""
 
     elif len(joint_models) == 0:
-        print("No models were found for this experiment!")
+        print_notice("No models were found for this experiment!", mt.MessagePrefix.WARNING)
         exit(0)
     else:
         choice = 0
 
     selected_model = joint_models[int(choice)]
 
-    print("Loading model '" + selected_model[0].replace('_' + selected_model[0].split("_")[-1], "") + "'...")
+    print_notice("Loading model '" + selected_model[0].replace('_' + selected_model[0].split("_")[-1], "") + "'...", mt.MessagePrefix.INFORMATION)
     loaded_discriminator, loaded_generator = mlm.load_network(model_location_prefix + selected_model[1],
                                                               model_location_prefix + selected_model[0])
 
     if loaded_discriminator is not None and loaded_generator is not None:
-        print("Model successfully loaded")
+        print_notice("Model successfully loaded", mt.MessagePrefix.SUCCESS)
 
         loaded_generator.summary()
         loaded_discriminator.summary()
     else:
-        print("Error loading model!")
+        print_notice("Error loading model!", mt.MessagePrefix.ERROR)
         raise ValueError
 
 
 def experiment_menu():
+    if model_loaded is None:
+        print_notice("Please load a model first!", mt.MessagePrefix.WARNING)
+        return
+
     print("- Experiment Menu -")
     print("")
     print("[1] K-Cross Fold Validation (Batch Training)")
     print("[2] K-Cross Fold Validation (Entire Dataset Generator)")
     print("[3] Single Model (Batch Training)")
     print("[4] Single Model (Entire Dataset Generator)")
-    print("")
 
     user_input = input("")
 
@@ -311,6 +314,22 @@ def experiment_menu():
     elif user_input == "3":
         raise NotImplementedError
     elif user_input == "4":
+        raise NotImplementedError
+
+
+def core_analysis_menu():
+    print("- Core Analysis Menu -")
+    print("[1] Perform all calculations")
+    print("[2] Calculate Air Voice Content")
+
+    print("")
+    print("[ANYTHING ELSE] Return to Main Menu")
+
+    user_input = input("Enter a menu option > ")
+
+    if user_input == "1":
+        raise NotImplementedError
+    elif user_input == "2":
         raise NotImplementedError
 
 
@@ -330,6 +349,7 @@ def main_menu():
     print("[2] Load Existing Model")
     print("[3] Train Model")
     print("[4] Run Model")
+    print("[5] Core Analysis Tools")
 
     print("")
     print("[EXIT] End program")
@@ -339,16 +359,18 @@ def main_menu():
     if user_input.upper() == "CLEARDB":
         MethodologyLogger.reinitialise_database()
     elif user_input == "1":
-        pass
+        raise NotImplementedError
     elif user_input == "2":
         load_model_from_database()
     elif user_input == "3":
+        experiment_menu()
+    elif user_input == "4":
         if model_loaded is not None:
-            experiment_menu()
+            raise NotImplementedError
         else:
             print_notice("Please load a model first!", mt.MessagePrefix.WARNING)
-    elif user_input == "4":
-        pass
+    elif user_input == "5":
+        core_analysis_menu()
 
     print("")
     return user_input
