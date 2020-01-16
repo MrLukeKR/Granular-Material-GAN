@@ -5,7 +5,7 @@
       <paths name="***REMOVED***@***REMOVED***:22">
         <serverdata>
           <mappings>
-            <mapping deploy="/tmp/granular-material-gan" local="$PROJECT_DIR$" web="/" />
+            <mapping deploy="/tmp/granular-material-gan/" local="$PROJECT_DIR$" web="/" />
           </mappings>
         </serverdata>
       </paths>

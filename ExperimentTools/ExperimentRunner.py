@@ -1,3 +1,4 @@
+import math
 import os
 
 from tensorflow_core.python.client import device_lib
@@ -11,9 +12,67 @@ import tensorflow as tf
 
 import numpy as np
 
-def run_train_test_split_experiment(aggregates, binders, split_percentage):
 
+def run_train_test_split_experiment(aggregates, binders, split_percentage):
     pass
+
+
+def get_clean_input(prompt, min=None, max=None):
+    user_input = ""
+
+    while not user_input.isnumeric():
+        print(prompt)
+        user_input = input("Enter a value > ")
+
+        if user_input.isnumeric() and min is not None or max is not None:
+            if max is None:
+                max = math.inf
+
+            if min is None:
+                min = -math.inf
+
+            if user_input < min or user_input > max:
+                user_input = ""
+
+        print("")
+
+    return user_input
+
+
+def design_gan_architecture():
+    generator_settings = dict()
+    discriminator_settings = dict()
+
+    generator_settings["filters"] = get_clean_input("Enter GENERATOR filters", 0)
+    generator_settings["activation_alpha"] = get_clean_input("Enter GENERATOR activation alpha [0 - 1]", 0, 1)
+    generator_settings["normalisation_momentum"] = get_clean_input("Enter GENERATOR normalisation momentum [0 - 1]", 0, 1)
+    generator_settings["levels"] = get_clean_input("Enter GENERATOR levels", 0)
+    generator_settings["strides"] = get_clean_input("Enter GENERATOR strides", 0)
+    generator_settings["kernel_size"] = get_clean_input("Enter GENERATOR kernel size", 0)
+
+    discriminator_settings["filters"] = get_clean_input("Enter DISCRIMINATOR filters", 0)
+    discriminator_settings["activation_alpha"] = get_clean_input("Enter DISCRIMINATOR activation alpha [0 - 1]", 0, 1)
+    discriminator_settings["normalisation_momentum"] = get_clean_input("Enter DISCRIMINATOR normalisation momentum [0 - 1]", 0, 1)
+    discriminator_settings["levels"] = get_clean_input("Enter DISCRIMINATOR levels", 0)
+    discriminator_settings["strides"] = get_clean_input("Enter DISCRIMINATOR strides", 0)
+    discriminator_settings["kernel_size"] = get_clean_input("Enter DISCRIMINATOR kernel size", 0)
+
+    if MethodologyLogger.database_connected:
+        sql = "INSERT INTO experiment_settings (ExperimentID, NetworkType, Folds, Epochs, BatchSize, " \
+              "GeneratorStrides, GeneratorKernelSize, GeneratorNumberOfLevels, GeneratorFilters, " \
+              "GeneratorNormalisationMomentum, GeneratorActivationAlpha, " \
+              "DiscriminatorStrides, DiscriminatorKernelSize, DiscriminatorNumberOfLevels, DiscriminatorFilters, " \
+              "DiscriminatorNormalisationMomentum, DiscriminatorActivationAlpha) " \
+              "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"
+
+        experiment_id = Logger.experiment_id
+
+        val = (experiment_id, "DCGAN (Deep Convolutional Generative Adversarial Network)", k, epochs, batch_size,
+               gen_strides, gen_kernel_size, gen_levels, gen_filters, gen_normalisation_momentum, gen_activation_alpha,
+               dis_strides, dis_kernel_size, dis_levels, dis_filters, dis_normalisation_momentum,
+               dis_activation_alpha)
+
+        MethodologyLogger.db_cursor.execute(sql, val)
 
 
 def run_k_fold_cross_validation_experiment(dataset_directories, k):
@@ -33,36 +92,7 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
     vox_res = int(sm.configuration.get("VOXEL_RESOLUTION"))
     dummy = np.zeros(shape=(1, vox_res, vox_res, vox_res, sm.image_channels))
 
-    gen_filters = 128
-    gen_activation_alpha = 0.2
-    gen_normalisation_momentum = 0.8
-    gen_levels = 3
-    gen_strides = 2
-    gen_kernel_size = 5
-
-    dis_filters = 32
-    dis_activation_alpha = 0.2
-    dis_normalisation_momentum = 0.8
-    dis_levels = 3
-    dis_strides = 2
-    dis_kernel_size = 5
-
-    if MethodologyLogger.database_connected:
-        sql = "INSERT INTO experiment_settings (ExperimentID, NetworkType, Folds, Epochs, BatchSize, " \
-            "GeneratorStrides, GeneratorKernelSize, GeneratorNumberOfLevels, GeneratorFilters, " \
-            "GeneratorNormalisationMomentum, GeneratorActivationAlpha, " \
-            "DiscriminatorStrides, DiscriminatorKernelSize, DiscriminatorNumberOfLevels, DiscriminatorFilters, " \
-            "DiscriminatorNormalisationMomentum, DiscriminatorActivationAlpha) " \
-            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"
-
-        experiment_id = Logger.experiment_id
-
-        val = (experiment_id, "DCGAN (Deep Convolutional Generative Adversarial Network)", k, epochs, batch_size,
-           gen_strides, gen_kernel_size, gen_levels, gen_filters, gen_normalisation_momentum, gen_activation_alpha,
-           dis_strides, dis_kernel_size, dis_levels, dis_filters, dis_normalisation_momentum,
-           dis_activation_alpha)
-
-        MethodologyLogger.db_cursor.execute(sql, val)
+    generator_settings, discriminator_settings = design_gan_architecture()
 
     for fold in range(k):
         Logger.print("Running Cross Validation Fold " + str(fold + 1) + "/" + str(k))
@@ -79,12 +109,9 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
         filepath = root_dir + "Experiment-" + str(Logger.experiment_id) + '_' + "Fold-" + str(fold + 1) + '_'
 
         discriminator_location = filepath + "discriminator.h5"
-        generator_location  = filepath + "generator.h5"
+        generator_location = filepath + "generator.h5"
 
-        local_device_protos = device_lib.list_local_devices()
-        gpu_count = len([x.name for x in local_device_protos if x.device_type == 'GPU'])
-
-        if gpu_count == 2:
+        if mlm.get_available_gpus() == 2:
             with tf.device('gpu:0'):
                 discriminator = DCGAN.DCGANDiscriminator(dummy, dis_strides, dis_kernel_size, dis_filters,
                                                  dis_activation_alpha, dis_normalisation_momentum, dis_levels)
