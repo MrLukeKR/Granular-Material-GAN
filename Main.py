@@ -13,6 +13,7 @@ from ImageTools.Segmentation.TwoDimensional import KMeans2D as segmentor2D
 
 from Settings import SettingsManager as sm
 from Settings import FileManager as fm
+from Settings import DatabaseManager as dm
 # <<< Image Processing
 
 # Experiments >>>
@@ -26,6 +27,7 @@ from Settings.MessageTools import print_notice
 
 pool = None
 model_loaded = None
+architecture_loaded = None
 
 
 def print_introduction():
@@ -67,8 +69,8 @@ def setup():
     sm.load_settings()
     fm.assign_special_folders()
 
-    MethodologyLogger.connect_to_database()
-    MethodologyLogger.initialise_database()
+    dm.connect_to_database()
+    dm.initialise_database()
 
     pool = Pool()
     print_introduction()
@@ -198,23 +200,27 @@ def generate_voxels():
             # im.save_voxel_image_collection(voxels, fm.SpecialFolder.VOXEL_DATA, "figures/" + segment)
 
 
-def load_model_from_database():
-    cursor = MethodologyLogger.db_cursor
+def load_architecture_from_database(architectureID=None):
+    pass
 
-    query = "SELECT * FROM ***REMOVED***_Phase1.experiments;"
+
+def load_model_from_database(modelID=None):
+    cursor = dm.db_cursor
+
+    query = "SELECT ID FROM ***REMOVED***_Phase1.model_instances;"
 
     cursor.execute(query)
-    experiments = cursor.fetchall()
+    models = cursor.fetchall()
 
     if cursor.rowcount == 0:
-        print_notice("There are no experiments in the database", mt.MessagePrefix.WARNING)
+        print_notice("There are no models in the database", mt.MessagePrefix.WARNING)
         exit(0)
     elif cursor.rowcount == 1:
         choice = 0
     else:
-        print("The following experiments are available:")
-        for experiment in experiments:
-            query = "SELECT * FROM ***REMOVED***_Phase1.experiment_settings WHERE ExperimentID = " + str(experiment[0]) + ";"
+        print("The following models are available:")
+        for model in models:
+            query = "SELECT * FROM ***REMOVED***_Phase1.model_instances WHERE ID = " + str(model[0]) + ";"
 
             cursor.execute(query)
             settings = cursor.fetchall()
@@ -222,20 +228,19 @@ def load_model_from_database():
             if len(settings) == 0:
                 continue
 
-            print("Experiment [" + str(experiment[0]) + "] @ " + str(experiment[1]) + " ", end='')
+            print("Model [" + str(model[0]) + "] @ " + str(model[1]) + " ", end='')
             print(settings)
 
         choice = ""
-        ids = [x[0] for x in experiments]
 
         while not choice.isnumeric():
             choice = input("Enter the experiment ID to load > ")
 
-            if choice.isnumeric() and int(choice) not in ids:
+            if choice.isnumeric() and int(choice) not in models:
                 print_notice("That experiment ID does not exist", mt.MessagePrefix.WARNING)
                 choice = ""
 
-    print_notice("Loading experiment [" + experiments[choice][0] + "]", mt.MessagePrefix.INFORMATION)
+    print_notice("Loading model [" + models[choice] + "]", mt.MessagePrefix.INFORMATION)
     model_location_prefix = sm.configuration.get("IO_ROOT_DIR") + sm.configuration.get("IO_MODEL_ROOT_DIR")
 
     models = [model for model in os.listdir(model_location_prefix)
@@ -334,22 +339,28 @@ def core_analysis_menu():
 
 
 def main_menu():
-    global model_loaded
-    if model_loaded is None:
-        print_notice("No Model Loaded", mt.MessagePrefix.INFORMATION)
+    global model_loaded, architecture_loaded
+
+    if architecture_loaded:
+        print_notice("Architecture Loaded: " + str(architecture_loaded), mt.MessagePrefix.INFORMATION)
+        if model_loaded is None:
+            print_notice("No Model Loaded", mt.MessagePrefix.INFORMATION)
+        else:
+            print_notice("Model Loaded: " + str(model_loaded), mt.MessagePrefix.INFORMATION)
     else:
-        print_notice("Model Loaded: " + model_loaded, mt.MessagePrefix.INFORMATION)
+        print_notice("No Architecture Loaded", mt.MessagePrefix.INFORMATION)
 
     print("")
     print("!-- ADMIN TOOLS --!")
     print("[CLEARDB] Reinitialise database")
     print("")
     print("- Main Menu -")
-    print("[1] Create New Network")
-    print("[2] Load Existing Model")
-    print("[3] Train Model")
-    print("[4] Run Model")
-    print("[5] Core Analysis Tools")
+    print("[1] Create New Architecture")
+    print("[2] Load Existing Architecture")
+    print("[3] Load Existing Model Instance")
+    print("[4] Train Model")
+    print("[5] Run Model")
+    print("[6] Core Analysis Tools")
 
     print("")
     print("[EXIT] End program")
@@ -357,14 +368,17 @@ def main_menu():
     user_input = input("Enter a menu option > ")
 
     if user_input.upper() == "CLEARDB":
-        MethodologyLogger.reinitialise_database()
+        dm.reinitialise_database()
     elif user_input == "1":
-        raise NotImplementedError
+        gen, disc = mlm.design_gan_architecture()
+        model_loaded = (gen, disc)
     elif user_input == "2":
-        load_model_from_database()
+        load_architecture_from_database()
     elif user_input == "3":
-        experiment_menu()
+        load_model_from_database()
     elif user_input == "4":
+        experiment_menu()
+    elif user_input == "5":
         if model_loaded is not None:
             raise NotImplementedError
         else:

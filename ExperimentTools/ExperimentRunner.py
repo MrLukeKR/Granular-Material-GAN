@@ -5,7 +5,7 @@ from tensorflow_core.python.client import device_lib
 
 from ExperimentTools import DatasetProcessor, MethodologyLogger
 from GAN import DCGAN
-from Settings import FileManager as fm, SettingsManager as sm, MachineLearningManager as mlm
+from Settings import FileManager as fm, SettingsManager as sm, MachineLearningManager as mlm, DatabaseManager as dm
 from ImageTools import VoxelProcessor as vp, ImageManager as im
 from ExperimentTools.MethodologyLogger import Logger
 import tensorflow as tf
@@ -17,65 +17,10 @@ def run_train_test_split_experiment(aggregates, binders, split_percentage):
     pass
 
 
-def get_clean_input(prompt, min=None, max=None):
-    user_input = ""
+def run_k_fold_cross_validation_experiment(dataset_directories, k, model):
+    if not isinstance(model, tuple):
+        raise TypeError
 
-    while not user_input.isnumeric():
-        print(prompt)
-        user_input = input("Enter a value > ")
-
-        if user_input.isnumeric() and min is not None or max is not None:
-            if max is None:
-                max = math.inf
-
-            if min is None:
-                min = -math.inf
-
-            if user_input < min or user_input > max:
-                user_input = ""
-
-        print("")
-
-    return user_input
-
-
-def design_gan_architecture():
-    generator_settings = dict()
-    discriminator_settings = dict()
-
-    generator_settings["filters"] = get_clean_input("Enter GENERATOR filters", 0)
-    generator_settings["activation_alpha"] = get_clean_input("Enter GENERATOR activation alpha [0 - 1]", 0, 1)
-    generator_settings["normalisation_momentum"] = get_clean_input("Enter GENERATOR normalisation momentum [0 - 1]", 0, 1)
-    generator_settings["levels"] = get_clean_input("Enter GENERATOR levels", 0)
-    generator_settings["strides"] = get_clean_input("Enter GENERATOR strides", 0)
-    generator_settings["kernel_size"] = get_clean_input("Enter GENERATOR kernel size", 0)
-
-    discriminator_settings["filters"] = get_clean_input("Enter DISCRIMINATOR filters", 0)
-    discriminator_settings["activation_alpha"] = get_clean_input("Enter DISCRIMINATOR activation alpha [0 - 1]", 0, 1)
-    discriminator_settings["normalisation_momentum"] = get_clean_input("Enter DISCRIMINATOR normalisation momentum [0 - 1]", 0, 1)
-    discriminator_settings["levels"] = get_clean_input("Enter DISCRIMINATOR levels", 0)
-    discriminator_settings["strides"] = get_clean_input("Enter DISCRIMINATOR strides", 0)
-    discriminator_settings["kernel_size"] = get_clean_input("Enter DISCRIMINATOR kernel size", 0)
-
-    if MethodologyLogger.database_connected:
-        sql = "INSERT INTO experiment_settings (ExperimentID, NetworkType, Folds, Epochs, BatchSize, " \
-              "GeneratorStrides, GeneratorKernelSize, GeneratorNumberOfLevels, GeneratorFilters, " \
-              "GeneratorNormalisationMomentum, GeneratorActivationAlpha, " \
-              "DiscriminatorStrides, DiscriminatorKernelSize, DiscriminatorNumberOfLevels, DiscriminatorFilters, " \
-              "DiscriminatorNormalisationMomentum, DiscriminatorActivationAlpha) " \
-              "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"
-
-        experiment_id = Logger.experiment_id
-
-        val = (experiment_id, "DCGAN (Deep Convolutional Generative Adversarial Network)", k, epochs, batch_size,
-               gen_strides, gen_kernel_size, gen_levels, gen_filters, gen_normalisation_momentum, gen_activation_alpha,
-               dis_strides, dis_kernel_size, dis_levels, dis_filters, dis_normalisation_momentum,
-               dis_activation_alpha)
-
-        MethodologyLogger.db_cursor.execute(sql, val)
-
-
-def run_k_fold_cross_validation_experiment(dataset_directories, k):
     data_length = len(dataset_directories)
 
     if k > data_length:
@@ -90,9 +35,9 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
     batch_size = 64
 
     vox_res = int(sm.configuration.get("VOXEL_RESOLUTION"))
-    dummy = np.zeros(shape=(1, vox_res, vox_res, vox_res, sm.image_channels))
+    template = np.zeros(shape=(1, vox_res, vox_res, vox_res, sm.image_channels))
 
-    generator_settings, discriminator_settings = design_gan_architecture()
+    gen_settings, disc_settings = model
 
     for fold in range(k):
         Logger.print("Running Cross Validation Fold " + str(fold + 1) + "/" + str(k))
@@ -111,25 +56,20 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k):
         discriminator_location = filepath + "discriminator.h5"
         generator_location = filepath + "generator.h5"
 
-        if mlm.get_available_gpus() == 2:
-            with tf.device('gpu:0'):
-                discriminator = DCGAN.DCGANDiscriminator(dummy, dis_strides, dis_kernel_size, dis_filters,
-                                                 dis_activation_alpha, dis_normalisation_momentum, dis_levels)
+        with safe_get_gpu(0):
+            discriminator = DCGAN.DCGANDiscriminator(template, disc_settings["strides"], disc_settings["kernel_size"],
+                                                     disc_settings["filters"], disc_settings["activation_alpha"],
+                                                     disc_settings["normalisation_momentum"], disc_settings["levels"])
 
-            with tf.device('gpu:1'):
-                generator = DCGAN.DCGANGenerator(dummy, gen_strides, gen_kernel_size, gen_filters, gen_activation_alpha,
-                                         gen_normalisation_momentum, gen_levels)
-        else:
-            discriminator = DCGAN.DCGANDiscriminator(dummy, dis_strides, dis_kernel_size, dis_filters,
-                                                     dis_activation_alpha, dis_normalisation_momentum, dis_levels)
-
-            generator = DCGAN.DCGANGenerator(dummy, gen_strides, gen_kernel_size, gen_filters, gen_activation_alpha,
-                                             gen_normalisation_momentum, gen_levels)
+        with safe_get_gpu(1):
+            generator = DCGAN.DCGANGenerator(template, gen_settings["strides"], gen_settings["kernel_size"],
+                                             gen_settings["filters"], gen_settings["activation_alpha"],
+                                             gen_settings["normalisation_momentum"], gen_settings["levels"])
 
         DCGAN.Network.discriminator = discriminator.model
         DCGAN.Network.generator = generator.model
 
-        DCGAN.Network.create_network(dummy)
+        DCGAN.Network.create_network(template)
 
         for ind in range(len(training_sets[fold])):
             training_set = training_sets[fold][ind]
