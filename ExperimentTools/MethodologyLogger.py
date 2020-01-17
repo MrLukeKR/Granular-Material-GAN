@@ -1,5 +1,20 @@
 import datetime
+import cpuinfo
+
+from psutil import virtual_memory
 from Settings import DatabaseManager as dm
+
+
+def get_system_info():
+    print("Gathering system information... ", end='')
+
+    cpu_info = cpuinfo.get_cpu_info()
+    # TODO: Fix gpu information here
+    system_info = (cpu_info["count"], cpu_info["hz_actual"], "Unknown", -1, virtual_memory().total)
+
+    print("done!")
+
+    return system_info
 
 
 class Logger:
@@ -13,7 +28,11 @@ class Logger:
         try:
             if not Logger._initialised:
                 if dm.database_connected:
-                    dm.db_cursor.execute("INSERT INTO experiments (Timestamp) VALUES (CURRENT_TIMESTAMP);")
+                    sql = "INSERT INTO experiments (Timestamp, CPUCores, CPUSpeed, GPUVRAMSize, "\
+                          "GPUCUDACores, RAMSize) "\
+                          "VALUES (CURRENT_TIMESTAMP, '%s', '%s', '%s', '%s', '%s');" % get_system_info()
+
+                    dm.db_cursor.execute(sql)
 
                     dm.db_cursor.execute("SELECT ID FROM experiments ORDER BY Timestamp DESC LIMIT 1;")
                     Logger.experiment_id = dm.db_cursor.fetchall()[0][0]

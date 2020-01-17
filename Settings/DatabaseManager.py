@@ -84,15 +84,14 @@ def initialise_database():
         db_cursor.execute("CREATE TABLE IF NOT EXISTS experiments "
                           "(ID INT AUTO_INCREMENT,"
                           "Timestamp TIMESTAMP NOT NULL,"
-                          "Folds INT NOT NULL,"
-                          "Epochs INT NOT NULL,"
+                          "Epochs INT NULL,"
+                          "Folds INT NULL,"
                           "BatchSize INT NULL,"
                           "CPUCores INT NOT NULL,"
                           "CPUSpeed TEXT NOT NULL,"
                           "GPUVRAMSize TEXT NULL,"
                           "GPUCUDACores INT NULL,"
                           "RAMSize TEXT NOT NULL,"
-                          "RAMSpeed TEXT NOT NULL,"
                           "PRIMARY KEY(ID));")
 
         db_cursor.execute("CREATE TABLE IF NOT EXISTS model_experiments"

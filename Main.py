@@ -54,6 +54,7 @@ def apply_preprocessing_pipeline(images):
 
 def process_voxels(images):
     voxels = list()
+    dimensions = None
 
     if sm.configuration.get("ENABLE_VOXEL_SEPARATION") == "True":
         voxels, dimensions = vp.volume_to_voxels(images, int(sm.configuration.get("VOXEL_RESOLUTION")))
@@ -200,106 +201,9 @@ def generate_voxels():
             # im.save_voxel_image_collection(voxels, fm.SpecialFolder.VOXEL_DATA, "figures/" + segment)
 
 
-def load_architecture_from_database(architectureID=None):
-    pass
-
-
-def load_model_from_database(modelID=None):
-    cursor = dm.db_cursor
-
-    query = "SELECT ID FROM ***REMOVED***_Phase1.model_instances;"
-
-    cursor.execute(query)
-    models = cursor.fetchall()
-
-    if cursor.rowcount == 0:
-        print_notice("There are no models in the database", mt.MessagePrefix.WARNING)
-        exit(0)
-    elif cursor.rowcount == 1:
-        choice = 0
-    else:
-        print("The following models are available:")
-        for model in models:
-            query = "SELECT * FROM ***REMOVED***_Phase1.model_instances WHERE ID = " + str(model[0]) + ";"
-
-            cursor.execute(query)
-            settings = cursor.fetchall()
-
-            if len(settings) == 0:
-                continue
-
-            print("Model [" + str(model[0]) + "] @ " + str(model[1]) + " ", end='')
-            print(settings)
-
-        choice = ""
-
-        while not choice.isnumeric():
-            choice = input("Enter the experiment ID to load > ")
-
-            if choice.isnumeric() and int(choice) not in models:
-                print_notice("That experiment ID does not exist", mt.MessagePrefix.WARNING)
-                choice = ""
-
-    print_notice("Loading model [" + models[choice] + "]", mt.MessagePrefix.INFORMATION)
-    model_location_prefix = sm.configuration.get("IO_ROOT_DIR") + sm.configuration.get("IO_MODEL_ROOT_DIR")
-
-    models = [model for model in os.listdir(model_location_prefix)
-              if os.path.isfile(os.path.join(model_location_prefix, model))
-              and "Experiment-" + str(choice) in model]
-
-    joint_models = list()
-
-    for model in models:
-        filename_parts = model.split("_")
-        prefix = model.replace(filename_parts[-1], "")
-
-        generator = prefix + "generator.h5"
-        discriminator = prefix + "discriminator.h5"
-
-    if generator in models and discriminator in models and not (generator, discriminator) in joint_models:
-        joint_models.append((generator, discriminator))
-
-    if len(joint_models) > 1:
-        print_notice("Multiple models are available with this experiment:", mt.MessagePrefix.INFORMATION)
-        ids = range(len(joint_models))
-
-        for id in ids:
-            prefix = joint_models[id][0].split("_")[-1]
-            prefix = joint_models[id][0].replace('_' + prefix, "")
-            print("[" + str(id) + "] " + prefix)
-
-        choice = ""
-        while not choice.isnumeric():
-            choice = input("Which model would you like to load? > ")
-            if choice.isnumeric() and int(choice) not in ids:
-                print_notice("That model does not exist!", mt.MessagePrefix.WARNING)
-                choice = ""
-
-    elif len(joint_models) == 0:
-        print_notice("No models were found for this experiment!", mt.MessagePrefix.WARNING)
-        exit(0)
-    else:
-        choice = 0
-
-    selected_model = joint_models[int(choice)]
-
-    print_notice("Loading model '" + selected_model[0].replace('_' + selected_model[0].split("_")[-1], "") + "'...", mt.MessagePrefix.INFORMATION)
-    loaded_discriminator, loaded_generator = mlm.load_network(model_location_prefix + selected_model[1],
-                                                              model_location_prefix + selected_model[0])
-
-    if loaded_discriminator is not None and loaded_generator is not None:
-        print_notice("Model successfully loaded", mt.MessagePrefix.SUCCESS)
-
-        loaded_generator.summary()
-        loaded_discriminator.summary()
-    else:
-        print_notice("Error loading model!", mt.MessagePrefix.ERROR)
-        raise ValueError
-
-
 def experiment_menu():
-    if model_loaded is None:
-        print_notice("Please load a model first!", mt.MessagePrefix.WARNING)
+    if architecture_loaded is None and model_loaded is None:
+        print_notice("Please load an architecture or model first!", mt.MessagePrefix.WARNING)
         return
 
     print("- Experiment Menu -")
@@ -309,11 +213,12 @@ def experiment_menu():
     print("[3] Single Model (Batch Training)")
     print("[4] Single Model (Entire Dataset Generator)")
 
-    user_input = input("")
-
-    MethodologyLogger.Logger(fm.get_directory(fm.SpecialFolder.LOGS))
+    user_input = input("Enter your menu choice > ")
+    
+    if user_input.isnumeric() and 4 >= int(user_input) > 0:
+        MethodologyLogger.Logger(fm.get_directory(fm.SpecialFolder.LOGS))
     if user_input == "1":
-        ExperimentRunner.run_k_fold_cross_validation_experiment(fm.data_directories, 10)
+        ExperimentRunner.run_k_fold_cross_validation_experiment(fm.data_directories, 10, architecture_loaded)
     elif user_input == "2":
         raise NotImplementedError
     elif user_input == "3":
@@ -371,11 +276,20 @@ def main_menu():
         dm.reinitialise_database()
     elif user_input == "1":
         gen, disc = mlm.design_gan_architecture()
-        model_loaded = (gen, disc)
+        architecture_loaded = (gen, disc)
+
+        print("Would you like to train a model with this architecture? (Can be done later from the main menu)")
+        user_input = input("CHOICE [Y/N] > ")
+
+        if user_input[0].upper() == "Y":
+            experiment_menu()
+
     elif user_input == "2":
-        load_architecture_from_database()
+        gen, disc = mlm.load_architecture_from_database()
+        architecture_loaded = (gen, disc)
     elif user_input == "3":
-        load_model_from_database()
+        gen, disc = mlm.load_model_from_database()
+        model_loaded = (gen, disc)
     elif user_input == "4":
         experiment_menu()
     elif user_input == "5":

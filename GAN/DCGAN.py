@@ -3,7 +3,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow_core.python.client import device_lib
 
-from Settings import MachineLearningManager as mlm
+from Settings import MachineLearningManager as mlm, DatabaseManager as dm
 
 from ExperimentTools import MethodologyLogger
 from GAN import AbstractGAN
@@ -178,7 +178,7 @@ class Network(AbstractGAN.Network):
                 plt.draw()
                 plt.pause(0.1)
 
-            if MethodologyLogger.database_connected:
+            if dm.database_connected:
                 sql = "INSERT INTO training (ExperimentID, Fold, Epoch, TrainingSet, DiscriminatorLoss, " \
                       "DiscriminatorAccuracy, GeneratorLoss, GeneratorMSE) " \
                       "VALUES (%s, %s, %s, %s, %s, %s, %s, %s);"
@@ -186,8 +186,8 @@ class Network(AbstractGAN.Network):
                 val = (Logger.experiment_id, Logger.current_fold + 1, epoch + 1, Logger.current_set + 1,
                        float(d_loss[0]), float(d_loss[1]), float(g_loss[0]), float(g_loss[1]))
 
-                MethodologyLogger.db_cursor.execute(sql, val)
-                MethodologyLogger.db.commit()
+                dm.db_cursor.execute(sql, val)
+                dm.db.commit()
 
             # im.save_voxel_image_collection(gen_missing, fm.SpecialFolder.VOXEL_DATA, "figures/postGAN/generated")
             # im.save_voxel_image_collection(labels, fm.SpecialFolder.VOXEL_DATA, "figures/postGAN/expected")

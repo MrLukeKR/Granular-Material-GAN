@@ -17,8 +17,8 @@ def run_train_test_split_experiment(aggregates, binders, split_percentage):
     pass
 
 
-def run_k_fold_cross_validation_experiment(dataset_directories, k, model):
-    if not isinstance(model, tuple):
+def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture):
+    if not isinstance(architecture, tuple):
         raise TypeError
 
     data_length = len(dataset_directories)
@@ -37,7 +37,7 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, model):
     vox_res = int(sm.configuration.get("VOXEL_RESOLUTION"))
     template = np.zeros(shape=(1, vox_res, vox_res, vox_res, sm.image_channels))
 
-    gen_settings, disc_settings = model
+    gen_settings, disc_settings = architecture
 
     for fold in range(k):
         Logger.print("Running Cross Validation Fold " + str(fold + 1) + "/" + str(k))
@@ -56,12 +56,12 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, model):
         discriminator_location = filepath + "discriminator.h5"
         generator_location = filepath + "generator.h5"
 
-        with safe_get_gpu(0):
+        with mlm.safe_get_gpu(0):
             discriminator = DCGAN.DCGANDiscriminator(template, disc_settings["strides"], disc_settings["kernel_size"],
                                                      disc_settings["filters"], disc_settings["activation_alpha"],
                                                      disc_settings["normalisation_momentum"], disc_settings["levels"])
 
-        with safe_get_gpu(1):
+        with mlm.safe_get_gpu(1):
             generator = DCGAN.DCGANGenerator(template, gen_settings["strides"], gen_settings["kernel_size"],
                                              gen_settings["filters"], gen_settings["activation_alpha"],
                                              gen_settings["normalisation_momentum"], gen_settings["levels"])
