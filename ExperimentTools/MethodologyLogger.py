@@ -56,6 +56,30 @@ class Logger:
             print(exc)
 
     @staticmethod
+    def log_model_instance_to_database(architecture_id, gen_filepath, disc_filepath):
+        if dm.database_connected:
+            sql = "INSERT INTO model_instances (ArchitectureID, GeneratorFilePath, DiscriminatorFilePath) VALUES (%s, %s, %s);"
+            val = (architecture_id, gen_filepath, disc_filepath)
+            dm.db_cursor.execute(sql, val)
+
+            dm.db_cursor.execute("SELECT ID FROM model_instances "
+                                 "WHERE GeneratorFilePath = '%s' AND DiscriminatorFilePath = '%s'" % (gen_filepath, disc_filepath))
+
+            return dm.db_cursor.fetchone()
+        else:
+            raise ConnectionError
+
+    @staticmethod
+    def log_model_experiment_to_database(experiment_id, instance_id):
+        if dm.database_connected:
+            sql = "INSERT INTO model_experiments (ExperimentID, ModelInstanceID) VALUES (%s, %s);"
+            val = (experiment_id, instance_id)
+
+            dm.db_cursor.execute(sql, val)
+        else:
+            raise ConnectionError
+
+    @staticmethod
     def log_model_to_database(gen_settings, disc_settings):
         if dm.database_connected:
             sql = "INSERT INTO model_architectures (NetworkType," \

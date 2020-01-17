@@ -3,6 +3,8 @@ import numpy as np
 from Settings import FileManager as fm
 import os
 
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
 settings_file = []
 configuration = dict()
 

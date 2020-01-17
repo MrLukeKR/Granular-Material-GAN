@@ -37,7 +37,7 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture)
     vox_res = int(sm.configuration.get("VOXEL_RESOLUTION"))
     template = np.zeros(shape=(1, vox_res, vox_res, vox_res, sm.image_channels))
 
-    gen_settings, disc_settings = architecture
+    architecture_id, gen_settings, disc_settings = architecture
 
     for fold in range(k):
         Logger.print("Running Cross Validation Fold " + str(fold + 1) + "/" + str(k))
@@ -117,6 +117,9 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture)
 
             generator.model.save_weights(generator_location)
             discriminator.model.save_weights(discriminator_location)
+
+            instance_id = Logger.log_model_instance_to_database(architecture_id, generator_location, discriminator_location)
+            Logger.log_model_experiment_to_database(Logger.experiment_id, instance_id)
 
         test_network(testing_sets, fold, DCGAN.Network.generator)
 

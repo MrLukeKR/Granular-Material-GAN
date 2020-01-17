@@ -54,7 +54,7 @@ def initialise_database():
 
         db_cursor.execute("CREATE TABLE IF NOT EXISTS model_architectures"
                           "(ID INT AUTO_INCREMENT NOT NULL,"
-                          "NetworkType TEXT NOT NULL,"
+                          "NetworkType VARCHAR(256) NOT NULL,"
                           "GeneratorStrides VARCHAR(15) NOT NULL,"
                           "GeneratorKernelSize VARCHAR(15) NOT NULL,"
                           "GeneratorNumberOfLevels INT NOT NULL,"
@@ -68,7 +68,7 @@ def initialise_database():
                           "DiscriminatorNormalisationMomentum VARCHAR(15) NOT NULL,"
                           "DiscriminatorActivationAlpha VARCHAR(15) NOT NULL,"
                           "PRIMARY KEY(ID),"
-                          "UNIQUE (ID, NetworkType, GeneratorStrides, GeneratorKernelSize, GeneratorNumberOfLevels,"
+                          "UNIQUE (NetworkType, GeneratorStrides, GeneratorKernelSize, GeneratorNumberOfLevels,"
                           "GeneratorFilters, GeneratorNormalisationMomentum, GeneratorActivationAlpha, "
                           "DiscriminatorStrides, DiscriminatorKernelSize, DiscriminatorNumberOfLevels, "
                           "DiscriminatorFilters, DiscriminatorNormalisationMomentum, DiscriminatorActivationAlpha));")
@@ -76,10 +76,12 @@ def initialise_database():
         db_cursor.execute("CREATE TABLE IF NOT EXISTS model_instances"
                           "(ID INT AUTO_INCREMENT NOT NULL,"
                           "ArchitectureID INT NOT NULL,"
-                          "FilePath TEXT NOT NULL,"
+                          "GeneratorFilePath VARCHAR(256) NOT NULL,"
+                          "DiscriminatorFilePath VARCHAR(256) NOT NULL,"
                           "PRIMARY KEY (ID),"
-                          "FOREIGN KEY (ArchitectureID) REFERENCES model_architectures(ID)"
-                          ");")
+                          "UNIQUE(GeneratorFilePath),"
+                          "UNIQUE(DiscriminatorFilePath),"
+                          "FOREIGN KEY (ArchitectureID) REFERENCES model_architectures(ID));")
 
         db_cursor.execute("CREATE TABLE IF NOT EXISTS experiments "
                           "(ID INT AUTO_INCREMENT,"
@@ -88,17 +90,16 @@ def initialise_database():
                           "Folds INT NULL,"
                           "BatchSize INT NULL,"
                           "CPUCores INT NOT NULL,"
-                          "CPUSpeed TEXT NOT NULL,"
-                          "GPUVRAMSize TEXT NULL,"
+                          "CPUSpeed VARCHAR(64) NOT NULL,"
+                          "GPUVRAMSize VARCHAR(64) NULL,"
                           "GPUCUDACores INT NULL,"
-                          "RAMSize TEXT NOT NULL,"
+                          "RAMSize VARCHAR(64) NOT NULL,"
                           "PRIMARY KEY(ID));")
 
         db_cursor.execute("CREATE TABLE IF NOT EXISTS model_experiments"
-                          "(ID INT AUTO_INCREMENT,"
-                          "ExperimentID INT NOT NULL,"
+                          "(ExperimentID INT NOT NULL,"
                           "ModelInstanceID INT NOT NULL,"
-                          "PRIMARY KEY(ID),"
+                          "PRIMARY KEY(ExperimentID, ModelInstanceID),"
                           "FOREIGN KEY (ExperimentID) REFERENCES experiments(ID),"
                           "FOREIGN KEY (ModelInstanceID) REFERENCES model_instances(ID));")
 
