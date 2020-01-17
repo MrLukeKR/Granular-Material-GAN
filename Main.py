@@ -275,18 +275,17 @@ def main_menu():
     if user_input.upper() == "CLEARDB":
         dm.reinitialise_database()
     elif user_input == "1":
-        gen, disc = mlm.design_gan_architecture()
-        architecture_loaded = (gen, disc)
+        arch_id, gen, disc = mlm.design_gan_architecture()
+        architecture_loaded = (arch_id, gen, disc)
 
         print("Would you like to train a model with this architecture? (Can be done later from the main menu)")
         user_input = input("CHOICE [Y/N] > ")
 
         if user_input[0].upper() == "Y":
             experiment_menu()
-
     elif user_input == "2":
-        gen, disc = mlm.load_architecture_from_database()
-        architecture_loaded = (gen, disc)
+        arch_id, gen, disc = mlm.load_architecture_from_database()
+        architecture_loaded = (arch_id, gen, disc)
     elif user_input == "3":
         gen, disc = mlm.load_model_from_database()
         model_loaded = (gen, disc)

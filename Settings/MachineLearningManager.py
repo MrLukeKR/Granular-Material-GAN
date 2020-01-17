@@ -180,7 +180,7 @@ def load_model_from_database(modelID=None):
         raise ValueError
 
 
-def load_architecture_from_database(architectureID=None):
+def load_architecture_from_database(architecture_id=None):
     cursor = dm.db_cursor
 
     query = "SELECT * FROM ***REMOVED***_Phase1.model_architectures;"
@@ -238,6 +238,8 @@ def load_architecture_from_database(architectureID=None):
     gen_settings = dict()
     disc_settings = dict()
 
+    architecture_id = int(model_choice[0])
+
     gen_settings["strides"] = int(model_choice[2])
     gen_settings["kernel_size"] = int(model_choice[3])
     gen_settings["levels"] = int(model_choice[4])
@@ -252,7 +254,7 @@ def load_architecture_from_database(architectureID=None):
     disc_settings["normalisation_momentum"] = float(model_choice[12])
     disc_settings["activation_alpha"] = float(model_choice[13])
 
-    return gen_settings, disc_settings
+    return architecture_id, gen_settings, disc_settings
 
 
 # Models are saved as discriminator.h5 and generator.h5, under an experimental ID
