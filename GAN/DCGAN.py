@@ -44,10 +44,12 @@ class Network(AbstractGAN.Network):
         self._discriminator = value
 
     def __init__(self, data):
-        self.create_network(data)
+        self.create_network()
 
     @classmethod
-    def create_network(cls, data):
+    def create_network(cls, data=None):
+        if data is None:
+            data = mlm.data_template
         Logger.print("Initialising Generator Adversarial Network...")
 
         data_shape = (len(data[0]), len(data[0][0]), len(data[0][0][0]), 1)
@@ -59,8 +61,8 @@ class Network(AbstractGAN.Network):
         if mlm.get_available_gpus() == 2:
             with tf.device('gpu:0'):
                 cls.discriminator.compile(loss='binary_crossentropy',
-                                  optimizer=optimizer,
-                                  metrics=['accuracy'])
+                                          optimizer=optimizer,
+                                          metrics=['accuracy'])
 
             with tf.device('gpu:1'):
                 gen_missing = cls.generator(masked_vol)

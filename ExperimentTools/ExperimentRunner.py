@@ -53,13 +53,13 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture)
         discriminator_location = filepath + "discriminator.h5"
         generator_location = filepath + "generator.h5"
 
-        discriminator = mlm.create_discriminator(template, gen_settings)
-        generator = mlm.create_generator(template, disc_settings)
+        discriminator = mlm.create_discriminator(gen_settings)
+        generator = mlm.create_generator(disc_settings)
 
         DCGAN.Network.discriminator = discriminator.model
         DCGAN.Network.generator = generator.model
 
-        DCGAN.Network.create_network(template)
+        DCGAN.Network.create_network()
 
         for ind in range(len(training_sets[fold])):
             training_set = training_sets[fold][ind]
@@ -127,6 +127,8 @@ def test_network(testing_sets, fold, test_generator):
         for directory in testing_set:
             Logger.print("\tLoading voxels from " + directory + "... ", end='')
             fm.current_directory = directory.replace(fm.get_directory(fm.SpecialFolder.SEGMENTED_SCANS), '')
+
+            voxel_directory = fm.get_directory(fm.SpecialFolder.VOXEL_DATA) + fm.current_directory[0:-1]
 
             temp_aggregates, temp_aggregate_dimensions = vp.load_voxels(voxel_directory,
                                                  "aggregate_" + sm.configuration.get("VOXEL_RESOLUTION"))

@@ -49,6 +49,15 @@ def initialise_database():
 
     print("Initialising database... ", end='')
     try:
+        db_cursor.execute("CREATE DATABASE IF NOT EXISTS ct_scans;")
+        db_cursor.execute("USE ct_scans;")
+        db_cursor.execute("CREATE TABLE IF NOT EXISTS asphalt_cores"
+                          "(ID varchar(10) NOT NULL,"
+                          "ScanDirectory VARCHAR(256) NOT NULL,"
+                          "AirVoidContent DOUBLE NULL,"
+                          "BitumenContent DOUBLE NULL,"
+                          "Notes VARCHAR(1024) NULL);")
+
         db_cursor.execute("CREATE DATABASE IF NOT EXISTS ***REMOVED***_Phase1;")
         db_cursor.execute("USE ***REMOVED***_Phase1;")
 
