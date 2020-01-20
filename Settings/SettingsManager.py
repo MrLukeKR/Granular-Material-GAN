@@ -1,9 +1,7 @@
 import numpy as np
-
-from Settings import FileManager as fm
 import os
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+#os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 settings_file = []
 configuration = dict()
@@ -23,7 +21,6 @@ rescale_amount = 2 ** rescale_factor
 
 # Resolution of image (images will be resized to square [imres * imres]
 image_resolution = np.uint(1024 / rescale_amount)
-
 
 USE_BW = True
 

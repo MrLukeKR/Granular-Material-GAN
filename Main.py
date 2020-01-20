@@ -278,6 +278,9 @@ def run_model_menu():
     else:
         print_notice("No voxels were generated!", mt.MessagePrefix.WARNING)
 
+    # TODO: Add this voxel set to the database, in order to save the file with a meaningful ID
+    vp.save_voxels(generated_binders, dimensions, fm.get_directory(fm.SpecialFolder.GENERATED_VOXEL_DATA) , "Test")
+
 
 def run_model_on_core(core_id=None):
     pass
