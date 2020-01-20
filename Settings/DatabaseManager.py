@@ -1,3 +1,5 @@
+import os
+
 import mysql.connector
 
 from Settings import SettingsManager as sm
@@ -40,6 +42,40 @@ def connect_to_database():
         exit(-1)
 
 
+def get_cores_from_database():
+    db_cursor.execute("USE ct_scans;")
+
+    db_cursor.execute("SELECT * FROM asphalt_cores;")
+    cores = db_cursor.fetchall()
+
+    db_cursor.execute("USE ***REMOVED***_Phase1;")
+
+    return cores
+
+
+def populate_ctscan_database():
+    db_cursor.execute("CREATE DATABASE IF NOT EXISTS ct_scans;")
+    db_cursor.execute("USE ct_scans;")
+    db_cursor.execute("CREATE TABLE IF NOT EXISTS asphalt_cores"
+                      "(ID varchar(10) NOT NULL,"
+                      "ScanDirectory VARCHAR(256) NOT NULL,"
+                      "AirVoidContent DOUBLE NULL,"
+                      "BitumenContent DOUBLE NULL,"
+                      "Notes VARCHAR(1024) NULL,"
+                      "PRIMARY KEY (ID));")
+
+    unprocessed_ct_directory = sm.configuration.get("IO_ROOT_DIR") + \
+                               sm.configuration.get("IO_UNPROCESSED_SCAN_ROOT_DIR")
+    ct_ids = [name for name in os.listdir(unprocessed_ct_directory)]
+
+    for id in ct_ids:
+        directory = unprocessed_ct_directory + id
+        sql = "INSERT INTO asphalt_cores(ID, ScanDirectory) VALUES (%s, %s) ON DUPLICATE KEY UPDATE ScanDirectory=%s;"
+        vals = (id, directory, directory)
+
+        db_cursor.execute(sql, vals)
+
+
 def initialise_database():
     global db, db_cursor, database_connected
 
@@ -49,14 +85,7 @@ def initialise_database():
 
     print("Initialising database... ", end='')
     try:
-        db_cursor.execute("CREATE DATABASE IF NOT EXISTS ct_scans;")
-        db_cursor.execute("USE ct_scans;")
-        db_cursor.execute("CREATE TABLE IF NOT EXISTS asphalt_cores"
-                          "(ID varchar(10) NOT NULL,"
-                          "ScanDirectory VARCHAR(256) NOT NULL,"
-                          "AirVoidContent DOUBLE NULL,"
-                          "BitumenContent DOUBLE NULL,"
-                          "Notes VARCHAR(1024) NULL);")
+        populate_ctscan_database()
 
         db_cursor.execute("CREATE DATABASE IF NOT EXISTS ***REMOVED***_Phase1;")
         db_cursor.execute("USE ***REMOVED***_Phase1;")

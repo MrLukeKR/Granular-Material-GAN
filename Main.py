@@ -1,5 +1,5 @@
 # Utilities >>>
-import os
+import numpy as np
 from multiprocessing import Pool
 # <<< Utilities
 
@@ -245,6 +245,33 @@ def core_analysis_menu():
         raise NotImplementedError
 
 
+def run_model_menu():
+    print_notice("The following cores are available in the database:", mt.MessagePrefix.INFORMATION)
+
+    cores = dm.get_cores_from_database()
+
+    for core in cores:
+        print_notice("[%s]\t Air Void Content: %s\tBitumen Content: %s\t Notes: %s"
+                     % (core[0], core[2], core[3], core[4]), mt.MessagePrefix.INFORMATION)
+
+    choice = ""
+
+    valid_ids = [x[0] for x in cores]
+
+    while choice not in valid_ids:
+        choice = input("Enter the core ID to run the model on > ")
+        if choice not in valid_ids:
+            print_notice("'" + choice + "' is not in the database!", mt.MessagePrefix.WARNING)
+
+    dimensions, aggregates, binders = vp.load_materials(choice)
+
+    core_model = np.empty(dimensions)
+
+
+def run_model_on_core(core_id=None):
+    pass
+
+
 def main_menu():
     global model_loaded, architecture_loaded
 
@@ -294,7 +321,7 @@ def main_menu():
         experiment_menu()
     elif user_input == "5":
         if model_loaded is not None:
-            raise NotImplementedError
+            run_model_menu()
         else:
             print_notice("Please load a model first!", mt.MessagePrefix.WARNING)
     elif user_input == "5":

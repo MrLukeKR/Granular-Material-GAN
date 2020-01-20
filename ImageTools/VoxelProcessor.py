@@ -4,11 +4,51 @@ import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import h5py
 
+from Settings import MessageTools as mt
+from Settings.MessageTools import print_notice
+
 # DO NOT DELETE THIS! It shows as unused but it is vital to 3D projection
 from mpl_toolkits.mplot3d import axes3d, Axes3D
 
 from Settings import FileManager as fm, SettingsManager as sm
 from ExperimentTools.MethodologyLogger import Logger
+
+
+def load_materials(directory):
+    aggregates = list()
+    binders = list()
+
+    print_notice("Loading voxels for core " + directory, mt.MessagePrefix.INFORMATION)
+
+    fm.current_directory = directory.replace(fm.get_directory(fm.SpecialFolder.SEGMENTED_SCANS), '')
+
+    if fm.current_directory[-1] != '/':
+        fm.current_directory += '/'
+
+    voxel_directory = fm.get_directory(fm.SpecialFolder.VOXEL_DATA) + fm.current_directory[0:-1]
+
+    temp_aggregates, aggregate_dimensions = load_voxels(voxel_directory,
+                                                           "aggregate_" + sm.configuration.get("VOXEL_RESOLUTION"))
+    temp_binders, binder_dimensions = load_voxels(voxel_directory,
+                                                     "binder_" + sm.configuration.get("VOXEL_RESOLUTION"))
+
+    if aggregate_dimensions != binder_dimensions:
+        raise ValueError("Aggregate and binder core dimensions must be the same!")
+    else:
+        dimensions = aggregate_dimensions
+
+    for voxel_ind in range(len(temp_aggregates)):
+        if np.min(temp_aggregates[voxel_ind]) != np.max(temp_aggregates[voxel_ind]) and \
+                np.min(temp_binders[voxel_ind]) != np.max(temp_binders[voxel_ind]):
+            binder = temp_binders[voxel_ind]
+            aggregate = temp_aggregates[voxel_ind]
+
+            aggregates.append(aggregate * 255)
+            binders.append(binder * 255)
+
+    print_notice("Loaded aggregates and binders", mt.MessagePrefix.SUCCESS)
+
+    return dimensions, aggregates, binders
 
 
 def voxels_to_volume(voxels):
@@ -134,7 +174,7 @@ def load_voxels(location, filename):
 
     h5f = h5py.File(filepath, 'r')
     voxels = list()
-    dimensions = tuple(list(h5f['dimensions']))
+    dimensions = [int(x) for x in tuple(list(h5f['dimensions']))]
 
     dataset = h5f['voxels']
     voxels += list(voxel for voxel in dataset)
