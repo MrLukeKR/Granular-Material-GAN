@@ -265,7 +265,18 @@ def run_model_menu():
 
     dimensions, aggregates, binders = vp.load_materials(choice)
 
+    aggregates = np.expand_dims(aggregates, 4)
+
     core_model = np.empty(dimensions)
+    generator = model_loaded[0].model
+
+    print_notice("Running aggregate voxels through binder generator...", mt.MessagePrefix.INFORMATION)
+    generated_binders = generator.predict(aggregates)
+
+    if len(generated_binders) > 0:
+        print_notice("Successfully generated binder voxels!", mt.MessagePrefix.SUCCESS)
+    else:
+        print_notice("No voxels were generated!", mt.MessagePrefix.WARNING)
 
 
 def run_model_on_core(core_id=None):

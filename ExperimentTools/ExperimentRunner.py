@@ -70,26 +70,9 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture)
 
             for directory in training_set:
                 Logger.print("\tLoading voxels from " + directory + "... ", end='')
-                fm.current_directory = directory.replace(fm.get_directory(fm.SpecialFolder.SEGMENTED_SCANS), '')
-
-                voxel_directory = fm.get_directory(fm.SpecialFolder.VOXEL_DATA) + fm.current_directory[0:-1]
-
-                temp_aggregates, aggregate_dimensions = vp.load_voxels(voxel_directory, "aggregate_" + sm.configuration.get("VOXEL_RESOLUTION"))
-                temp_binders, binder_dimensions = vp.load_voxels(voxel_directory, "binder_" + sm.configuration.get("VOXEL_RESOLUTION"))
-
-                if aggregate_dimensions != binder_dimensions:
-                    raise ValueError("Aggregate and binder core dimensions must be the same!")
-                else:
-                    dimensions = aggregate_dimensions
-
-                for voxel_ind in range(len(temp_aggregates)):
-                    if np.min(temp_aggregates[voxel_ind]) != np.max(temp_aggregates[voxel_ind]) and \
-                            np.min(temp_binders[voxel_ind]) != np.max(temp_binders[voxel_ind]):
-                        binder = temp_binders[voxel_ind]
-                        aggregate = temp_aggregates[voxel_ind]
-
-                        aggregates.append(aggregate * 255)
-                        binders.append(binder * 255)
+                dimensions, loaded_aggregates, loaded_binders = vp.load_materials(directory)
+                aggregates.append(loaded_aggregates)
+                binders.append(loaded_binders)
 
                 Logger.print("done!")
 
@@ -126,23 +109,10 @@ def test_network(testing_sets, fold, test_generator):
 
         for directory in testing_set:
             Logger.print("\tLoading voxels from " + directory + "... ", end='')
-            fm.current_directory = directory.replace(fm.get_directory(fm.SpecialFolder.SEGMENTED_SCANS), '')
 
-            voxel_directory = fm.get_directory(fm.SpecialFolder.VOXEL_DATA) + fm.current_directory[0:-1]
-
-            temp_aggregates, temp_aggregate_dimensions = vp.load_voxels(voxel_directory,
-                                                 "aggregate_" + sm.configuration.get("VOXEL_RESOLUTION"))
-            temp_binders, temp_binder_dimensions = vp.load_voxels(voxel_directory, "binder_"
-                                                                      + sm.configuration.get("VOXEL_RESOLUTION"))
-
-            for ind in range(len(temp_aggregates)):
-                if np.min(temp_aggregates[ind]) != np.max(temp_aggregates[ind]) and np.min(temp_binders[ind]) != np.max(
-                        temp_binders[ind]):
-                    binder = temp_binders[ind]
-                    aggregate = temp_aggregates[ind]
-
-                    test_aggregates.append(aggregate * 255)
-                    test_binders.append(binder * 255)
+            dimensions, test_aggregate, test_binder = vp.load_materials(directory)
+            test_aggregates.append(test_aggregate)
+            test_binders.append(test_binder)
 
             Logger.print("done!")
 
@@ -157,7 +127,7 @@ def test_network(testing_sets, fold, test_generator):
 
             DISPLAY_VOXELS = False
 
-            vp.save_voxels(test_binders, temp_aggregate_dimensions, fm.SpecialFolder.GENERATED_VOXEL_DATA, "Test")
+            vp.save_voxels(results, dimensions, fm.SpecialFolder.GENERATED_VOXEL_DATA, "Test")
 
             if DISPLAY_VOXELS:
                  for ind in range(len(results)):
