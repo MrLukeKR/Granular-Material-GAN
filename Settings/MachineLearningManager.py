@@ -1,12 +1,22 @@
 import math
-import os
 
 from tensorflow.python.client import device_lib
 from ExperimentTools.MethodologyLogger import Logger
-from tensorflow.keras.models import load_model
+
+from GAN import DCGAN
 from Settings import FileManager as fm, MessageTools as mt, DatabaseManager as dm, SettingsManager as sm
 from Settings.MessageTools import print_notice
 import tensorflow as tf
+import numpy as np
+
+vox_res = None
+data_template = None
+
+
+def initialise():
+    global vox_res, data_template
+    vox_res = int(sm.configuration.get("VOXEL_RESOLUTION"))
+    data_template = np.zeros(shape=(1, vox_res, vox_res, vox_res, sm.image_channels))
 
 
 def get_available_gpus():
@@ -87,97 +97,69 @@ def design_gan_architecture():
     return generator_settings, discriminator_settings
 
 
-def load_model_from_database(modelID=None):
-    cursor = dm.db_cursor
+def get_model_instance(instance_id):
+    query = "SELECT * FROM ***REMOVED***_Phase1.model_instances WHERE ID = " + str(instance_id) + ";"
 
+    dm.db_cursor.execute(query)
+    return dm.db_cursor.fetchone()
+
+
+def get_model_instances():
     query = "SELECT ID FROM ***REMOVED***_Phase1.model_instances;"
 
-    cursor.execute(query)
-    models = cursor.fetchall()
+    dm.db_cursor.execute(query)
+    return [x[0] for x in dm.db_cursor.fetchall()]
 
-    if cursor.rowcount == 0:
-        print_notice("There are no models in the database", mt.MessagePrefix.WARNING)
-        exit(0)
-    elif cursor.rowcount == 1:
-        choice = 0
-    else:
-        print("The following models are available:")
-        for model in models:
-            query = "SELECT * FROM ***REMOVED***_Phase1.model_instances WHERE ID = " + str(model[0]) + ";"
 
-            cursor.execute(query)
-            settings = cursor.fetchall()
+def get_model_architecture(architecture_id):
+    query = "SELECT * FROM ***REMOVED***_Phase1.model_architectures WHERE ID = " + str(architecture_id) + ";"
 
-            if len(settings) == 0:
-                continue
+    dm.db_cursor.execute(query)
+    return dm.db_cursor.fetchone()
 
-            print("Model [" + str(model[0]) + "] @ " + str(model[1]) + " ", end='')
-            print(settings)
 
-        choice = ""
+def load_model_from_database(modelID=None):
+    if modelID is None:
+        models = get_model_instances()
 
-        while not choice.isnumeric():
-            choice = input("Enter the experiment ID to load > ")
+        if len(models) == 0:
+            print_notice("There are no models in the database", mt.MessagePrefix.WARNING)
+            exit(0)
+        elif len(models) == 1:
+            choice = 0
+        else:
+            print("The following models are available:")
+            for model in models:
+                instance = get_model_instance(model)
 
-            if choice.isnumeric() and int(choice) not in models:
-                print_notice("That experiment ID does not exist", mt.MessagePrefix.WARNING)
-                choice = ""
+                if len(instance) == 0:
+                    continue
 
-    print_notice("Loading model [" + models[choice] + "]", mt.MessagePrefix.INFORMATION)
-    model_location_prefix = sm.configuration.get("IO_ROOT_DIR") + sm.configuration.get("IO_MODEL_ROOT_DIR")
+                settings = get_model_architecture(instance[1])
 
-    models = [model for model in os.listdir(model_location_prefix)
-              if os.path.isfile(os.path.join(model_location_prefix, model))
-              and "Experiment-" + str(choice) in model]
+                if len(settings) == 0:
+                    continue
 
-    joint_models = list()
+                print("Model [" + str(instance[0]) + "] -> " + str(settings) + " ")
+                print('\t' + str(instance))
 
-    for model in models:
-        filename_parts = model.split("_")
-        prefix = model.replace(filename_parts[-1], "")
+            choice = ""
 
-        generator = prefix + "generator.h5"
-        discriminator = prefix + "discriminator.h5"
+            while not choice.isnumeric():
+                choice = input("Enter the experiment ID to load > ")
 
-    if generator in models and discriminator in models and not (generator, discriminator) in joint_models:
-        joint_models.append((generator, discriminator))
+                if choice.isnumeric() and int(choice) not in models:
+                    print_notice("That experiment ID does not exist", mt.MessagePrefix.WARNING)
+                    choice = ""
 
-    if len(joint_models) > 1:
-        print_notice("Multiple models are available with this experiment:", mt.MessagePrefix.INFORMATION)
-        ids = range(len(joint_models))
+        print_notice("Loading model [" + choice + "]", mt.MessagePrefix.INFORMATION)
+        instance = get_model_instance(choice)
+        generator_loc = instance[2]
+        discriminator_loc = instance[3]
 
-        for id in ids:
-            prefix = joint_models[id][0].split("_")[-1]
-            prefix = joint_models[id][0].replace('_' + prefix, "")
-            print("[" + str(id) + "] " + prefix)
+        architecture = load_architecture_from_database(instance[1])
 
-        choice = ""
-        while not choice.isnumeric():
-            choice = input("Which model would you like to load? > ")
-            if choice.isnumeric() and int(choice) not in ids:
-                print_notice("That model does not exist!", mt.MessagePrefix.WARNING)
-                choice = ""
-
-    elif len(joint_models) == 0:
-        print_notice("No models were found for this experiment!", mt.MessagePrefix.WARNING)
-        exit(0)
-    else:
-        choice = 0
-
-    selected_model = joint_models[int(choice)]
-
-    print_notice("Loading model '" + selected_model[0].replace('_' + selected_model[0].split("_")[-1], "") + "'...", mt.MessagePrefix.INFORMATION)
-    loaded_discriminator, loaded_generator = load_network(model_location_prefix + selected_model[1],
-                                                              model_location_prefix + selected_model[0])
-
-    if loaded_discriminator is not None and loaded_generator is not None:
-        print_notice("Model successfully loaded", mt.MessagePrefix.SUCCESS)
-
-        loaded_generator.summary()
-        loaded_discriminator.summary()
-    else:
-        print_notice("Error loading model!", mt.MessagePrefix.ERROR)
-        raise ValueError
+        load_network((generator_loc, discriminator_loc), architecture)
 
 
 def load_architecture_from_database(architecture_id=None):
@@ -196,10 +178,7 @@ def load_architecture_from_database(architecture_id=None):
     elif cursor.rowcount != 1:
         print("The following architectures are available:")
         for model in models:
-            query = "SELECT * FROM ***REMOVED***_Phase1.model_architectures WHERE ID = " + str(model[0]) + ";"
-
-            cursor.execute(query)
-            settings = cursor.fetchall()
+            settings = get_model_architecture(model[0])
 
             if len(settings) == 0:
                 continue
@@ -257,25 +236,60 @@ def load_architecture_from_database(architecture_id=None):
     return architecture_id, gen_settings, disc_settings
 
 
+def create_discriminator(settings, template=None):
+    global data_template
+
+    if template is None:
+        template = data_template
+
+    with safe_get_gpu(0):
+        return DCGAN.DCGANDiscriminator(template, settings["strides"], settings["kernel_size"],
+                                        settings["filters"], settings["activation_alpha"],
+                                        settings["normalisation_momentum"], settings["levels"])
+
+
+def create_generator(settings, template=None):
+    global data_template
+
+    if template is None:
+        template = data_template
+
+    with safe_get_gpu(1):
+        return DCGAN.DCGANGenerator(template, settings["strides"], settings["kernel_size"], settings["filters"],
+                                    settings["activation_alpha"], settings["normalisation_momentum"],
+                                    settings["levels"])
+
+
 # Models are saved as discriminator.h5 and generator.h5, under an experimental ID
-def load_network(discriminator_location, generator_location):
-    Logger.print("Loading Generative Adversarial Network...")
+def load_network(locations, architectures):
+    if not isinstance(locations, tuple):
+        raise TypeError
+
+    generator_location = locations[0]
+    discriminator_location = locations[1]
+
+    generator_architecture = architectures[1]
+    discriminator_architecture = architectures[2]
+
+    print_notice("Loading Generative Adversarial Network...", mt.MessagePrefix.INFORMATION)
 
     discriminator = None
     generator = None
 
     if fm.file_exists(discriminator_location):
-        Logger.print("\tLoading Discriminator... ", end='')
-        discriminator = load_model(discriminator_location)
-        Logger.print("done!")
+        print_notice("\tLoading Discriminator... ", mt.MessagePrefix.INFORMATION, end='')
+        discriminator = create_discriminator(discriminator_architecture)
+        discriminator.model.load_weights(discriminator_location)
+        print_notice("done!", mt.MessagePrefix.INFORMATION)
     else:
-        Logger.print("Discriminator network is missing!")
+        print_notice("Discriminator network is missing!", mt.MessagePrefix.ERROR)
 
     if fm.file_exists(generator_location):
-        Logger.print("\tLoading Generator... ", end='')
-        generator = load_model(generator_location)
-        Logger.print("done!")
+        print_notice("\tLoading Generator... ", mt.MessagePrefix.INFORMATION, end='')
+        generator = create_generator(generator_architecture)
+        generator.model.load_weights(generator_location)
+        print_notice("done!", mt.MessagePrefix.INFORMATION)
     else:
-        Logger.print("Generator network is missing!")
+        print_notice("Generator network is missing!", mt.MessagePrefix.ERROR)
 
     return discriminator, generator

@@ -73,6 +73,8 @@ def setup():
     dm.connect_to_database()
     dm.initialise_database()
 
+    mlm.initialise()
+
     pool = Pool()
     print_introduction()
 

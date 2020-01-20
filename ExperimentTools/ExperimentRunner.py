@@ -34,9 +34,6 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture)
     epochs = 1000
     batch_size = 64
 
-    vox_res = int(sm.configuration.get("VOXEL_RESOLUTION"))
-    template = np.zeros(shape=(1, vox_res, vox_res, vox_res, sm.image_channels))
-
     architecture_id, gen_settings, disc_settings = architecture
 
     for fold in range(k):
@@ -56,15 +53,8 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture)
         discriminator_location = filepath + "discriminator.h5"
         generator_location = filepath + "generator.h5"
 
-        with mlm.safe_get_gpu(0):
-            discriminator = DCGAN.DCGANDiscriminator(template, disc_settings["strides"], disc_settings["kernel_size"],
-                                                     disc_settings["filters"], disc_settings["activation_alpha"],
-                                                     disc_settings["normalisation_momentum"], disc_settings["levels"])
-
-        with mlm.safe_get_gpu(1):
-            generator = DCGAN.DCGANGenerator(template, gen_settings["strides"], gen_settings["kernel_size"],
-                                             gen_settings["filters"], gen_settings["activation_alpha"],
-                                             gen_settings["normalisation_momentum"], gen_settings["levels"])
+        discriminator = mlm.create_discriminator(template, gen_settings)
+        generator = mlm.create_generator(template, disc_settings)
 
         DCGAN.Network.discriminator = discriminator.model
         DCGAN.Network.generator = generator.model

@@ -12,7 +12,8 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Flatten, Dense, Activation, Conv3D, Conv3DTranspose as Deconv3D, BatchNormalization, LeakyReLU
 from ExperimentTools.MethodologyLogger import Logger
 from Settings import SettingsManager as sm
-
+import Settings.MessageTools as mt
+from Settings.MessageTools import print_notice
 
 ENABLE_NORMALISATION = False
 
@@ -212,7 +213,8 @@ class DCGANDiscriminator:
 
     def __init__(self, voxels, strides, kernel_size,
                  initial_filters, activation_alpha, normalisation_momentum, encoder_levels):
-        Logger.print("\tInitialising Deep Convolutional Generative Adversarial Network (Discriminator)")
+        print_notice("\tInitialising Deep Convolutional Generative Adversarial Network (Discriminator)",
+                     mt.MessagePrefix.INFORMATION)
 
         x = len(voxels[0])
         y = len(voxels[0][0])
@@ -221,7 +223,8 @@ class DCGANDiscriminator:
 
         channels = 1  # TODO: Make this variable from the settings file
 
-        Logger.print("\t\t Input size is: " + str(w) + " (" + str(x) + " * " + str(y) + " * " + str(z) + ") voxels")
+        print_notice("\t\t Input size is: " + str(w) + " (" + str(x) + " * " + str(y) + " * " + str(z) + ") voxels",
+                     mt.MessagePrefix.INFORMATION)
 
         voxel_shape = (x, y, z, channels)
 
@@ -243,7 +246,7 @@ class DCGANDiscriminator:
         model.add(Flatten())
         model.add(Dense(1, activation="sigmoid"))
 
-        model.summary(print_fn=Logger.print)
+        model.summary()
 
         input_voxel = Input(shape=voxel_shape)
         verdict = model(input_voxel)
@@ -264,7 +267,8 @@ class DCGANGenerator:
 
     def __init__(self, voxels, strides, kernel_size,
                  initial_filters, activation_alpha, normalisation_momentum, encoder_levels):
-        Logger.print("\tInitialising Deep Convolutional Generative Adversarial Network (Generator)")
+        print_notice("\tInitialising Deep Convolutional Generative Adversarial Network (Generator)",
+                     mt.MessagePrefix.INFORMATION)
 
         x = len(voxels[0])
         y = len(voxels[0][0])
@@ -273,7 +277,8 @@ class DCGANGenerator:
 
         channels = 1 # TODO: Make this variable from the settings file
 
-        Logger.print("\t\t Input size is: " + str(w) + " (" + str(x) + " * " + str(y) + " * " + str(z) + ") voxels")
+        print_notice("\t\t Input size is: " + str(w) + " (" + str(x) + " * " + str(y) + " * " + str(z) + ") voxels",
+                     mt.MessagePrefix.INFORMATION)
 
         voxel_shape = (x, y, z, channels)
 
@@ -300,7 +305,7 @@ class DCGANGenerator:
         model.add(Deconv3D(channels, kernel_size=kernel_size, strides=strides, padding="same"))
         model.add(Activation("tanh"))
 
-        model.summary(print_fn=Logger.print)
+        model.summary()
 
         input_voxel = Input(shape=voxel_shape)
         gen_missing = model(input_voxel)
