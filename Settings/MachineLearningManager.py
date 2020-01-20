@@ -158,8 +158,9 @@ def load_model_from_database(modelID=None):
         discriminator_loc = instance[3]
 
         architecture = load_architecture_from_database(instance[1])
+        model = load_network((generator_loc, discriminator_loc), architecture)
 
-        load_network((generator_loc, discriminator_loc), architecture)
+        return model, architecture
 
 
 def load_architecture_from_database(architecture_id=None):
@@ -292,4 +293,4 @@ def load_network(locations, architectures):
     else:
         print_notice("Generator network is missing!", mt.MessagePrefix.ERROR)
 
-    return discriminator, generator
+    return generator, discriminator

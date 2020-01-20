@@ -289,8 +289,7 @@ def main_menu():
         arch_id, gen, disc = mlm.load_architecture_from_database()
         architecture_loaded = (arch_id, gen, disc)
     elif user_input == "3":
-        gen, disc = mlm.load_model_from_database()
-        model_loaded = (gen, disc)
+        model_loaded, architecture_loaded = mlm.load_model_from_database()
     elif user_input == "4":
         experiment_menu()
     elif user_input == "5":
