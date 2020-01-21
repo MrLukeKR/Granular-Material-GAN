@@ -31,8 +31,8 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture)
 
     training_sets, testing_sets = DatasetProcessor.dataset_to_k_cross_fold(dataset_directories, k)
 
-    epochs = sm.configuration.get("TRAINING_EPOCHS")
-    batch_size = sm.configuration.get("TRAINING_BATCH_SIZE")
+    epochs = int(sm.configuration.get("TRAINING_EPOCHS"))
+    batch_size = int(sm.configuration.get("TRAINING_BATCH_SIZE"))
 
     architecture_id, gen_settings, disc_settings = architecture
 

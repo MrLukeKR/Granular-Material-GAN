@@ -52,7 +52,9 @@ class Network(AbstractGAN.Network):
             data = mlm.data_template
         Logger.print("Initialising Generator Adversarial Network...")
 
-        data_shape = (len(data[0]), len(data[0][0]), len(data[0][0][0]), 1)
+        vox_res = int(sm.configuration.get("VOXEL_RESOLUTION"))
+
+        data_shape = (vox_res, vox_res, vox_res, 1)
 
         optimizer = optimizers.Adam(0.0002, 0.5)
 
