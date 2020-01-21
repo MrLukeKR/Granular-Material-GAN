@@ -86,6 +86,13 @@ class Network(AbstractGAN.Network):
 
     @classmethod
     def train_network(cls, epochs, batch_size, features, labels):
+        print_notice("Preparing feature/label matrices...", mt.MessagePrefix.INFORMATION)
+        features = np.asarray(features)
+        features = np.expand_dims(features, 4)
+        labels = np.asarray(labels)
+        labels = np.expand_dims(np.array(labels), 4)
+        print_notice("Matrices are now ready for machine learning input", mt.MessagePrefix.SUCCESS)
+
         Logger.print("Training network with: " + str(epochs) + " EPOCHS, " + str(batch_size) + " BATCH SIZE")
 
         x = []
@@ -127,8 +134,7 @@ class Network(AbstractGAN.Network):
             dis_error_ax.legend(loc="upper right")
             acc_ax.legend(loc="upper right")
 
-        features = np.expand_dims(np.array(features), 5)
-        labels = np.expand_dims(np.array(labels), 5)
+
 
         # One sided label smoothing
         valid = np.full((batch_size, 1), 0.9)
@@ -168,7 +174,7 @@ class Network(AbstractGAN.Network):
                                                                               d_loss[0],
                                                                               100 * d_loss[1],
                                                                               g_loss[0],
-                                                                              g_loss[1]))
+                                                   g_loss[1]))
 
             discriminator_losses.append(d_loss[0])
             discriminator_accuracies.append(d_loss[1])

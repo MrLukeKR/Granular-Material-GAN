@@ -1,0 +1,71 @@
+IO_ROOT_DIR="/"
+
+IO_UNPROCESSED_SCAN_ROOT_DIR="data/CT-Scans/Unprocessed/Aggregate CT Scans/"
+IO_PROCESSED_SCAN_ROOT_DIR="data/CT-Scans/Processed/Aggregate CT Scans/"
+
+IO_SEGMENTED_SCAN_ROOT_DIR="data/CT-Scans/Segmented/Aggregate CT Scans/"
+
+IO_EXPERIMENT_ROOT_DIR="experiments/***REMOVED***/Aggregate CT Scans/"
+IO_VOXEL_DATA_ROOT_DIR="experiments/***REMOVED***/Aggregate CT Scans/Voxels/"
+IO_RESULTS_ROOT_DIR="experiments/***REMOVED***/Aggregate CT Scans/Results/"
+IO_GENERATED_VOXEL_ROOT_DIR="experiments/***REMOVED***/Aggregate CT Scans/GeneratedVoxels/"
+
+IO_MODEL_ROOT_DIR="experiments/***REMOVED***/Aggregate CT Scans/Models/"
+IO_DATASET_ROOT_DIR="experiments/***REMOVED***/Aggregate CT Scans/Datasets/"
+
+IO_LOG_ROOT_DIR="experiments/***REMOVED***/Aggregate CT Scans/Logs/"
+
+IO_IMAGE_FILETYPE="pdf"
+IO_OUTPUT_DPI=500
+
+PREPROCESSING_BINARY_THRESHOLD=0.95
+
+ML_EPOCHS = 1000
+ML_BATCH_SIZE = 32
+
+VOXEL_RESOLUTION=64
+IMAGE_CHANNELS=1
+LABEL_SEGMENTS=3
+
+# Method used to resolve non-perfect voxel division {LOSSY, PADDING, STRETCH, SHRINK, EXTRAPOLATE}
+VOXEL_RESOLVE_METHOD=PADDING
+
+# --- TRAINING OPTIONS ---
+
+TRAINING_BATCH_SIZE=2
+TRAINING_EPOCHS=10
+TRAINING_EPOCH_STEPS=500
+TRAINING_USE_BATCH_NORMALISATION=False
+
+# ------------------------
+
+# --- ENABLE/DISABLE FEATURES ---
+
+# Enable saving of plots to disk, useful if no graphical display is available
+ENABLE_IMAGE_SAVING=False
+ENABLE_VOXEL_INPUT_SAVING=False
+ENABLE_VOXEL_OUTPUT_SAVING=False
+
+# Enable the showing of images, required to be FALSE if no graphical display is available (i.e. through SSH)
+ENABLE_IMAGE_DISPLAY=False
+
+# Enable the separation of core volume data into 3D chunks ('voxels'). Must be True is ENABLE_SEGMENTATION is True
+ENABLE_VOXEL_SEPARATION=True
+
+# Enable the segmentation of images into their component parts (void, binder, aggregate)
+ENABLE_SEGMENTATION=True
+
+# Enable the image processing of input data, may improve performance of Machine Learning
+ENABLE_PREPROCESSING=True
+
+ENABLE_GAN_TRAINING=False
+ENABLE_GAN_GENERATION=False
+
+# -------------------------------
+
+# --- DATABASE SETTINGS ---
+DB_HOST="localhost"
+DB_PORT=3306
+DB_USER="root"
+DB_PASS=""
+# -------------------------

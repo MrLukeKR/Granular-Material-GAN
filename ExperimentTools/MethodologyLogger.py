@@ -97,7 +97,11 @@ class Logger:
                    disc_settings["filters"],
                    disc_settings["normalisation_momentum"], disc_settings["activation_alpha"],)
 
-            result = dm.db_cursor.execute(sql, val)
+            dm.db_cursor.execute(sql, val)
+
+            dm.db_cursor.execute("SELECT ID FROM model_architectures ORDER BY ID DESC LIMIT 1;")
+
+            result = dm.db_cursor.fetchone()[0]
 
             return result
         else:

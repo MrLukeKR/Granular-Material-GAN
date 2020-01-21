@@ -89,12 +89,14 @@ def design_gan_architecture():
     discriminator_settings["normalisation_momentum"] = float(get_clean_input("Enter DISCRIMINATOR normalisation momentum [0 - 1]", 0, 1))
     discriminator_settings["activation_alpha"] = float(get_clean_input("Enter DISCRIMINATOR activation alpha [0 - 1]", 0, 1))
 
-    if Logger.log_model_to_database(generator_settings, discriminator_settings):
+    arch_id = Logger.log_model_to_database(generator_settings, discriminator_settings)
+
+    if arch_id is not None:
         mt.print_notice("Saved model to database!", mt.MessagePrefix.INFORMATION)
     else:
         mt.print_notice("This model already exists in the database!", mt.MessagePrefix.WARNING)
 
-    return generator_settings, discriminator_settings
+    return arch_id, generator_settings, discriminator_settings
 
 
 def get_model_instance(instance_id):

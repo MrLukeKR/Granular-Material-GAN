@@ -31,8 +31,8 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture)
 
     training_sets, testing_sets = DatasetProcessor.dataset_to_k_cross_fold(dataset_directories, k)
 
-    epochs = 1000
-    batch_size = 64
+    epochs = sm.configuration.get("TRAINING_EPOCHS")
+    batch_size = sm.configuration.get("TRAINING_BATCH_SIZE")
 
     architecture_id, gen_settings, disc_settings = architecture
 
@@ -40,8 +40,10 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture)
         Logger.print("Running Cross Validation Fold " + str(fold + 1) + "/" + str(k))
         Logger.current_fold = fold
 
-        fold_d_losses = np.zeros((epochs * len(training_sets)))
-        fold_g_losses = np.zeros((epochs * len(training_sets)))
+        fold_d_losses = list()
+        fold_d_accuracies = list()
+        fold_g_losses = list()
+        fold_g_mses = list
 
         root_dir = fm.root_directories[fm.SpecialFolder.MODEL_DATA.value]
 
@@ -69,12 +71,9 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture)
             binders = list()
 
             for directory in training_set:
-                Logger.print("\tLoading voxels from " + directory + "... ", end='')
                 dimensions, loaded_aggregates, loaded_binders = vp.load_materials(directory)
-                aggregates.append(loaded_aggregates)
-                binders.append(loaded_binders)
-
-                Logger.print("done!")
+                aggregates.extend(loaded_aggregates)
+                binders.extend(loaded_binders)
 
             # im.save_voxel_image_collection(aggregates[10:15], fm.SpecialFolder.VOXEL_DATA, "figures/PostH5/aggregate")
             # im.save_voxel_image_collection(binders[10:15], fm.SpecialFolder.VOXEL_DATA, "figures/PostH5/binder")
@@ -89,6 +88,11 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture)
             buff_ind = '0' * (len(str(len(training_set))) - len(str(ind))) + str(ind)
 
             save_training_graphs(d_loss, g_loss, directory, fold, buff_ind)
+
+            fold_d_losses.append(d_loss[0])
+            fold_d_accuracies.append(d_loss[1])
+            fold_g_losses.append(g_loss[0])
+            fold_g_mses.append(g_loss[1])
 
             generator.model.save_weights(generator_location)
             discriminator.model.save_weights(discriminator_location)
