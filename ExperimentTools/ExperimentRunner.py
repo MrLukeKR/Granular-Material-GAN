@@ -85,8 +85,10 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture)
 
             directory = fm.get_directory(fm.SpecialFolder.RESULTS) + "/Figures/Experiment-" + str(Logger.experiment_id) + '/Training'
             fm.create_if_not_exists(directory)
-            im.plt.gcf().savefig(directory + '/Experiment-' + str(Logger.experiment_id) + '_Fold-' + str(fold) + '_TrainingSet-' + str(ind) + '.pdf')
-            im.plt.close(im.plt.gcf())
+
+            buff_ind = '0' * (len(str(len(training_set))) - len(str(ind))) + str(ind)
+
+            save_training_graphs(d_loss, g_loss, directory, fold, buff_ind)
 
             generator.model.save_weights(generator_location)
             discriminator.model.save_weights(discriminator_location)
@@ -95,6 +97,40 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture)
             Logger.log_model_experiment_to_database(Logger.experiment_id, instance_id)
 
         test_network(testing_sets, fold, DCGAN.Network.generator)
+
+
+def save_training_graphs(d_loss, g_loss, directory, fold, ind):
+    fig = im.plt.figure()
+
+    gen_error_ax = fig.add_subplot(3, 1, 1)
+    dis_error_ax = fig.add_subplot(3, 1, 2)
+    acc_ax = fig.add_subplot(3, 1, 3)
+
+    x = range(len(g_loss[0]))
+
+    gen_error_ax.plot(x, g_loss[0], '-g', label="Generator Loss")
+    gen_error_ax.plot(x, g_loss[1], '-b', label="Generator MSE")
+
+    dis_error_ax.plot(x, d_loss[0], '-r', label="Discriminator Loss")
+
+    acc_ax.plot(x, d_loss[1], '-m', label="Discriminator Accuracy")
+
+    gen_error_ax.set_xlabel("Epochs")
+    acc_ax.set_xlabel("Epochs")
+    dis_error_ax.set_xlabel("Epochs")
+
+    gen_error_ax.set_ylabel("Error")
+    dis_error_ax.set_ylabel("Error")
+
+    acc_ax.set_ylabel("Accuracy")
+    gen_error_ax.legend(loc="upper right")
+    dis_error_ax.legend(loc="upper right")
+    acc_ax.legend(loc="upper right")
+
+    im.plt.gcf().savefig(
+        directory + '/Experiment-' + str(Logger.experiment_id) + '_Fold-' + str(fold) + '_TrainingSet-' + str(
+            ind) + '.pdf')
+    im.plt.close(im.plt.gcf())
 
 
 def test_network(testing_sets, fold, test_generator):

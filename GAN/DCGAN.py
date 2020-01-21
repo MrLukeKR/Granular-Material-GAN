@@ -195,7 +195,7 @@ class Network(AbstractGAN.Network):
             # im.save_voxel_image_collection(gen_missing, fm.SpecialFolder.VOXEL_DATA, "figures/postGAN/generated")
             # im.save_voxel_image_collection(labels, fm.SpecialFolder.VOXEL_DATA, "figures/postGAN/expected")
 
-        return discriminator_losses, generator_losses, generated_images
+        return (discriminator_losses, discriminator_accuracies), (generator_losses, generator_MSEs), generated_images
 
     @classmethod
     def test_network(cls, testing_set):

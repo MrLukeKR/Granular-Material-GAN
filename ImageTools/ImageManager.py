@@ -3,11 +3,22 @@ import PIL.Image as Image
 import matplotlib.pyplot as plt
 import ImageTools.VoxelProcessor as vp
 
+from multiprocessing import Pool
 from ExperimentTools.MethodologyLogger import Logger
 from os import walk
+from matplotlib import cm
 from tqdm import tqdm
-from Settings import SettingsManager as sm
-from Settings import FileManager as fm
+from Settings import SettingsManager as sm, FileManager as fm, MessageTools as mt
+from Settings.MessageTools import print_notice
+
+
+global_voxels = None
+global_comparison_voxels = None
+directory = None
+global_leftTitle = None
+global_rightTitle = None
+
+pool = Pool()
 
 project_images = list()
 segmentedImages = list()
@@ -120,25 +131,73 @@ def save_voxel_image(voxel, file_name, save_location):
     plt.close(fig)
 
 
-def save_voxel_image_collection(voxels, root_location, save_location=""):
+def parallel_save(i):
+    global global_voxels, global_comparison_voxels, directory, global_leftTitle, global_rightTitle
+
+    buff_ind = '0' * (len(str(len(global_voxels))) - len(str(i))) + str(i)
+
+    file_loc = directory + '/' + buff_ind + '.' + sm.configuration.get("IO_IMAGE_FILETYPE")
+
+    voxel = global_voxels[i]
+
+    if fm.file_exists(file_loc):
+        return
+
+    if global_comparison_voxels is None:
+        fig = vp.plot_voxel(voxel)
+    else:
+        if len(voxel.shape) == 4:
+            voxel = np.squeeze(voxel)
+
+        comp_vox = global_comparison_voxels[i]
+        if len(comp_vox.shape) == 4:
+            comp_vox = np.squeeze(comp_vox)
+
+        if sm.USE_BW:
+            colours = cm.gray(voxel)
+        else:
+            colours = cm.jet(voxel)
+
+        fig = plt.figure(figsize=plt.figaspect(0.5))
+        ax = fig.add_subplot(1, 2, 1, projection='3d')
+        ax.voxels(voxel, facecolors=colours, edgecolors=colours)
+        if global_leftTitle is not None:
+            ax.set_title(global_leftTitle)
+
+        ax = fig.add_subplot(1, 2, 2, projection='3d')
+        ax.voxels(comp_vox, facecolors=colours, edgecolors=colours)
+        if global_rightTitle is not None:
+           ax.set_title(global_rightTitle)
+
+    plt.savefig(file_loc)
+    plt.close(fig)
+
+
+def save_voxel_image_collection(voxels, root_location, save_location="",
+                                comparison_voxels=None, leftTitle=None, rightTitle=None):
+    global global_voxels, global_comparison_voxels, directory, global_leftTitle, global_rightTitle
+
+    global_voxels = voxels
+    global_comparison_voxels = comparison_voxels
+    global_leftTitle = leftTitle
+    global_rightTitle = rightTitle
+
     if not isinstance(root_location, fm.SpecialFolder):
         raise TypeError("root_location must be of enum type 'SpecialFolder'")
 
     directory = fm.root_directories[root_location.value] + fm.current_directory + save_location
 
-    Logger.print("Saving " + str(len(voxels)) + " voxel visualisations to " + directory)
+    print_notice("Saving " + str(len(voxels)) + " voxel visualisations to " + directory, mt.MessagePrefix.INFORMATION)
 
     fm.create_if_not_exists(directory)
 
-    for i in tqdm(range(len(voxels))):
-        file_loc = directory + '/' + str(i) + '.' + sm.configuration.get("IO_IMAGE_FILETYPE")
+    pool.map(parallel_save, range(len(voxels)))
 
-        if fm.file_exists(file_loc):
-            continue
-
-        fig = vp.plot_voxel(voxels[i])
-        plt.savefig(file_loc)
-        plt.close(fig)
+    global_voxels = None
+    global_comparison_voxels = None
+    directory = None
+    global_leftTitle = None
+    global_rightTitle = None
 
 
 def save_voxel_images(voxels, voxel_category="Unknown"):

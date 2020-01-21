@@ -1,6 +1,6 @@
 import math
 import numpy as np
-import matplotlib.cm as cm
+from matplotlib import cm
 import matplotlib.pyplot as plt
 import h5py
 
@@ -181,8 +181,9 @@ def load_voxels(location, filename):
 
     h5f.close()
 
-    return voxels, dimensions
 
+
+    return voxels, dimensions
 
 def plot_voxel(voxel):
     vox = np.array(voxel)

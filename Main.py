@@ -266,6 +266,7 @@ def run_model_menu():
     dimensions, aggregates, binders = vp.load_materials(choice)
 
     aggregates = np.expand_dims(aggregates, 4)
+    binders = np.expand_dims(binders, 4)
 
     core_model = np.empty(dimensions)
     generator = model_loaded[0].model
@@ -278,8 +279,22 @@ def run_model_menu():
     else:
         print_notice("No voxels were generated!", mt.MessagePrefix.WARNING)
 
+    aggregates = [np.array(x).astype(np.float32) for x in aggregates]
+    generated_binders = [np.array(x).astype(np.float32) for x in generated_binders]
+    binders = [np.array(x).astype(np.float32) for x in binders]
+
+    for x in range(len(generated_binders)):
+        generated_binders[x] -= (generated_binders[x] * aggregates[x])
+        generated_binders[x] = (generated_binders[x] >= 0.9) * 0.1
+        generated_binders[x] += aggregates[x]
+
+    for x in range(len(binders)):
+        binders[x] += (aggregates[x] * 2)
+
     # TODO: Add this voxel set to the database, in order to save the file with a meaningful ID
-    vp.save_voxels(generated_binders, dimensions, fm.get_directory(fm.SpecialFolder.GENERATED_VOXEL_DATA) , "Test")
+    im.save_voxel_image_collection(generated_binders, fm.SpecialFolder.GENERATED_VOXEL_DATA, "TestImage",
+                                   binders, "Generated", "Actual")
+    vp.save_voxels(generated_binders, dimensions, fm.get_directory(fm.SpecialFolder.GENERATED_VOXEL_DATA), "Test")
 
 
 def run_model_on_core(core_id=None):
