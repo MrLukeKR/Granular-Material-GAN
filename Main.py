@@ -1,12 +1,9 @@
 # Utilities >>>
 import numpy as np
-from multiprocessing import Pool
 # <<< Utilities
 
 # Image Processing >>>
-import ImageTools.VoxelProcessor as vp
-import ImageTools.ImageManager as im
-
+from ImageTools import VoxelProcessor as vp, ImageManager as im, CoreAnalyser as ca
 from Settings import SettingsManager as sm
 from Settings import FileManager as fm
 from Settings import DatabaseManager as dm
@@ -21,7 +18,6 @@ from Settings import MachineLearningManager as mlm
 from Settings import MessageTools as mt
 from Settings.MessageTools import print_notice
 
-pool = None
 model_loaded = None
 architecture_loaded = None
 
@@ -47,8 +43,6 @@ def process_voxels(images):
 
 
 def setup():
-    global pool
-
     sm.load_settings()
     fm.assign_special_folders()
 
@@ -57,8 +51,16 @@ def setup():
 
     mlm.initialise()
 
-    pool = Pool()
     print_introduction()
+
+
+def get_core_image_stack(directory):
+    binder_stack = im.load_images_from_directory(directory, "binder")
+    aggregate_stack = im.load_images_from_directory(directory, "aggregate")
+
+    core = binder_stack + (aggregate_stack * 2)
+
+    return core
 
 
 def generate_voxels():
@@ -118,20 +120,36 @@ def experiment_menu():
 def core_analysis_menu():
     print("- Core Analysis Menu -")
     print("[1] Perform all calculations")
-    print("[2] Calculate Air Voice Content")
-
+    print("[2] Calculate Core Composition (AVC, Mastic Content)")
+    print("[3] Calculate Tortuosity")
+    print("[4] Calculate Euler Number")
+    print("[5] Calculate Average Void Diameter")
     print("")
-    print("[ANYTHING ELSE] Return to Main Menu")
+    print("[ENTER] Return to Main Menu")
 
     user_input = input("Enter a menu option > ")
 
+    core_id = core_selection_menu()
+    core_directory = fm.get_directory(fm.SpecialFolder.SEGMENTED_SCANS) + core_id
+
+    if fm.current_directory[-1] != '/':
+        fm.current_directory += '/'
+
+    core = get_core_image_stack(core_directory)
+
     if user_input == "1":
-        raise NotImplementedError
+        ca.calculate_all(core)
     elif user_input == "2":
-        raise NotImplementedError
+        ca.calculate_composition(core)
+    elif user_input == "3":
+        ca.calculate_tortuosity(core)
+    elif user_input == "4":
+        ca.calculate_euler_number(core)
+    elif user_input == "5":
+        ca.calculate_average_void_diameter(core)
 
 
-def run_model_menu():
+def core_selection_menu():
     print_notice("The following cores are available in the database:", mt.MessagePrefix.INFORMATION)
 
     cores = dm.get_cores_from_database()
@@ -148,6 +166,12 @@ def run_model_menu():
         choice = input("Enter the core ID to run the model on > ")
         if choice not in valid_ids:
             print_notice("'" + choice + "' is not in the database!", mt.MessagePrefix.WARNING)
+
+    return choice
+
+
+def run_model_menu():
+    choice = core_selection_menu()
 
     dimensions, aggregates, binders = vp.load_materials(choice)
 
@@ -225,7 +249,8 @@ def main_menu():
             experiment_menu()
     elif user_input == "2":
         arch_id, gen, disc = mlm.load_architecture_from_database()
-        architecture_loaded = (arch_id, gen, disc)
+        if arch_id is not None and gen is not None and disc is not None:
+            architecture_loaded = (arch_id, gen, disc)
     elif user_input == "3":
         model_loaded, architecture_loaded = mlm.load_model_from_database()
     elif user_input == "4":
@@ -235,7 +260,7 @@ def main_menu():
             run_model_menu()
         else:
             print_notice("Please load a model first!", mt.MessagePrefix.WARNING)
-    elif user_input == "5":
+    elif user_input == "6":
         core_analysis_menu()
 
     print("")
@@ -243,8 +268,6 @@ def main_menu():
 
 
 def main():
-    global pool
-
     setup()
 
     print("Please wait while data collections are processed...")

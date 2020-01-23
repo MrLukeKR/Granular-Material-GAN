@@ -14,14 +14,13 @@ from tqdm import tqdm
 from Settings import SettingsManager as sm, FileManager as fm, MessageTools as mt
 from Settings.MessageTools import print_notice
 
+# pool = Pool()
 
 global_voxels = None
 global_comparison_voxels = None
 directory = None
 global_leftTitle = None
 global_rightTitle = None
-
-pool = Pool()
 
 project_images = list()
 segmentedImages = list()
@@ -63,7 +62,8 @@ def segment_images():
         clean_segments = list()
 
         Logger.print("Segmenting images... ", end="", flush=True)
-        for ind, res in enumerate(pool.map(segmentor2D.segment_image, images)):
+        #for ind, res in enumerate(pool.map(segmentor2D.segment_image, images)):
+        for ind, res in enumerate(map(segmentor2D.segment_image, images)):
             voids.insert(ind, res[0])
             aggregates.insert(ind, res[1])
             binders.insert(ind, res[2])
@@ -343,7 +343,7 @@ def display_voxel(voxel):
 
 
 def load_images_from_list(file_list):
-    Logger.print("Loading " + str(len(file_list)) + " images")
+    print_notice("Loading " + str(len(file_list)) + " images", mt.MessagePrefix.INFORMATION)
     file_list.sort()
     ims = list()
     t = tqdm(range(len(file_list)))
@@ -358,7 +358,7 @@ def load_images_from_list(file_list):
         img = Image.open(file_list[i])
 
         if img.size != (sm.image_resolution, sm.image_resolution):
-            img = img.resize((sm.image_resolution, sm.image_resolution))
+            img = img.resize((sm.image_resolution, sm.image_resolution), Image.ANTIALIAS)
 
         if "RGB" in img.mode:
             r = None
@@ -380,12 +380,12 @@ def load_images_from_list(file_list):
 
         ims.append(img)
 
-    Logger.print()  # Print a new line after the process bar is finished
+    print()  # Print a new line after the process bar is finished
 
     if len(ims) > 0:
-        Logger.print("Loaded " + str(len(ims)) + " images successfully!")
+        print_notice("Loaded " + str(len(ims)) + " images successfully!", mt.MessagePrefix.INFORMATION)
     else:
-        Logger.print("ERROR: No images were loaded!")
+        print_notice("No images were loaded!", mt.MessagePrefix.ERROR)
 
     return ims
 

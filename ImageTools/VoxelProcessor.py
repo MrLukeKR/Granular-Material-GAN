@@ -51,7 +51,7 @@ def load_materials(directory):
     return dimensions, aggregates, binders
 
 
-def voxels_to_volume(voxels):
+def voxels_to_volume(voxels, dimensions):
 
     pass
 
@@ -181,9 +181,8 @@ def load_voxels(location, filename):
 
     h5f.close()
 
-
-
     return voxels, dimensions
+
 
 def plot_voxel(voxel):
     vox = np.array(voxel)

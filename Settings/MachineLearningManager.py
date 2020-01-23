@@ -177,7 +177,7 @@ def load_architecture_from_database(architecture_id=None):
 
     if cursor.rowcount == 0:
         print_notice("There are no architectures in the database", mt.MessagePrefix.WARNING)
-        return
+        return (None, None, None)
     elif cursor.rowcount != 1:
         print("The following architectures are available:")
         for model in models:
