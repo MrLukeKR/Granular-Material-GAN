@@ -4,12 +4,8 @@ from multiprocessing import Pool
 # <<< Utilities
 
 # Image Processing >>>
-import ImageTools.Preprocessor as preproc
-import ImageTools.Postprocessor as postproc
 import ImageTools.VoxelProcessor as vp
 import ImageTools.ImageManager as im
-
-from ImageTools.Segmentation.TwoDimensional import KMeans2D as segmentor2D
 
 from Settings import SettingsManager as sm
 from Settings import FileManager as fm
@@ -38,20 +34,6 @@ def print_introduction():
     print()
 
 
-def apply_preprocessing_pipeline(images):
-    Logger.print("Pre-processing Image Collection...")
-    processed_images = images
-
-    processed_images = preproc.reshape_images(processed_images, pool=pool)
-    processed_images = preproc.normalise_images(processed_images, pool=pool)
-    processed_images = preproc.denoise_images(processed_images, pool=pool)
-    # processed_images = itp.remove_empty_scans(processed_images)
-    # processed_images = itp.remove_anomalies(processed_images)
-    # processed_images = itp.remove_backgrounds(processed_images)
-
-    return processed_images
-
-
 def process_voxels(images):
     voxels = list()
     dimensions = None
@@ -77,102 +59,6 @@ def setup():
 
     pool = Pool()
     print_introduction()
-
-
-def segment_images():
-    existing_scans = set(fm.prepare_directories(fm.SpecialFolder.SEGMENTED_SCANS))
-    existing_scans = list(map(lambda x: x.split('/')[-2], existing_scans))
-
-    fm.data_directories = list(d for d in fm.prepare_directories(fm.SpecialFolder.PROCESSED_SCANS)
-                               if d.split('/')[-2] not in existing_scans)
-
-    for data_directory in fm.data_directories:
-        images = im.load_images_from_directory(data_directory)
-        fm.current_directory = data_directory.replace(fm.get_directory(fm.SpecialFolder.PROCESSED_SCANS), '')
-
-        if not fm.current_directory.endswith('/'):
-            fm.current_directory += '/'
-        sm.images = images
-
-        #        ind = 0
-        #        for image in images:
-        #            im.save_image(image, str(ind), 'data/core/train/image/', False)
-        #            ind += 1
-
-        # \-- | 2D DATA SEGMENTATION SUB-MODULE
-        voids = list()
-        clean_voids = list()
-
-        aggregates = list()
-        clean_aggregates = list()
-
-        binders = list()
-        clean_binders = list()
-
-        segments = list()
-        clean_segments = list()
-
-        Logger.print("Segmenting images... ", end="", flush=True)
-        for ind, res in enumerate(pool.map(segmentor2D.segment_image, images)):
-            voids.insert(ind, res[0])
-            aggregates.insert(ind, res[1])
-            binders.insert(ind, res[2])
-            segments.insert(ind, res[3])
-        Logger.print("done!")
-
-        Logger.print("Post-processing Segment Collection...")
-
-        ENABLE_POSTPROCESSING = False
-
-        if ENABLE_POSTPROCESSING:
-            Logger.print("\tCleaning Voids...", end="", flush=True)
-            for ind, res in enumerate(pool.map(postproc.clean_segment, voids)):
-                clean_voids.insert(ind, res)
-            voids = clean_voids
-            Logger.print("done!")
-
-            Logger.print("\tCleaning Aggregates...", end="", flush=True)
-            for ind, res in enumerate(pool.map(postproc.clean_segment, aggregates)):
-                clean_aggregates.insert(ind, res)
-            aggregates = clean_aggregates
-            Logger.print("done!")
-
-            Logger.print("\tCleaning Binders...", end="", flush=True)
-            for ind, res in enumerate(pool.map(postproc.clean_segment, binders)):
-                clean_binders.insert(ind, res)
-            binders = clean_binders
-            Logger.print("done!")
-
-            Logger.print("\tCleaning Segments...", end="", flush=True)
-            for ind, res in enumerate(pool.map(postproc.clean_segment, segments)):
-                clean_segments.insert(ind, res)
-            segments = clean_segments
-            Logger.print("done!")
-
-        Logger.print("Saving segmented images... ", end='')
-        im.save_images(binders, "binder", fm.SpecialFolder.SEGMENTED_SCANS)
-        im.save_images(aggregates, "aggregate", fm.SpecialFolder.SEGMENTED_SCANS)
-        im.save_images(voids, "void", fm.SpecialFolder.SEGMENTED_SCANS)
-        im.save_images(segments, "segment", fm.SpecialFolder.SEGMENTED_SCANS)
-        Logger.print("done!")
-
-
-def preprocess_images():
-    existing_scans = set(fm.prepare_directories(fm.SpecialFolder.PROCESSED_SCANS))
-    existing_scans = list(map(lambda x: x.split('/')[-2], existing_scans))
-
-    fm.data_directories = list(d for d in fm.prepare_directories(fm.SpecialFolder.UNPROCESSED_SCANS)
-                               if d.split('/')[-2] not in existing_scans)
-
-    for data_directory in fm.data_directories:
-        fm.current_directory = data_directory.replace(fm.get_directory(fm.SpecialFolder.UNPROCESSED_SCANS), '')
-
-        images = im.load_images_from_directory(data_directory)
-        images = apply_preprocessing_pipeline(images)
-
-        Logger.print("Saving processed images... ", end='')
-        im.save_images(images, "processed_scan", fm.SpecialFolder.PROCESSED_SCANS)
-        Logger.print("done!")
 
 
 def generate_voxels():
@@ -297,10 +183,6 @@ def run_model_menu():
     vp.save_voxels(generated_binders, dimensions, fm.get_directory(fm.SpecialFolder.GENERATED_VOXEL_DATA), "Test")
 
 
-def run_model_on_core(core_id=None):
-    pass
-
-
 def main_menu():
     global model_loaded, architecture_loaded
 
@@ -369,11 +251,11 @@ def main():
 
 # | DATA PREPARATION MODULE
     if sm.configuration.get("ENABLE_PREPROCESSING") == "True":
-        preprocess_images()
+        im.preprocess_images()
 
 # \-- | DATA LOADING SUB-MODULE
     if sm.configuration.get("ENABLE_SEGMENTATION") == "True":
-        segment_images()
+        im.segment_images()
 
     generate_voxels()
 # \-- | SEGMENT-TO-VOXEL CONVERSION SUB-MODULE

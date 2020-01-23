@@ -13,6 +13,10 @@ import tensorflow as tf
 import numpy as np
 
 
+def run_model_on_core(core_id=None):
+    pass
+
+
 def run_train_test_split_experiment(aggregates, binders, split_percentage):
     pass
 
