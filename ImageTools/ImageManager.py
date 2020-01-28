@@ -1,9 +1,9 @@
 import numpy as np
-import PIL.Image as Image
 import matplotlib.pyplot as plt
 import ImageTools.VoxelProcessor as vp
 import ImageTools.Postprocessor as pop
 import ImageTools.Preprocessor as prp
+import cv2
 
 from ImageTools.Segmentation.TwoDimensional import KMeans2D as segmentor2D
 from multiprocessing import Pool
@@ -14,7 +14,7 @@ from tqdm import tqdm
 from Settings import SettingsManager as sm, FileManager as fm, MessageTools as mt
 from Settings.MessageTools import print_notice
 
-# pool = Pool()
+pool = Pool()
 
 global_voxels = None
 global_comparison_voxels = None
@@ -355,28 +355,12 @@ def load_images_from_list(file_list):
         t.refresh()  # to show immediately the update
         # Number of images, channels, height, width
 
-        img = Image.open(file_list[i])
+        img = cv2.imread(file_list[i])
 
         if img.size != (sm.image_resolution, sm.image_resolution):
-            img = img.resize((sm.image_resolution, sm.image_resolution), Image.ANTIALIAS)
+            img = cv2.resize(img, (sm.image_resolution, sm.image_resolution))
 
-        if "RGB" in img.mode:
-            r = None
-            g = None
-            b = None
-
-            if img.mode == "RGB":
-                r, g, b = img.split()
-            elif img.mode == "RGBA":
-                r, g, b, _ = img.split()
-
-            ra = np.array(r)
-            ga = np.array(g)
-            ba = np.array(b)
-
-            img = (0.299 * ra + 0.587 * ga + 0.114 * ba)
-
-        img = np.uint8(img / np.max(img) * 255.0)
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
 
         ims.append(img)
 

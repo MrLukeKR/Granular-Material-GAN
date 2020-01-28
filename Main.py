@@ -58,7 +58,7 @@ def get_core_image_stack(directory):
     binder_stack = im.load_images_from_directory(directory, "binder")
     aggregate_stack = im.load_images_from_directory(directory, "aggregate")
 
-    core = binder_stack + (aggregate_stack * 2)
+    core = [x // 2 + y for (x, y) in zip(binder_stack, aggregate_stack)]
 
     return core
 
@@ -132,8 +132,8 @@ def core_analysis_menu():
     core_id = core_selection_menu()
     core_directory = fm.get_directory(fm.SpecialFolder.SEGMENTED_SCANS) + core_id
 
-    if fm.current_directory[-1] != '/':
-        fm.current_directory += '/'
+    if core_directory[-1] != '/':
+        core_directory += '/'
 
     core = get_core_image_stack(core_directory)
 
