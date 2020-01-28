@@ -61,54 +61,54 @@ def segment_images():
         segments = list()
         clean_segments = list()
 
-        Logger.print("Segmenting images... ", end="", flush=True)
+        print_notice("Segmenting images... ", mt.MessagePrefix.INFORMATION, end="")
         #for ind, res in enumerate(pool.map(segmentor2D.segment_image, images)):
         for ind, res in enumerate(map(segmentor2D.segment_image, images)):
             voids.insert(ind, res[0])
             aggregates.insert(ind, res[1])
             binders.insert(ind, res[2])
             segments.insert(ind, res[3])
-        Logger.print("done!")
+        print("done!")
 
-        Logger.print("Post-processing Segment Collection...")
+        print_notice("Post-processing Segment Collection...", mt.MessagePrefix.INFORMATION)
 
         ENABLE_POSTPROCESSING = False
 
         if ENABLE_POSTPROCESSING:
-            Logger.print("\tCleaning Voids...", end="", flush=True)
+            print_notice("\tCleaning Voids... ", mt.MessagePrefix.INFORMATION, end="")
             for ind, res in enumerate(pool.map(pop.clean_segment, voids)):
                 clean_voids.insert(ind, res)
             voids = clean_voids
-            Logger.print("done!")
+            print("done!")
 
-            Logger.print("\tCleaning Aggregates...", end="", flush=True)
+            print_notice("\tCleaning Aggregates...", mt.MessagePrefix.INFORMATION, end="")
             for ind, res in enumerate(pool.map(pop.clean_segment, aggregates)):
                 clean_aggregates.insert(ind, res)
             aggregates = clean_aggregates
-            Logger.print("done!")
+            print("done!")
 
-            Logger.print("\tCleaning Binders...", end="", flush=True)
+            print_notice("\tCleaning Binders...", mt.MessagePrefix.INFORMATION, end="")
             for ind, res in enumerate(pool.map(pop.clean_segment, binders)):
                 clean_binders.insert(ind, res)
             binders = clean_binders
-            Logger.print("done!")
+            print("done!")
 
-            Logger.print("\tCleaning Segments...", end="", flush=True)
+            print_notice("\tCleaning Segments...", mt.MessagePrefix.INFORMATION, end="")
             for ind, res in enumerate(pool.map(pop.clean_segment, segments)):
                 clean_segments.insert(ind, res)
             segments = clean_segments
-            Logger.print("done!")
+            print("done!")
 
-        Logger.print("Saving segmented images... ", end='')
+        print_notice("Saving segmented images... ", mt.MessagePrefix.INFORMATION, end='')
         save_images(binders, "binder", fm.SpecialFolder.SEGMENTED_SCANS)
         save_images(aggregates, "aggregate", fm.SpecialFolder.SEGMENTED_SCANS)
         save_images(voids, "void", fm.SpecialFolder.SEGMENTED_SCANS)
         save_images(segments, "segment", fm.SpecialFolder.SEGMENTED_SCANS)
-        Logger.print("done!")
+        print("done!")
 
 
 def apply_preprocessing_pipeline(images):
-    Logger.print("Pre-processing Image Collection...")
+    print_notice("Pre-processing Image Collection...", mt.MessagePrefix.INFORMATION)
     processed_images = images
 
     processed_images = prp.reshape_images(processed_images, pool=pool)
@@ -134,9 +134,9 @@ def preprocess_images():
         images = load_images_from_directory(data_directory)
         images = apply_preprocessing_pipeline(images)
 
-        Logger.print("Saving processed images... ", end='')
+        print_notice("Saving processed images... ", mt.MessagePrefix.INFORMATION, end='')
         save_images(images, "processed_scan", fm.SpecialFolder.PROCESSED_SCANS)
-        Logger.print("done!")
+        print("done!")
 
 
 def save_plot(filename, save_location, root_directory, use_current_directory):
@@ -197,7 +197,7 @@ def save_image(image, root_directory, save_location, filename, use_current_direc
 
 
 def save_segmentation_plots(images, segments, voids, binders, aggregates):
-    Logger.print("Saving plots...")
+    print_notice("Saving plots...", mt.MessagePrefix.INFORMATION)
 
     fig, ax = plt.subplots(2, 3, figsize=(10, 5))
     for i in tqdm(range(len(images))):

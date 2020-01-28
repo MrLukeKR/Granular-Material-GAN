@@ -31,13 +31,9 @@ def crop_to_core(core):
     # differentiation, but very little difference when generating images
     print_notice("Labelling out-of-mould voids as background...", mt.MessagePrefix.INFORMATION)
     # TODO: Parallelise this
-    for i in range(len(cropped_core)):
-        voids = np.argwhere(cropped_core[i] == 0)
-        for (x, y) in voids:
-            if is_in_circle(enclosing_circle, (x, y)):
-                cropped_core[i, x, y] = 1
-            else:
-                cropped_core[i, x, y] = 0
+    for i in tqdm(range(len(cropped_core))):
+        for (x, y) in np.argwhere(cropped_core[i] == 0):
+            cropped_core[i, x, y] = int(is_in_circle(enclosing_circle, (x, y)))
 
     return cropped_core
 
