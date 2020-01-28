@@ -14,8 +14,8 @@ def crop_to_core(core):
         flattened_core = np.logical_or(flattened_core, mask_core[i])
 
     unique, counts = np.unique(flattened_core, return_counts=True)
-    print("Flattening Results: " + str(unique[0]) + " - " + str(counts[0]) +
-          ", " + str(unique[1]) + " - " + str(counts[1]))
+    print_notice("Flattening Results: " + str(unique[0]) + " - " + str(counts[0]) +
+                 ", " + str(unique[1]) + " - " + str(counts[1]), mt.MessagePrefix.DEBUG)
 
     print_notice("Cropping core to non-void content...", mt.MessagePrefix.INFORMATION)
     coords = np.argwhere(flattened_core)
@@ -27,13 +27,17 @@ def crop_to_core(core):
     print_notice("Generating bounding cylindrical mould...", mt.MessagePrefix.INFORMATION)
     enclosing_circle = make_circle(coords)
 
-    # Label voids outside of mould as "background" (-1)
+    # Label voids outside of mould as "background" (0); Internal voids are set to 1, which allows computational
+    # differentiation, but very little difference when generating images
     print_notice("Labelling out-of-mould voids as background...", mt.MessagePrefix.INFORMATION)
+    # TODO: Parallelise this
     for i in range(len(cropped_core)):
         voids = np.argwhere(cropped_core[i] == 0)
         for (x, y) in voids:
-            if not is_in_circle(enclosing_circle, (x, y)):
-                cropped_core[i, x, y] = -1
+            if is_in_circle(enclosing_circle, (x, y)):
+                cropped_core[i, x, y] = 1
+            else:
+                cropped_core[i, x, y] = 0
 
     return cropped_core
 

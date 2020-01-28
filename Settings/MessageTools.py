@@ -11,6 +11,7 @@ class MessagePrefix:
     WARNING = "[" + Fore.YELLOW + "WARNING" + Fore.RESET + "]",
     ERROR = "[" + Fore.RED + "ERROR" + Fore.RESET + "]",
     SUCCESS = "[" + Fore.GREEN + "SUCCESS" + Fore.RESET + "]",
+    DEBUG = "[" + Fore.MAGENTA + "DEBUG" + Fore.RESET + "]",
 
 
 def print_notice(message, message_type=MessagePrefix.INFORMATION, end="\r\n"):
