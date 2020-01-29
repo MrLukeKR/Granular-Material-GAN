@@ -1,9 +1,14 @@
+import numpy as np
+
 from tqdm import tqdm
 
-from ImageTools.SmallestEnclosingCircle import make_circle, is_in_circle
+from ImageTools.SmallestEnclosingCircle import make_circle
 from Settings import MessageTools as mt
 from Settings.MessageTools import print_notice
-import numpy as np
+from multiprocessing import Pool
+from ImageTools.CoreAnalysis.BackgroundFinder import find_background_pixels
+
+pool = Pool()
 
 
 def crop_to_core(core):
@@ -25,15 +30,15 @@ def crop_to_core(core):
 
     # Generate a bounding circle (acts as a flattened core mould)
     print_notice("Generating bounding cylindrical mould...", mt.MessagePrefix.INFORMATION)
-    enclosing_circle = make_circle(coords)
+    enclosed_circle = make_circle(coords)
 
     # Label voids outside of mould as "background" (0); Internal voids are set to 1, which allows computational
     # differentiation, but very little difference when generating images
     print_notice("Labelling out-of-mould voids as background...", mt.MessagePrefix.INFORMATION)
-    # TODO: Parallelise this
-    for i in tqdm(range(len(cropped_core))):
-        for (x, y) in np.argwhere(cropped_core[i] == 0):
-            cropped_core[i, x, y] = int(is_in_circle(enclosing_circle, (x, y)))
+    for ind, res in enumerate(pool.starmap(find_background_pixels, [(x, enclosed_circle) for x in cropped_core])):
+        np.copyto(cropped_core[ind], res)
+
+    pool.close()
 
     return cropped_core
 
@@ -53,7 +58,10 @@ def calculate_all(core):
 
 def calculate_composition(core):
     print_notice("Calculating Core Compositions...", mt.MessagePrefix.INFORMATION)
-    raise NotImplementedError
+
+    unique, counts = np.unique(core, return_counts=True)
+
+    return unique
 
 
 def calculate_tortuosity(core):

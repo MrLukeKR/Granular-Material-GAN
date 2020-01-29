@@ -3,7 +3,8 @@ import numpy as np
 # <<< Utilities
 
 # Image Processing >>>
-from ImageTools import VoxelProcessor as vp, ImageManager as im, CoreAnalyser as ca
+from ImageTools import VoxelProcessor as vp, ImageManager as im
+from ImageTools.CoreAnalysis import CoreAnalyser as ca
 from Settings import SettingsManager as sm
 from Settings import FileManager as fm
 from Settings import DatabaseManager as dm
