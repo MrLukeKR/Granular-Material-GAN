@@ -5,12 +5,11 @@ import scipy.signal as ss
 
 from Settings import MessageTools as mt
 from Settings.MessageTools import print_notice
-from ExperimentTools.MethodologyLogger import Logger
-from scipy import ndimage
+from skimage.restoration import denoise_tv_chambolle
 from tqdm import tqdm
 from sklearn.preprocessing import binarize
 from Settings import SettingsManager as sm
-from skimage import exposure, restoration
+from skimage import exposure
 
 
 def remove_empty_scans(images):
@@ -73,13 +72,9 @@ def normalise_image(image):
 def denoise_images(images, pool):
     fixed_images = list()
 
-    total = len(images)
-    curr = 0
-
     print_notice("\tDe-noising Images... ", mt.MessagePrefix.INFORMATION, end='')
     for ind, res in enumerate(pool.map(denoise_image, images)):
         fixed_images.insert(ind, res)
-        curr += 1
 
         if sm.configuration.get("ENABLE_IMAGE_SAVING") == "True":
             im.save_image(res, str(ind), "Pre-processing/De-Noised/", "De-Noised")
@@ -89,9 +84,8 @@ def denoise_images(images, pool):
 
 
 def denoise_image(image):
-    # return restoration.denoise_nl_means(image)
-    # return restoration.denoise_wavelet(image)
-    return ndimage.gaussian_filter(image, sigma=1)
+    img_denoise = denoise_tv_chambolle(image, weight=0.4)
+    return img_denoise
 
 
 def remove_anomalies(images):

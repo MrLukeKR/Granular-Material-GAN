@@ -1,6 +1,6 @@
 import os
 
-from colorama import Fore, Style, init
+from colorama import Fore, init
 
 init_complete = False
 using_pycharm = False if 'PYCHARM_HOSTED' in os.environ else None

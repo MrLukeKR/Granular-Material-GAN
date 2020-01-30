@@ -1,3 +1,5 @@
+import itertools
+
 import numpy as np
 import matplotlib.pyplot as plt
 import ImageTools.VoxelProcessor as vp
@@ -5,9 +7,9 @@ import ImageTools.Postprocessor as pop
 import ImageTools.Preprocessor as prp
 import cv2
 
-from ImageTools.Segmentation.TwoDimensional import KMeans2D as segmentor2D
+from ImageTools.ImageSaver import save_image
+from ImageTools.Segmentation.TwoDimensional import Otsu2D as segmentor2D
 from multiprocessing import Pool
-from ExperimentTools.MethodologyLogger import Logger
 from os import walk
 from matplotlib import cm
 from tqdm import tqdm
@@ -62,42 +64,43 @@ def segment_images():
         clean_segments = list()
 
         print_notice("Segmenting images... ", mt.MessagePrefix.INFORMATION, end="")
-        #for ind, res in enumerate(pool.map(segmentor2D.segment_image, images)):
-        for ind, res in enumerate(map(segmentor2D.segment_image, images)):
+
+        for ind, res in enumerate(pool.map(segmentor2D.segment_image, images)):
+        #for ind, res in enumerate(map(segmentor2D.segment_image, images)):
             voids.insert(ind, res[0])
             aggregates.insert(ind, res[1])
             binders.insert(ind, res[2])
             segments.insert(ind, res[3])
+
         print("done!")
 
         print_notice("Post-processing Segment Collection...", mt.MessagePrefix.INFORMATION)
 
-        ENABLE_POSTPROCESSING = False
-
-        if ENABLE_POSTPROCESSING:
+        if sm.configuration.get("ENABLE_POSTPROCESSING"):
             print_notice("\tCleaning Voids... ", mt.MessagePrefix.INFORMATION, end="")
-            for ind, res in enumerate(pool.map(pop.clean_segment, voids)):
+            for ind, res in enumerate(pool.map(pop.close_segment, voids)):
                 clean_voids.insert(ind, res)
             voids = clean_voids
             print("done!")
 
             print_notice("\tCleaning Aggregates...", mt.MessagePrefix.INFORMATION, end="")
-            for ind, res in enumerate(pool.map(pop.clean_segment, aggregates)):
+            for ind, res in enumerate(pool.map(pop.close_segment, aggregates)):
                 clean_aggregates.insert(ind, res)
             aggregates = clean_aggregates
             print("done!")
 
             print_notice("\tCleaning Binders...", mt.MessagePrefix.INFORMATION, end="")
-            for ind, res in enumerate(pool.map(pop.clean_segment, binders)):
+            for ind, res in enumerate(pool.map(pop.close_segment, binders)):
                 clean_binders.insert(ind, res)
             binders = clean_binders
             print("done!")
 
-            print_notice("\tCleaning Segments...", mt.MessagePrefix.INFORMATION, end="")
-            for ind, res in enumerate(pool.map(pop.clean_segment, segments)):
-                clean_segments.insert(ind, res)
-            segments = clean_segments
-            print("done!")
+
+            # print_notice("\tCleaning Segments...", mt.MessagePrefix.INFORMATION, end="")
+            # for ind, res in enumerate(pool.map(pop.close_segment, segments)):
+            #   clean_segments.insert(ind, res)
+            # segments = clean_segments
+            # print("done!")
 
         print_notice("Saving segmented images... ", mt.MessagePrefix.INFORMATION, end='')
         save_images(binders, "binder", fm.SpecialFolder.SEGMENTED_SCANS)
@@ -160,40 +163,16 @@ def save_plot(filename, save_location, root_directory, use_current_directory):
 
 
 def save_images(images, filename_pretext, root_directory, save_location="", use_current_directory=True):
-    ind = 0
+    image_count = len(images)
+    arguments = zip(images, itertools.repeat(fm.get_directory(root_directory), image_count),
+                    itertools.repeat(save_location + fm.current_directory, image_count),
+                    itertools.repeat(filename_pretext, image_count), itertools.repeat(len(str(len(images))), image_count),
+                    range(image_count), itertools.repeat(use_current_directory, image_count))
+    list_arg = list(arguments)
 
-    digits = len(str(len(images)))
-
-    for image in images:
-        preamble_digits = digits - len(str(ind))
-        preamble = '0' * preamble_digits
-        save_image(image, root_directory, save_location, filename_pretext + '_' + preamble + str(ind), use_current_directory)
-        ind += 1
-
-
-def save_image(image, root_directory, save_location, filename, use_current_directory=True):
-    if not isinstance(root_directory, fm.SpecialFolder):
-        raise TypeError("root_directory must be of enum type 'SpecialFolder'")
-
-    directory = fm.root_directories[root_directory.value]
-
-    if len(save_location) > 0:
-        directory += save_location
-
-    if use_current_directory:
-        directory += fm.current_directory
-
-    fm.create_if_not_exists(directory)
-
-    file_loc = directory + filename + '.' + sm.configuration.get("IO_IMAGE_FILETYPE")
-
-    if not fm.file_exists(file_loc):
-        if len(image.shape) != 2:
-            image = np.squeeze(image, 2)
-        if sm.USE_BW:
-            plt.imsave(file_loc, image, cmap='gray')
-        else:
-            plt.imsave(file_loc, image, cmap='jet')
+    with tqdm(range(image_count)) as bar:
+        for ind, res in enumerate(pool.starmap(save_image, list_arg)):
+            bar.update()
 
 
 def save_segmentation_plots(images, segments, voids, binders, aggregates):

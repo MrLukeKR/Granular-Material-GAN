@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 
 from tqdm import tqdm
@@ -19,8 +21,8 @@ def crop_to_core(core):
         flattened_core = np.logical_or(flattened_core, mask_core[i])
 
     unique, counts = np.unique(flattened_core, return_counts=True)
-    print_notice("Flattening Results: " + str(unique[0]) + " - " + str(counts[0]) +
-                 ", " + str(unique[1]) + " - " + str(counts[1]), mt.MessagePrefix.DEBUG)
+    print_notice("Flattening Results: Void = " + str(counts[0]) +
+                 ", Non-Void = " + str(counts[1]), mt.MessagePrefix.DEBUG)
 
     print_notice("Cropping core to non-void content...", mt.MessagePrefix.INFORMATION)
     coords = np.argwhere(flattened_core)
@@ -31,6 +33,10 @@ def crop_to_core(core):
     # Generate a bounding circle (acts as a flattened core mould)
     print_notice("Generating bounding cylindrical mould...", mt.MessagePrefix.INFORMATION)
     enclosed_circle = make_circle(coords)
+
+    mould_volume = ((math.pi * (enclosed_circle[2] ** 2)) * len(core))
+    print_notice("Mould volume: " + str(mould_volume) + " cubic microns", mt.MessagePrefix.DEBUG)
+    print_notice("Mould diameter: " + str(enclosed_circle[2] * 2) + " microns", mt.MessagePrefix.DEBUG)
 
     # Label voids outside of mould as "background" (0); Internal voids are set to 1, which allows computational
     # differentiation, but very little difference when generating images
@@ -47,11 +53,12 @@ def calculate_all(core):
     results = list()
 
     core = crop_to_core(core)
+    void_network = (core == 0)
 
     results.append(calculate_composition(core))
-    results.append(calculate_tortuosity(core))
-    results.append(calculate_euler_number(core))
     results.append(calculate_average_void_diameter(core))
+    results.append(calculate_euler_number(core))
+    results.append(calculate_tortuosity(void_network))
 
     return results
 
@@ -61,7 +68,20 @@ def calculate_composition(core):
 
     unique, counts = np.unique(core, return_counts=True)
 
-    return unique
+    total = sum(counts[1:])
+
+    print_notice("\tTotal Core Volume: " + str(total) + " cubic microns", mt.MessagePrefix.INFORMATION)
+
+    print_notice("\tVoid Content: " + str(counts[1]) + " cubic microns, " +
+                 str((counts[1] / total) * 100.0) + "% of total", mt.MessagePrefix.INFORMATION)
+
+    print_notice("\tBinder Content: " + str(counts[2]) + " cubic microns, " +
+                 str((counts[2] / total) * 100.0) + "% of total", mt.MessagePrefix.INFORMATION)
+
+    print_notice("\tAggregate Content: " + str(counts[3]) + " cubic microns, " +
+                 str((counts[3] / total) * 100.0) + "% of total", mt.MessagePrefix.INFORMATION)
+
+    return counts
 
 
 def calculate_tortuosity(core):

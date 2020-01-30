@@ -12,8 +12,8 @@ def segment_image(image):
 
     regions = np.digitize(image, bins=thresholds)
 
-    void = regions.min
-    aggregate = regions.max
-    binder = (regions.min < regions < regions.max)
+    void = regions == 0
+    binder = regions == 1
+    aggregate = regions == 2
 
     return void, aggregate, binder, regions
