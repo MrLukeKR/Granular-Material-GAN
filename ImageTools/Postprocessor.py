@@ -1,4 +1,4 @@
-from scipy.ndimage import binary_closing, binary_opening
+from scipy.ndimage import binary_closing, binary_opening, grey_closing, grey_opening
 
 from Settings import SettingsManager as sm
 from ExperimentTools.MethodologyLogger import Logger
@@ -7,11 +7,19 @@ import ImageTools.ImageManager as im
 
 
 def close_segment(image):
-    return binary_closing(image, iterations=0)
+    return binary_closing(image, iterations=1)
 
 
 def open_segment(image):
-    return binary_opening(image, iterations=0)
+    return binary_opening(image, iterations=1)
+
+
+def close_greyscale_segment(image):
+    return grey_closing(image)
+
+
+def open_greyscale_segment(image):
+    return grey_opening(image)
 
 
 def clean_segments(images, pool):

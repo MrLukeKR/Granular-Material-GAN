@@ -74,30 +74,35 @@ def segment_images():
 
         print("done!")
 
-        print_notice("Post-processing Segment Collection...", mt.MessagePrefix.INFORMATION)
-
         if sm.configuration.get("ENABLE_POSTPROCESSING"):
+            print_notice("Post-processing Segment Collection...", mt.MessagePrefix.INFORMATION)
+
             print_notice("\tCleaning Voids... ", mt.MessagePrefix.INFORMATION, end="")
             for ind, res in enumerate(pool.map(pop.open_segment, voids)):
                 clean_voids.insert(ind, res)
 
-            for ind, res in enumerate(pool.map(pop.close_segment, clean_voids)):
-                voids.insert(ind, res)
+            voids.clear()
 
+            for ind, res in enumerate(pool.map(pop.close_segment, clean_voids)):
+                clean_voids.insert(ind, res)
             print("done!")
 
-            print_notice("\tCleaning Aggregates...", mt.MessagePrefix.INFORMATION, end="")
+            print_notice("\tCleaning Aggregates... ", mt.MessagePrefix.INFORMATION, end="")
             for ind, res in enumerate(pool.map(pop.open_segment, aggregates)):
                 clean_aggregates.insert(ind, res)
+
+            aggregates.clear()
 
             for ind, res in enumerate(pool.map(pop.close_segment, clean_aggregates)):
                 aggregates.insert(ind, res)
 
             print("done!")
 
-            print_notice("\tCleaning Binders...", mt.MessagePrefix.INFORMATION, end="")
+            print_notice("\tCleaning Binders... ", mt.MessagePrefix.INFORMATION, end="")
             for ind, res in enumerate(pool.map(pop.open_segment, binders)):
                 clean_binders.insert(ind, res)
+
+            binders.clear()
 
             for ind, res in enumerate(pool.map(pop.close_segment, clean_binders)):
                 binders.insert(ind, res)
@@ -180,10 +185,9 @@ def save_images(images, filename_pretext, root_directory, save_location="", use_
                     range(image_count), itertools.repeat(use_current_directory, image_count))
     list_arg = list(arguments)
 
-    with tqdm(range(image_count)) as bar:
+    with tqdm(range(image_count), "Saving images '%s'" % filename_pretext) as bar:
         for ind, res in enumerate(pool.starmap(save_image, list_arg)):
             bar.update()
-            bar.refresh()
 
 
 def save_segmentation_plots(images, segments, voids, binders, aggregates):
