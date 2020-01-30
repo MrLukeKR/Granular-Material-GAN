@@ -1,3 +1,4 @@
+import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import ImageTools.ImageManager as im
@@ -9,7 +10,6 @@ from skimage.restoration import denoise_tv_chambolle
 from tqdm import tqdm
 from sklearn.preprocessing import binarize
 from Settings import SettingsManager as sm
-from skimage import exposure
 
 
 def remove_empty_scans(images):
@@ -60,13 +60,25 @@ def reshape_image(image):
     return reshaped
 
 
+def enhanced_contrast_images(images, pool):
+    enhanced_images = list()
+
+    print_notice("\tEnhancing Contrast... ", mt.MessagePrefix.INFORMATION, end='')
+    for ind, res in enumerate(pool.map(enhance_contract,images)):
+        enhanced_images.insert(ind, res)
+
+    print("done!")
+    return enhanced_images
+
+
+def enhance_contract(image):
+    return cv2.equalizeHist(image)
+
+
 def normalise_image(image):
-    n_image = exposure.equalize_hist(image)
+    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(30, 30))
 
-    p2, p98 = np.percentile(n_image, (2, 98))
-
-    n_image = exposure.rescale_intensity(n_image, in_range=(p2, p98))
-    return n_image
+    return clahe.apply(image)
 
 
 def denoise_images(images, pool):

@@ -1,5 +1,4 @@
-from scipy import ndimage
-from skimage.morphology import binary_closing, binary_opening
+from scipy.ndimage import binary_closing, binary_opening
 
 from Settings import SettingsManager as sm
 from ExperimentTools.MethodologyLogger import Logger
@@ -8,11 +7,11 @@ import ImageTools.ImageManager as im
 
 
 def close_segment(image):
-    return binary_closing(image)
+    return binary_closing(image, iterations=0)
 
 
 def open_segment(image):
-    return binary_opening(image)
+    return binary_opening(image, iterations=0)
 
 
 def clean_segments(images, pool):

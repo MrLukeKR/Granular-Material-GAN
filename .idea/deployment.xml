@@ -1,14 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" serverName="***REMOVED***@192.168.1.14:22">
+  <component name="PublishConfigData" autoUpload="Always" serverName="***REMOVED***">
     <serverData>
-      <paths name="Copy of project-level server '***REMOVED***'">
-        <serverdata>
-          <mappings>
-            <mapping deploy="/tmp/granular-material-gan" local="$PROJECT_DIR$" web="/" />
-          </mappings>
-        </serverdata>
-      </paths>
       <paths name="***REMOVED***">
         <serverdata>
           <mappings>
@@ -16,10 +9,10 @@
           </mappings>
         </serverdata>
       </paths>
-      <paths name="***REMOVED***@192.168.1.14:22">
+      <paths name="***REMOVED***@***REMOVED***:22">
         <serverdata>
           <mappings>
-            <mapping deploy="/tmp/granular-material-gan" local="$PROJECT_DIR$" />
+            <mapping local="$PROJECT_DIR$" web="/" />
           </mappings>
         </serverdata>
       </paths>

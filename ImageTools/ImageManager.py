@@ -78,21 +78,30 @@ def segment_images():
 
         if sm.configuration.get("ENABLE_POSTPROCESSING"):
             print_notice("\tCleaning Voids... ", mt.MessagePrefix.INFORMATION, end="")
-            for ind, res in enumerate(pool.map(pop.close_segment, voids)):
+            for ind, res in enumerate(pool.map(pop.open_segment, voids)):
                 clean_voids.insert(ind, res)
-            voids = clean_voids
+
+            for ind, res in enumerate(pool.map(pop.close_segment, clean_voids)):
+                voids.insert(ind, res)
+
             print("done!")
 
             print_notice("\tCleaning Aggregates...", mt.MessagePrefix.INFORMATION, end="")
-            for ind, res in enumerate(pool.map(pop.close_segment, aggregates)):
+            for ind, res in enumerate(pool.map(pop.open_segment, aggregates)):
                 clean_aggregates.insert(ind, res)
-            aggregates = clean_aggregates
+
+            for ind, res in enumerate(pool.map(pop.close_segment, clean_aggregates)):
+                aggregates.insert(ind, res)
+
             print("done!")
 
             print_notice("\tCleaning Binders...", mt.MessagePrefix.INFORMATION, end="")
-            for ind, res in enumerate(pool.map(pop.close_segment, binders)):
+            for ind, res in enumerate(pool.map(pop.open_segment, binders)):
                 clean_binders.insert(ind, res)
-            binders = clean_binders
+
+            for ind, res in enumerate(pool.map(pop.close_segment, clean_binders)):
+                binders.insert(ind, res)
+
             print("done!")
 
 
@@ -115,6 +124,7 @@ def apply_preprocessing_pipeline(images):
     processed_images = images
 
     processed_images = prp.reshape_images(processed_images, pool=pool)
+    processed_images = prp.enhanced_contrast_images(processed_images, pool=pool)
     processed_images = prp.normalise_images(processed_images, pool=pool)
     processed_images = prp.denoise_images(processed_images, pool=pool)
     # processed_images = itp.remove_empty_scans(processed_images)
@@ -173,6 +183,7 @@ def save_images(images, filename_pretext, root_directory, save_location="", use_
     with tqdm(range(image_count)) as bar:
         for ind, res in enumerate(pool.starmap(save_image, list_arg)):
             bar.update()
+            bar.refresh()
 
 
 def save_segmentation_plots(images, segments, voids, binders, aggregates):

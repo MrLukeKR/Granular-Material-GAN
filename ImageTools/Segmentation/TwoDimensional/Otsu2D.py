@@ -8,12 +8,15 @@ def segment_image(image):
         raise Exception("This segmentation method only accepts two-dimensional images. "
                         "The shape given is " + image.shape)
 
-    thresholds = threshold_multiotsu(image)
+    try:
+        thresholds = threshold_multiotsu(image)
+        regions = np.digitize(image, bins=thresholds)
 
-    regions = np.digitize(image, bins=thresholds)
-
-    void = regions == 0
-    binder = regions == 1
-    aggregate = regions == 2
+        void = regions == 0
+        binder = regions == 1
+        aggregate = regions == 2
+    except ValueError:
+        void = np.ones(image.shape)
+        aggregate = binder = regions = np.zeros(image.shape)
 
     return void, aggregate, binder, regions
