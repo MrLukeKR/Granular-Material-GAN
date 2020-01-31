@@ -64,7 +64,7 @@ def enhanced_contrast_images(images, pool):
     enhanced_images = list()
 
     print_notice("\tEnhancing Contrast... ", mt.MessagePrefix.INFORMATION, end='')
-    for ind, res in enumerate(pool.map(enhance_contract,images)):
+    for ind, res in enumerate(pool.map(enhance_contract, images)):
         enhanced_images.insert(ind, res)
 
     print("done!")
@@ -76,7 +76,7 @@ def enhance_contract(image):
 
 
 def normalise_image(image):
-    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(30, 30))
+    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(20, 20))
 
     return clahe.apply(image)
 

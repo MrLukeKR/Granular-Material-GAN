@@ -77,38 +77,30 @@ def segment_images():
         if sm.configuration.get("ENABLE_POSTPROCESSING"):
             print_notice("Post-processing Segment Collection...", mt.MessagePrefix.INFORMATION)
 
-            print_notice("\tCleaning Voids... ", mt.MessagePrefix.INFORMATION, end="")
-            for ind, res in enumerate(pool.map(pop.open_segment, voids)):
-                clean_voids.insert(ind, res)
-
-            voids.clear()
-
-            for ind, res in enumerate(pool.map(pop.close_segment, clean_voids)):
-                clean_voids.insert(ind, res)
-            print("done!")
-
             print_notice("\tCleaning Aggregates... ", mt.MessagePrefix.INFORMATION, end="")
-            for ind, res in enumerate(pool.map(pop.open_segment, aggregates)):
+#            for ind, res in enumerate(pool.map(pop.fill_holes, aggregates)):
+#                clean_aggregates.insert(ind, res)
+
+            for ind, res in enumerate(pool.map(pop.open_close_segment, aggregates)):
                 clean_aggregates.insert(ind, res)
 
-            aggregates.clear()
-
-            for ind, res in enumerate(pool.map(pop.close_segment, clean_aggregates)):
-                aggregates.insert(ind, res)
+            aggregates = clean_aggregates
 
             print("done!")
 
             print_notice("\tCleaning Binders... ", mt.MessagePrefix.INFORMATION, end="")
-            for ind, res in enumerate(pool.map(pop.open_segment, binders)):
+            for ind, res in enumerate(pool.map(pop.open_close_segment, binders)):
                 clean_binders.insert(ind, res)
 
-            binders.clear()
-
-            for ind, res in enumerate(pool.map(pop.close_segment, clean_binders)):
-                binders.insert(ind, res)
-
+            binders = np.logical_and(clean_binders, np.logical_not(clean_aggregates))
             print("done!")
 
+            print_notice("\tCleaning Voids... ", mt.MessagePrefix.INFORMATION, end="")
+            for ind, res in enumerate(pool.map(pop.open_close_segment, voids)):
+                clean_voids.insert(ind, res)
+
+            voids = np.logical_and(clean_voids, np.logical_or(np.logical_not(clean_aggregates), np.logical_not(clean_binders)))
+            print("done!")
 
             # print_notice("\tCleaning Segments...", mt.MessagePrefix.INFORMATION, end="")
             # for ind, res in enumerate(pool.map(pop.close_segment, segments)):
