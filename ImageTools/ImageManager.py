@@ -74,7 +74,7 @@ def segment_images():
 
         print("done!")
 
-        if sm.configuration.get("ENABLE_POSTPROCESSING"):
+        if sm.configuration.get("ENABLE_POSTPROCESSING") == "True":
             print_notice("Post-processing Segment Collection...", mt.MessagePrefix.INFORMATION)
 
             print_notice("\tCleaning Aggregates... ", mt.MessagePrefix.INFORMATION, end="")
@@ -123,7 +123,7 @@ def apply_preprocessing_pipeline(images):
     processed_images = prp.reshape_images(processed_images, pool=pool)
     processed_images = prp.enhanced_contrast_images(processed_images, pool=pool)
     processed_images = prp.normalise_images(processed_images, pool=pool)
-    processed_images = prp.denoise_images(processed_images, pool=pool)
+    #processed_images = prp.denoise_images(processed_images, pool=pool)
     # processed_images = itp.remove_empty_scans(processed_images)
     # processed_images = itp.remove_anomalies(processed_images)
     # processed_images = itp.remove_backgrounds(processed_images)

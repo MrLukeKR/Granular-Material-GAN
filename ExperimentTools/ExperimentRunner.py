@@ -47,7 +47,7 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture)
         fold_d_losses = list()
         fold_d_accuracies = list()
         fold_g_losses = list()
-        fold_g_mses = list
+        fold_g_mses = list()
 
         root_dir = fm.root_directories[fm.SpecialFolder.MODEL_DATA.value]
 
