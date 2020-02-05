@@ -1,9 +1,9 @@
 import math
-
 import numpy as np
+import porespy as ps
 
+from skimage.morphology import skeletonize_3d
 from tqdm import tqdm
-
 from ImageTools.SmallestEnclosingCircle import make_circle
 from Settings import MessageTools as mt
 from Settings.MessageTools import print_notice
@@ -54,11 +54,12 @@ def calculate_all(core):
 
     core = crop_to_core(core)
     void_network = (core == 0)
+    skeleton = skeletonize_3d(void_network)
 
     results.append(calculate_composition(core))
     results.append(calculate_average_void_diameter(core))
-    results.append(calculate_euler_number(core))
-    results.append(calculate_tortuosity(void_network))
+    results.append(calculate_euler_number(skeleton))
+    results.append(calculate_tortuosity(skeleton))
 
     return results
 
@@ -84,16 +85,31 @@ def calculate_composition(core):
     return counts
 
 
-def calculate_tortuosity(core):
-    print_notice("Calculating Core Tortuosity...", mt.MessagePrefix.INFORMATION)
-    raise NotImplementedError
-
-
-def calculate_euler_number(core):
-    print_notice("Calculating Core Euler Number...", mt.MessagePrefix.INFORMATION)
-    raise NotImplementedError
-
-
 def calculate_average_void_diameter(core):
     print_notice("Calculating Core Average Void Diameter...", mt.MessagePrefix.INFORMATION)
+    void_network = (core == 0)
+
+    raise NotImplementedError
+
+
+def get_skeleton(core):
+    core_array = np.array(core)
+    return skeletonize_3d(core_array)
+
+
+def calculate_tortuosity(core, core_is_skeleton=True):
+    print_notice("Calculating Core Tortuosity...", mt.MessagePrefix.INFORMATION)
+
+    if not core_is_skeleton:
+        core = skeletonize_3d(core)
+
+    raise NotImplementedError
+
+
+def calculate_euler_number(core, core_is_skeleton=True):
+    print_notice("Calculating Core Euler Number...", mt.MessagePrefix.INFORMATION)
+
+    if not core_is_skeleton:
+        core = get_skeleton(core)
+
     raise NotImplementedError

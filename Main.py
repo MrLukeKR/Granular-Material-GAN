@@ -5,6 +5,7 @@ import numpy as np
 # Image Processing >>>
 from ImageTools import VoxelProcessor as vp, ImageManager as im
 from ImageTools.CoreAnalysis import CoreAnalyser as ca
+from ImageTools.CoreAnalysis.CoreVisualiser import plot_core
 from Settings import SettingsManager as sm
 from Settings import FileManager as fm
 from Settings import DatabaseManager as dm
@@ -143,9 +144,12 @@ def core_analysis_menu():
     elif user_input == "2":
         ca.calculate_composition(core)
     elif user_input == "3":
-        ca.calculate_tortuosity(core)
+        skeleton = ca.get_skeleton(core)
+        plot_core(skeleton)
+        ca.calculate_tortuosity(skeleton)
     elif user_input == "4":
-        ca.calculate_euler_number(core)
+        skeleton = ca.get_skeleton(core)
+        ca.calculate_euler_number(skeleton)
     elif user_input == "5":
         ca.calculate_average_void_diameter(core)
 
