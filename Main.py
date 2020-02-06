@@ -1,5 +1,7 @@
 # Utilities >>>
 import numpy as np
+from multiprocessing.spawn import freeze_support
+from multiprocessing.pool import Pool
 # <<< Utilities
 
 # Image Processing >>>
@@ -22,6 +24,7 @@ from Settings.MessageTools import print_notice
 
 model_loaded = None
 architecture_loaded = None
+multiprocessing_pool = None
 
 
 def print_introduction():
@@ -138,6 +141,7 @@ def core_analysis_menu():
         core_directory += '/'
 
     core = get_core_image_stack(core_directory)
+    core = ca.crop_to_core(core, multiprocessing_pool)
 
     if user_input == "1":
         ca.calculate_all(core)
@@ -273,17 +277,20 @@ def main_menu():
 
 
 def main():
+    global multiprocessing_pool
+
+    multiprocessing_pool = Pool()
     setup()
 
     print("Please wait while data collections are processed...")
 
 # | DATA PREPARATION MODULE
     if sm.configuration.get("ENABLE_PREPROCESSING") == "True":
-        im.preprocess_images()
+        im.preprocess_images(multiprocessing_pool)
 
 # \-- | DATA LOADING SUB-MODULE
     if sm.configuration.get("ENABLE_SEGMENTATION") == "True":
-        im.segment_images()
+        im.segment_images(multiprocessing_pool)
 
     generate_voxels()
 # \-- | SEGMENT-TO-VOXEL CONVERSION SUB-MODULE
@@ -295,4 +302,5 @@ def main():
 
 
 if __name__ == "__main__":
+    freeze_support()
     main()

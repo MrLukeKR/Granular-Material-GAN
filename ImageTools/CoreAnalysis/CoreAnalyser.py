@@ -7,13 +7,10 @@ from tqdm import tqdm
 from ImageTools.SmallestEnclosingCircle import make_circle
 from Settings import MessageTools as mt
 from Settings.MessageTools import print_notice
-from multiprocessing import Pool
 from ImageTools.CoreAnalysis.BackgroundFinder import find_background_pixels
 
-pool = Pool()
 
-
-def crop_to_core(core):
+def crop_to_core(core, multiprocessing_pool):
     mask_core = [x != 0 for x in core]
     flattened_core = np.zeros(np.shape(core[0]))
 
@@ -41,10 +38,8 @@ def crop_to_core(core):
     # Label voids outside of mould as "background" (0); Internal voids are set to 1, which allows computational
     # differentiation, but very little difference when generating images
     print_notice("Labelling out-of-mould voids as background...", mt.MessagePrefix.INFORMATION)
-    for ind, res in enumerate(pool.starmap(find_background_pixels, [(x, enclosed_circle) for x in cropped_core])):
+    for ind, res in enumerate(multiprocessing_pool.starmap(find_background_pixels, [(x, enclosed_circle) for x in cropped_core])):
         np.copyto(cropped_core[ind], res)
-
-    pool.close()
 
     return cropped_core
 
@@ -52,7 +47,6 @@ def crop_to_core(core):
 def calculate_all(core):
     results = list()
 
-    core = crop_to_core(core)
     void_network = (core == 0)
     skeleton = skeletonize_3d(void_network)
 

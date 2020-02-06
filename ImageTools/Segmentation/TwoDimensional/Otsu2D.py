@@ -1,6 +1,5 @@
 import ImageTools.ImageManager as im
 import numpy as np
-from skimage.filters import threshold_multiotsu
 
 
 def segment_image(image):
@@ -9,6 +8,7 @@ def segment_image(image):
                         "The shape given is " + image.shape)
 
     try:
+        from skimage.filters import threshold_multiotsu
         thresholds = threshold_multiotsu(image)
         regions = np.digitize(image, bins=thresholds)
 

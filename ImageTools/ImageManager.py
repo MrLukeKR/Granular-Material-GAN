@@ -9,14 +9,11 @@ import cv2
 
 from ImageTools.ImageSaver import save_image
 from ImageTools.Segmentation.TwoDimensional import Otsu2D as segmentor2D
-from multiprocessing import Pool
 from os import walk
 from matplotlib import cm
 from tqdm import tqdm
 from Settings import SettingsManager as sm, FileManager as fm, MessageTools as mt
 from Settings.MessageTools import print_notice
-
-pool = Pool()
 
 global_voxels = None
 global_comparison_voxels = None
@@ -30,7 +27,7 @@ segmentedImages = list()
 supported_image_formats = ('.png', '.jpg', '.jpeg', '.tiff', '.tif', '.bmp', '.gif')
 
 
-def segment_images():
+def segment_images(multiprocessing_pool):
     existing_scans = set(fm.prepare_directories(fm.SpecialFolder.SEGMENTED_SCANS))
     existing_scans = list(map(lambda x: x.split('/')[-2], existing_scans))
 
@@ -65,7 +62,7 @@ def segment_images():
 
         print_notice("Segmenting images... ", mt.MessagePrefix.INFORMATION, end="")
 
-        for ind, res in enumerate(pool.map(segmentor2D.segment_image, images)):
+        for ind, res in enumerate(multiprocessing_pool.map(segmentor2D.segment_image, images)):
         #for ind, res in enumerate(map(segmentor2D.segment_image, images)):
             voids.insert(ind, res[0])
             aggregates.insert(ind, res[1])
@@ -81,7 +78,7 @@ def segment_images():
 #            for ind, res in enumerate(pool.map(pop.fill_holes, aggregates)):
 #                clean_aggregates.insert(ind, res)
 
-            for ind, res in enumerate(pool.map(pop.open_close_segment, aggregates)):
+            for ind, res in enumerate(multiprocessing_pool.map(pop.open_close_segment, aggregates)):
                 clean_aggregates.insert(ind, res)
 
             aggregates = clean_aggregates
@@ -89,14 +86,14 @@ def segment_images():
             print("done!")
 
             print_notice("\tCleaning Binders... ", mt.MessagePrefix.INFORMATION, end="")
-            for ind, res in enumerate(pool.map(pop.open_close_segment, binders)):
+            for ind, res in enumerate(multiprocessing_pool.map(pop.open_close_segment, binders)):
                 clean_binders.insert(ind, res)
 
             binders = np.logical_and(clean_binders, np.logical_not(clean_aggregates))
             print("done!")
 
             print_notice("\tCleaning Voids... ", mt.MessagePrefix.INFORMATION, end="")
-            for ind, res in enumerate(pool.map(pop.open_close_segment, voids)):
+            for ind, res in enumerate(multiprocessing_pool.map(pop.open_close_segment, voids)):
                 clean_voids.insert(ind, res)
 
             voids = np.logical_and(clean_voids, np.logical_or(np.logical_not(clean_aggregates), np.logical_not(clean_binders)))
@@ -116,13 +113,13 @@ def segment_images():
         print("done!")
 
 
-def apply_preprocessing_pipeline(images):
+def apply_preprocessing_pipeline(images, multiprocessing_pool):
     print_notice("Pre-processing Image Collection...", mt.MessagePrefix.INFORMATION)
     processed_images = images
 
-    processed_images = prp.reshape_images(processed_images, pool=pool)
-    processed_images = prp.enhanced_contrast_images(processed_images, pool=pool)
-    processed_images = prp.normalise_images(processed_images, pool=pool)
+    processed_images = prp.reshape_images(processed_images, pool=multiprocessing_pool)
+    processed_images = prp.enhanced_contrast_images(processed_images, pool=multiprocessing_pool)
+    processed_images = prp.normalise_images(processed_images, pool=multiprocessing_pool)
     #processed_images = prp.denoise_images(processed_images, pool=pool)
     # processed_images = itp.remove_empty_scans(processed_images)
     # processed_images = itp.remove_anomalies(processed_images)
@@ -131,7 +128,7 @@ def apply_preprocessing_pipeline(images):
     return processed_images
 
 
-def preprocess_images():
+def preprocess_images(multiprocessing_pool):
     existing_scans = set(fm.prepare_directories(fm.SpecialFolder.PROCESSED_SCANS))
     existing_scans = [x.split('/')[-2] for x in existing_scans]
 
@@ -141,11 +138,11 @@ def preprocess_images():
     for data_directory in fm.data_directories:
         fm.current_directory = data_directory.replace(fm.get_directory(fm.SpecialFolder.UNPROCESSED_SCANS), '')
 
-        images = load_images_from_directory(data_directory)
-        images = apply_preprocessing_pipeline(images)
+        images = load_images_from_directory(data_directory, multiprocessing_pool)
+        images = apply_preprocessing_pipeline(images, multiprocessing_pool)
 
         print_notice("Saving processed images... ", mt.MessagePrefix.INFORMATION, end='')
-        save_images(images, "processed_scan", fm.SpecialFolder.PROCESSED_SCANS)
+        save_images(images, "processed_scan", fm.SpecialFolder.PROCESSED_SCANS, multiprocessing_pool)
         print("done!")
 
 
@@ -169,7 +166,7 @@ def save_plot(filename, save_location, root_directory, use_current_directory):
             plt.savefig(file_loc, cmap='jet', dpi=int(sm.configuration.get("IO_OUTPUT_DPI")))
 
 
-def save_images(images, filename_pretext, root_directory, save_location="", use_current_directory=True):
+def save_images(images, filename_pretext, root_directory, multiprocessing_pool, save_location="", use_current_directory=True):
     image_count = len(images)
     arguments = zip(images, itertools.repeat(fm.get_directory(root_directory), image_count),
                     itertools.repeat(save_location + fm.current_directory, image_count),
@@ -178,7 +175,7 @@ def save_images(images, filename_pretext, root_directory, save_location="", use_
     list_arg = list(arguments)
 
     with tqdm(range(image_count), "Saving images '%s'" % filename_pretext) as bar:
-        for ind, res in enumerate(pool.starmap(save_image, list_arg)):
+        for ind, res in enumerate(multiprocessing_pool.starmap(save_image, list_arg)):
             bar.update()
 
 
@@ -272,7 +269,7 @@ def parallel_save(i):
     plt.close(fig)
 
 
-def save_voxel_image_collection(voxels, root_location, save_location="",
+def save_voxel_image_collection(voxels, root_location, multiprocessing_pool, save_location="",
                                 comparison_voxels=None, leftTitle=None, rightTitle=None):
     global global_voxels, global_comparison_voxels, directory, global_leftTitle, global_rightTitle
 
@@ -290,7 +287,7 @@ def save_voxel_image_collection(voxels, root_location, save_location="",
 
     fm.create_if_not_exists(directory)
 
-    pool.map(parallel_save, range(len(voxels)))
+    multiprocessing_pool.map(parallel_save, range(len(voxels)))
 
     global_voxels = None
     global_comparison_voxels = None
