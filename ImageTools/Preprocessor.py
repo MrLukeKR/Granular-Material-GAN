@@ -1,6 +1,8 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.ndimage import gaussian_filter
+
 import ImageTools.ImageManager as im
 import scipy.signal as ss
 
@@ -82,14 +84,18 @@ def normalise_image(image):
 
 
 def denoise_images(images, pool):
-    fixed_images = list()
-
     print_notice("\tDe-noising Images... ", mt.MessagePrefix.INFORMATION, end='')
-    for ind, res in enumerate(pool.map(denoise_image, images)):
-        fixed_images.insert(ind, res)
+    print_notice("\t\tPerforming 3D Gaussian Blur... ", mt.MessagePrefix.INFORMATION, end='')
+    gaussian_images = cv2.GaussianBlur(images, (1, 1, 1), 0)
 
-        if sm.configuration.get("ENABLE_IMAGE_SAVING") == "True":
-            im.save_image(res, str(ind), "Pre-processing/De-Noised/", "De-Noised")
+    if sm.configuration.get("ENABLE_IMAGE_SAVING") == "True":
+        im.save_images(gaussian_images, "gaussian_denoised", "Pre-processing/De-Noised/", pool)
+
+    print_notice("\t\tPerforming 3D Median Blur... ", mt.MessagePrefix.INFORMATION, end='')
+    fixed_images = cv2.medianBlur(images, (1, 1, 1))
+
+    if sm.configuration.get("ENABLE_IMAGE_SAVING") == "True":
+        im.save_images(gaussian_images, "gaussian_median_denoised", "Pre-processing/De-Noised/", pool)
 
     print("done!")
     return fixed_images
