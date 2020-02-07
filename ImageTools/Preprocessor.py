@@ -1,11 +1,11 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.ndimage import gaussian_filter
-
 import ImageTools.ImageManager as im
+import Settings.FileManager as fm
 import scipy.signal as ss
 
+from scipy.ndimage import gaussian_filter, median_filter
 from Settings import MessageTools as mt
 from Settings.MessageTools import print_notice
 from skimage.restoration import denoise_tv_chambolle
@@ -37,8 +37,9 @@ def normalise_images(images, pool):
     for ind, res in enumerate(pool.map(normalise_image, images)):
         fixed_images.insert(ind, res)
 
-        if sm.configuration.get("ENABLE_IMAGE_SAVING") == "True":
-            im.save_image(fixed_images[ind], str(ind), "Pre-processing/Normalised/")
+    if sm.configuration.get("ENABLE_IMAGE_SAVING") == "True":
+        im.save_images(fixed_images, "Normalised", fm.SpecialFolder.SCAN_DATA, pool,
+                       "Pre-Processed/Normalised/")
 
     print("done!")
     return fixed_images
@@ -84,18 +85,21 @@ def normalise_image(image):
 
 
 def denoise_images(images, pool):
-    print_notice("\tDe-noising Images... ", mt.MessagePrefix.INFORMATION, end='')
+    print_notice("\tDe-noising Images... ", mt.MessagePrefix.INFORMATION)
     print_notice("\t\tPerforming 3D Gaussian Blur... ", mt.MessagePrefix.INFORMATION, end='')
-    gaussian_images = cv2.GaussianBlur(images, (1, 1, 1), 0)
+    gaussian_images = gaussian_filter(images, 2)
 
     if sm.configuration.get("ENABLE_IMAGE_SAVING") == "True":
-        im.save_images(gaussian_images, "gaussian_denoised", "Pre-processing/De-Noised/", pool)
+        im.save_images(gaussian_images, "Gaussian", fm.SpecialFolder.SCAN_DATA, pool,
+                       "Pre-Processed/De-Noised/")
+    print("done!")
 
     print_notice("\t\tPerforming 3D Median Blur... ", mt.MessagePrefix.INFORMATION, end='')
-    fixed_images = cv2.medianBlur(images, (1, 1, 1))
+    fixed_images = median_filter(gaussian_images, 2)
 
     if sm.configuration.get("ENABLE_IMAGE_SAVING") == "True":
-        im.save_images(gaussian_images, "gaussian_median_denoised", "Pre-processing/De-Noised/", pool)
+        im.save_images(fixed_images, "Gaussian_Median", fm.SpecialFolder.SCAN_DATA, pool,
+                       "Pre-Processed/De-Noised/")
 
     print("done!")
     return fixed_images

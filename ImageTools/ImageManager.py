@@ -138,7 +138,7 @@ def preprocess_images(multiprocessing_pool):
     for data_directory in fm.data_directories:
         fm.current_directory = data_directory.replace(fm.get_directory(fm.SpecialFolder.UNPROCESSED_SCANS), '')
 
-        images = load_images_from_directory(data_directory, multiprocessing_pool)
+        images = load_images_from_directory(data_directory)
         images = apply_preprocessing_pipeline(images, multiprocessing_pool)
 
         print_notice("Saving processed images... ", mt.MessagePrefix.INFORMATION, end='')
@@ -174,9 +174,7 @@ def save_images(images, filename_pretext, root_directory, multiprocessing_pool, 
                     range(image_count), itertools.repeat(use_current_directory, image_count))
     list_arg = list(arguments)
 
-    with tqdm(range(image_count), "Saving images '%s'" % filename_pretext) as bar:
-        for ind, res in enumerate(multiprocessing_pool.starmap(save_image, list_arg)):
-            bar.update()
+    tqdm(multiprocessing_pool.starmap(save_image, list_arg), "Saving images...")
 
 
 def save_segmentation_plots(images, segments, voids, binders, aggregates):

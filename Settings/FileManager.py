@@ -21,6 +21,7 @@ class SpecialFolder(Enum):
     DATASET_DATA = 8
     LOGS = 9
     GENERATED_VOXEL_DATA = 10
+    SCAN_DATA = 11
 
 
 def check_folder_type(special_folder):
@@ -53,6 +54,8 @@ def get_settings_id(special_folder):
         return "IO_DATASET_ROOT_DIR"
     elif special_folder == SpecialFolder.LOGS:
         return "IO_LOG_ROOT_DIR"
+    elif special_folder == SpecialFolder.SCAN_DATA:
+        return "IO_SCAN_DIR"
     else:
         return "NONE"
 
@@ -115,12 +118,10 @@ def prepare_directories(special_folder):
 
 def create_if_not_exists(directory):
     if not path.exists(directory):
-        makedirs(directory)
-
-
-def create_file(filepath):
-    if not file_exists(filepath):
-        raise NotImplementedError
+        try:
+            makedirs(directory)
+        except FileExistsError:
+            pass
 
 
 def file_exists(filepath):
