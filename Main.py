@@ -288,6 +288,10 @@ def main():
     if sm.configuration.get("ENABLE_PREPROCESSING") == "True":
         im.preprocess_images(multiprocessing_pool)
 
+    fm.create_if_not_exists(fm.root_directories[fm.SpecialFolder.ROOT.value] +
+                            sm.configuration.get(fm.get_settings_id(fm.SpecialFolder.ROI_SCANS.value)))
+    im.extract_rois(multiprocessing_pool)
+
 # \-- | DATA LOADING SUB-MODULE
     if sm.configuration.get("ENABLE_SEGMENTATION") == "True":
         im.segment_images(multiprocessing_pool)

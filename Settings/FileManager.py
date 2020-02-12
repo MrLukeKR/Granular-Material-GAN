@@ -22,6 +22,7 @@ class SpecialFolder(Enum):
     LOGS = 9
     GENERATED_VOXEL_DATA = 10
     SCAN_DATA = 11
+    ROI_SCANS = 11
 
 
 def check_folder_type(special_folder):
@@ -56,6 +57,8 @@ def get_settings_id(special_folder):
         return "IO_LOG_ROOT_DIR"
     elif special_folder == SpecialFolder.SCAN_DATA:
         return "IO_SCAN_DIR"
+    elif special_folder == SpecialFolder.ROI_SCANS:
+        return "IO_ROI_SCAN_ROOT_DIR"
     else:
         return "NONE"
 
@@ -63,7 +66,7 @@ def get_settings_id(special_folder):
 def assign_special_folders():
     root_directories.insert(SpecialFolder.ROOT.value, sm.configuration.get(get_settings_id(SpecialFolder.ROOT)))
 
-    missing_key=False
+    missing_key = False
 
     for folder in SpecialFolder:
         if sm.configuration.get(get_settings_id(folder)) is None:

@@ -117,7 +117,7 @@ def apply_preprocessing_pipeline(images, multiprocessing_pool):
     print_notice("Pre-processing Image Collection...", mt.MessagePrefix.INFORMATION)
     processed_images = images
 
-    processed_images = prp.reshape_images(processed_images, pool=multiprocessing_pool)
+    # processed_images = prp.reshape_images(processed_images, pool=multiprocessing_pool)
     processed_images = prp.enhanced_contrast_images(processed_images, pool=multiprocessing_pool)
     processed_images = prp.normalise_images(processed_images, pool=multiprocessing_pool)
     processed_images = prp.denoise_images(processed_images, pool=multiprocessing_pool)
@@ -126,6 +126,52 @@ def apply_preprocessing_pipeline(images, multiprocessing_pool):
     # processed_images = itp.remove_backgrounds(processed_images)
 
     return processed_images
+
+
+def extract_rois(multiprocessing_pool, use_segmented=False):
+    existing_scans = set(fm.prepare_directories(fm.SpecialFolder.ROI_SCANS))
+    existing_scans = [x.split('/')[-2] for x in existing_scans]
+
+    if use_segmented:
+        fm.data_directories = list(d for d in fm.prepare_directories(fm.SpecialFolder.SEGMENTED_SCANS)
+                                   if d.split('/')[-2] not in existing_scans)
+    else:
+        fm.data_directories = list(d for d in fm.prepare_directories(fm.SpecialFolder.PROCESSED_SCANS)
+                                   if d.split('/')[-2] not in existing_scans)
+
+    for data_directory in fm.data_directories:
+        if use_segmented:
+            fm.current_directory = data_directory.replace(fm.get_directory(fm.SpecialFolder.SEGMENTED_SCANS), '')
+        else:
+            fm.current_directory = data_directory.replace(fm.get_directory(fm.SpecialFolder.PROCESSED_SCANS), '')
+
+        images = load_images_from_directory(data_directory)
+        images = extract_roi(np.array(images))
+        images = images.tolist()
+
+        print_notice("Saving Region of Interest (ROI) images... ", mt.MessagePrefix.INFORMATION, end='')
+        save_images(images, "roi", fm.SpecialFolder.ROI_SCANS, multiprocessing_pool)
+        print("done!")
+
+
+def extract_roi(core):
+    if isinstance(core, list):
+        core = np.array(core)
+
+    roi_size = tuple(map(int, sm.configuration.get("ROI_DIMENSIONS").split(',')))
+
+    start_pos = [0, 0, 0]
+    end_pos = [0, 0, 0]
+
+    centre_points = tuple(map(lambda x: x // 2, core.shape))
+
+    for i in range(3):
+        start_pos[i] = centre_points[i] - (roi_size[i] // 2)
+        end_pos[i] = centre_points[i] + (roi_size[i] // 2 - 1)
+
+    roi = core[start_pos[0]:end_pos[0], start_pos[1]:end_pos[1], start_pos[2]:end_pos[2]]
+
+    return roi
 
 
 def preprocess_images(multiprocessing_pool):
@@ -338,8 +384,8 @@ def load_images_from_list(file_list):
 
         img = cv2.imread(file_list[i])
 
-        if img.size != (sm.image_resolution, sm.image_resolution):
-            img = cv2.resize(img, (sm.image_resolution, sm.image_resolution))
+        #if img.size != (sm.image_resolution, sm.image_resolution):
+#            img = cv2.resize(img, (sm.image_resolution, sm.image_resolution))
 
         img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
 
