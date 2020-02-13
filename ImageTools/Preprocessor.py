@@ -63,7 +63,7 @@ def reshape_image(image, dimensions):
     if image.shape == dimensions:
         return image
 
-    reshaped = np.reshape(image, (dimensions[0], dimensions[1]))
+    reshaped = cv2.resize(image, dsize=(dimensions[1], dimensions[0]))
 
     return reshaped
 

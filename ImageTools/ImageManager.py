@@ -115,7 +115,7 @@ def segment_images(multiprocessing_pool):
 
 def apply_preprocessing_pipeline(images, multiprocessing_pool):
     print_notice("Pre-processing Image Collection...", mt.MessagePrefix.INFORMATION)
-    processed_images = np.asarray(images, dtype=np.uint8)
+    processed_images = images
 
     processed_images = prp.reshape_images(processed_images, pool=multiprocessing_pool)
     processed_images = prp.enhanced_contrast_images(processed_images, pool=multiprocessing_pool)
