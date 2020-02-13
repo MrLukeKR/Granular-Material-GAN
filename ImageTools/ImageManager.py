@@ -158,7 +158,29 @@ def extract_roi(core):
     if isinstance(core, list):
         core = np.array(core)
 
-    roi_size = tuple(map(int, sm.configuration.get("ROI_DIMENSIONS").split(',')))
+    roi_image_metric = sm.configuration.get("ROI_IMAGE_METRIC")
+    roi_depth_metric = sm.configuration.get("ROI_DEPTH_METRIC")
+
+    if roi_image_metric == "PERCENTAGE":
+        roi_percentages = [float(x) / 100 for x in sm.configuration.get("ROI_IMAGE_DIMENSIONS").split(',')]
+        roi_size = (int(roi_percentages[0] * core.shape[1]),
+                    int(roi_percentages[1] * core.shape[2]))
+    elif roi_image_metric == "PIXELS":
+        roi_size = tuple(map(int, sm.configuration.get("ROI_IMAGE_DIMENSIONS").split(',')))
+    elif roi_image_metric == "MILLIMETRES":
+        raise NotImplementedError
+    else:
+        print_notice("Invalid value for ROI Image Metric", mt.MessagePrefix.ERROR)
+        raise ValueError
+
+    if roi_depth_metric == "ABSOLUTE":
+        roi_size = (int(sm.configuration.get("ROI_DEPTH_DIMENSION")), roi_size[0], roi_size[1])
+    elif roi_depth_metric == "PERCENTAGE":
+        roi_percentage = float(sm.configuration.get("ROI_DEPTH_DIMENSION")) / 100
+        roi_size = (int(roi_percentage * core.shape[0]), roi_size[0], roi_size[1])
+    else:
+        print_notice("Invalid value for ROI Depth Metric", mt.MessagePrefix.ERROR)
+        raise ValueError
 
     start_pos = [0, 0, 0]
     end_pos = [0, 0, 0]
@@ -167,7 +189,7 @@ def extract_roi(core):
 
     for i in range(3):
         start_pos[i] = centre_points[i] - (roi_size[i] // 2)
-        end_pos[i] = centre_points[i] + (roi_size[i] // 2 - 1)
+        end_pos[i] = centre_points[i] + (roi_size[i] // 2)
 
     roi = core[start_pos[0]:end_pos[0], start_pos[1]:end_pos[1], start_pos[2]:end_pos[2]]
 
