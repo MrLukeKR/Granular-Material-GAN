@@ -129,6 +129,7 @@ def apply_preprocessing_pipeline(images, multiprocessing_pool):
 
 
 def extract_rois(multiprocessing_pool, use_segmented=False):
+    print_notice("Extracting Regions of Interest...", mt.MessagePrefix.INFORMATION)
     existing_scans = set(fm.prepare_directories(fm.SpecialFolder.ROI_SCANS))
     existing_scans = [x.split('/')[-2] for x in existing_scans]
 
@@ -147,7 +148,6 @@ def extract_rois(multiprocessing_pool, use_segmented=False):
 
         images = load_images_from_directory(data_directory)
         images = extract_roi(np.array(images))
-        images = images.tolist()
 
         print_notice("Saving Region of Interest (ROI) images... ", mt.MessagePrefix.INFORMATION, end='')
         save_images(images, "roi", fm.SpecialFolder.ROI_SCANS, multiprocessing_pool)

@@ -22,7 +22,7 @@ class SpecialFolder(Enum):
     LOGS = 9
     GENERATED_VOXEL_DATA = 10
     SCAN_DATA = 11
-    ROI_SCANS = 11
+    ROI_SCANS = 12
 
 
 def check_folder_type(special_folder):
