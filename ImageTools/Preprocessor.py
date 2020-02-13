@@ -1,3 +1,5 @@
+import statistics
+
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
@@ -47,18 +49,21 @@ def normalise_images(images, pool):
 
 def reshape_images(images, pool):
     reshaped_images = list()
+    dimensions = statistics.mode([x.shape for x in images])
 
     print_notice("\tReshaping Images... ", mt.MessagePrefix.INFORMATION, end='')
-    for ind, res in enumerate(pool.map(reshape_image, images)):
+    for ind, res in enumerate(pool.starmap(reshape_image, zip(images, [dimensions] * len(images)))):
         reshaped_images.insert(ind, res)
 
     print("done!")
     return reshaped_images
 
 
-def reshape_image(image):
-    shape = image.shape
-    reshaped = np.reshape(image, (shape[0], shape[1]))
+def reshape_image(image, dimensions):
+    if image.shape == dimensions:
+        return image
+
+    reshaped = np.reshape(image, (dimensions[0], dimensions[1]))
 
     return reshaped
 

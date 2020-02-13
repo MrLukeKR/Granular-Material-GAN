@@ -289,7 +289,7 @@ def main():
         im.preprocess_images(multiprocessing_pool)
 
     fm.create_if_not_exists(fm.root_directories[fm.SpecialFolder.ROOT.value] +
-                            sm.configuration.get(fm.get_settings_id(fm.SpecialFolder.ROI_SCANS.value)))
+                            sm.configuration.get(fm.get_settings_id(fm.SpecialFolder.ROI_SCANS)))
     im.extract_rois(multiprocessing_pool)
 
 # \-- | DATA LOADING SUB-MODULE
