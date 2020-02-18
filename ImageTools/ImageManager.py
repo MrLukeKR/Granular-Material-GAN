@@ -27,52 +27,49 @@ segmentedImages = list()
 supported_image_formats = ('.png', '.jpg', '.jpeg', '.tiff', '.tif', '.bmp', '.gif')
 
 
-def segment_images(multiprocessing_pool):
+def segment_images(multiprocessing_pool, use_rois=True):
+    print_notice("Starting Segmentation Phase...", mt.MessagePrefix.INFORMATION)
+
     existing_scans = set(fm.prepare_directories(fm.SpecialFolder.SEGMENTED_SCANS))
     existing_scans = list(map(lambda x: x.split('/')[-2], existing_scans))
 
-    fm.data_directories = list(d for d in fm.prepare_directories(fm.SpecialFolder.PROCESSED_SCANS)
+    fm.data_directories = list(d for d in fm.prepare_directories(
+        fm.SpecialFolder.ROI_SCANS if use_rois else fm.SpecialFolder.PROCESSED_SCANS)
                                if d.split('/')[-2] not in existing_scans)
+
+    if len(fm.data_directories) == 0:
+        print_notice("\tNothing to segment!", mt.MessagePrefix.INFORMATION)
+        return
 
     for data_directory in fm.data_directories:
         images = load_images_from_directory(data_directory)
-        fm.current_directory = data_directory.replace(fm.get_directory(fm.SpecialFolder.PROCESSED_SCANS), '')
+        fm.current_directory = data_directory.replace(fm.get_directory(
+            fm.SpecialFolder.ROI_SCANS if use_rois else fm.SpecialFolder.PROCESSED_SCANS), '')
 
         if not fm.current_directory.endswith('/'):
             fm.current_directory += '/'
         sm.images = images
 
-        #        ind = 0
-        #        for image in images:
-        #            im.save_image(image, str(ind), 'data/core/train/image/', False)
-        #            ind += 1
-
         # \-- | 2D DATA SEGMENTATION SUB-MODULE
-        voids = list()
-        clean_voids = list()
-
-        aggregates = list()
-        clean_aggregates = list()
-
-        binders = list()
-        clean_binders = list()
-
         segments = list()
-        clean_segments = list()
 
         print_notice("Segmenting images... ", mt.MessagePrefix.INFORMATION, end="")
 
         for ind, res in enumerate(multiprocessing_pool.map(segmentor2D.segment_image, images)):
-        #for ind, res in enumerate(map(segmentor2D.segment_image, images)):
-            voids.insert(ind, res[0])
-            aggregates.insert(ind, res[1])
-            binders.insert(ind, res[2])
-            segments.insert(ind, res[3])
+            segments.insert(ind, res)
 
         print("done!")
 
         if sm.configuration.get("ENABLE_POSTPROCESSING") == "True":
             print_notice("Post-processing Segment Collection...", mt.MessagePrefix.INFORMATION)
+            clean_voids = list()
+            clean_aggregates = list()
+            clean_binders = list()
+            clean_segments = list()
+
+            aggregates = [x == 2 for x in segments]
+            binders = [x == 1 for x in segments]
+            voids = [x == 0 for x in segments]
 
             print_notice("\tCleaning Aggregates... ", mt.MessagePrefix.INFORMATION, end="")
 #            for ind, res in enumerate(pool.map(pop.fill_holes, aggregates)):
@@ -92,24 +89,19 @@ def segment_images(multiprocessing_pool):
             binders = np.logical_and(clean_binders, np.logical_not(clean_aggregates))
             print("done!")
 
-            print_notice("\tCleaning Voids... ", mt.MessagePrefix.INFORMATION, end="")
-            for ind, res in enumerate(multiprocessing_pool.map(pop.open_close_segment, voids)):
-                clean_voids.insert(ind, res)
+            print_notice("\tRecombining Segments...", mt.MessagePrefix.INFORMATION, end="")
+            for i in range(len(clean_aggregates)):
+                clean_segment = np.zeros((len(aggregates[0]), len(aggregates[0][0])), dtype=np.uint8) \
+                                + aggregates[i] * 255 + (binders[i] * 127)
+                segments.insert(i, clean_segment)
 
-            voids = np.logical_and(clean_voids, np.logical_or(np.logical_not(clean_aggregates), np.logical_not(clean_binders)))
             print("done!")
 
-            # print_notice("\tCleaning Segments...", mt.MessagePrefix.INFORMATION, end="")
-            # for ind, res in enumerate(pool.map(pop.close_segment, segments)):
-            #   clean_segments.insert(ind, res)
-            # segments = clean_segments
-            # print("done!")
-
         print_notice("Saving segmented images... ", mt.MessagePrefix.INFORMATION, end='')
-        save_images(binders, "binder", fm.SpecialFolder.SEGMENTED_SCANS)
-        save_images(aggregates, "aggregate", fm.SpecialFolder.SEGMENTED_SCANS)
-        save_images(voids, "void", fm.SpecialFolder.SEGMENTED_SCANS)
-        save_images(segments, "segment", fm.SpecialFolder.SEGMENTED_SCANS)
+        #save_images(binders, "binder", fm.SpecialFolder.SEGMENTED_SCANS, multiprocessing_pool)
+        #save_images(aggregates, "aggregate", fm.SpecialFolder.SEGMENTED_SCANS, multiprocessing_pool)
+        #save_images(voids, "void", fm.SpecialFolder.SEGMENTED_SCANS, multiprocessing_pool)
+        save_images(segments, "segment", fm.SpecialFolder.SEGMENTED_SCANS, multiprocessing_pool)
         print("done!")
 
 
@@ -129,7 +121,8 @@ def apply_preprocessing_pipeline(images, multiprocessing_pool):
 
 
 def extract_rois(multiprocessing_pool, use_segmented=False):
-    print_notice("Extracting Regions of Interest...", mt.MessagePrefix.INFORMATION)
+    print_notice("Beginning Region of Interest Extraction Phase...", mt.MessagePrefix.INFORMATION)
+
     existing_scans = set(fm.prepare_directories(fm.SpecialFolder.ROI_SCANS))
     existing_scans = [x.split('/')[-2] for x in existing_scans]
 
@@ -139,6 +132,10 @@ def extract_rois(multiprocessing_pool, use_segmented=False):
     else:
         fm.data_directories = list(d for d in fm.prepare_directories(fm.SpecialFolder.PROCESSED_SCANS)
                                    if d.split('/')[-2] not in existing_scans)
+
+    if len(fm.data_directories) == 0:
+        print_notice("\tNothing to extract!", mt.MessagePrefix.INFORMATION)
+        return
 
     for data_directory in fm.data_directories:
         if use_segmented:
@@ -197,11 +194,17 @@ def extract_roi(core):
 
 
 def preprocess_images(multiprocessing_pool):
+    print_notice("Beginning Preprocessing Phase...", mt.MessagePrefix.INFORMATION)
+
     existing_scans = set(fm.prepare_directories(fm.SpecialFolder.PROCESSED_SCANS))
     existing_scans = [x.split('/')[-2] for x in existing_scans]
 
     fm.data_directories = list(d for d in fm.prepare_directories(fm.SpecialFolder.UNPROCESSED_SCANS)
                                if d.split('/')[-2] not in existing_scans)
+
+    if len(fm.data_directories) == 0:
+        print_notice("\tNothing to preprocess!", mt.MessagePrefix.INFORMATION)
+        return
 
     for data_directory in fm.data_directories:
         fm.current_directory = data_directory.replace(fm.get_directory(fm.SpecialFolder.UNPROCESSED_SCANS), '')
