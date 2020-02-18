@@ -62,37 +62,30 @@ def segment_images(multiprocessing_pool, use_rois=True):
 
         if sm.configuration.get("ENABLE_POSTPROCESSING") == "True":
             print_notice("Post-processing Segment Collection...", mt.MessagePrefix.INFORMATION)
-            clean_voids = list()
             clean_aggregates = list()
             clean_binders = list()
-            clean_segments = list()
-
-            aggregates = [x == 2 for x in segments]
-            binders = [x == 1 for x in segments]
-            voids = [x == 0 for x in segments]
+            aggregates = list()
 
             print_notice("\tCleaning Aggregates... ", mt.MessagePrefix.INFORMATION, end="")
-#            for ind, res in enumerate(pool.map(pop.fill_holes, aggregates)):
-#                clean_aggregates.insert(ind, res)
+            #for ind, res in enumerate(multiprocessing_pool.map(pop.fill_holes, [x == 2 for x in segments])):
+            #    clean_aggregates.insert(ind, res)
 
-            for ind, res in enumerate(multiprocessing_pool.map(pop.open_close_segment, aggregates)):
-                clean_aggregates.insert(ind, res)
-
-            aggregates = clean_aggregates
+            for ind, res in enumerate(multiprocessing_pool.map(pop.open_close_segment, [x == 2 for x in segments])):
+                aggregates.insert(ind, res)
 
             print("done!")
 
             print_notice("\tCleaning Binders... ", mt.MessagePrefix.INFORMATION, end="")
-            for ind, res in enumerate(multiprocessing_pool.map(pop.open_close_segment, binders)):
+            for ind, res in enumerate(multiprocessing_pool.map(pop.open_close_segment, [x == 1 for x in segments])):
                 clean_binders.insert(ind, res)
 
-            binders = np.logical_and(clean_binders, np.logical_not(clean_aggregates))
+            binders = np.logical_and(clean_binders, np.logical_not(aggregates))
             print("done!")
 
+            segments = list()
             print_notice("\tRecombining Segments...", mt.MessagePrefix.INFORMATION, end="")
             for i in range(len(clean_aggregates)):
-                clean_segment = np.zeros((len(aggregates[0]), len(aggregates[0][0])), dtype=np.uint8) \
-                                + aggregates[i] * 255 + (binders[i] * 127)
+                clean_segment = aggregates[i] * 255 + (binders[i] * 127)
                 segments.insert(i, clean_segment)
 
             print("done!")
