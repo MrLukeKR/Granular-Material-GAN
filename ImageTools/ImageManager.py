@@ -62,13 +62,12 @@ def segment_images(multiprocessing_pool, use_rois=True):
 
         if sm.configuration.get("ENABLE_POSTPROCESSING") == "True":
             print_notice("Post-processing Segment Collection...", mt.MessagePrefix.INFORMATION)
-            clean_aggregates = list()
             clean_binders = list()
             aggregates = list()
 
             print_notice("\tCleaning Aggregates... ", mt.MessagePrefix.INFORMATION, end="")
-            #for ind, res in enumerate(multiprocessing_pool.map(pop.fill_holes, [x == 2 for x in segments])):
-            #    clean_aggregates.insert(ind, res)
+            # for ind, res in enumerate(multiprocessing_pool.map(pop.fill_holes, [x == 2 for x in segments])):
+            #     clean_aggregates.insert(ind, res)
 
             for ind, res in enumerate(multiprocessing_pool.map(pop.open_close_segment, [x == 2 for x in segments])):
                 aggregates.insert(ind, res)
@@ -84,7 +83,7 @@ def segment_images(multiprocessing_pool, use_rois=True):
 
             segments = list()
             print_notice("\tRecombining Segments...", mt.MessagePrefix.INFORMATION, end="")
-            for i in range(len(clean_aggregates)):
+            for i in range(len(aggregates)):
                 clean_segment = aggregates[i] * 255 + (binders[i] * 127)
                 segments.insert(i, clean_segment)
 

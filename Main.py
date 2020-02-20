@@ -72,28 +72,24 @@ def generate_voxels():
     fm.data_directories = fm.prepare_directories(fm.SpecialFolder.SEGMENTED_SCANS)
 
     for data_directory in fm.data_directories:
-        printed_status = False
         fm.current_directory = data_directory.replace(fm.get_directory(fm.SpecialFolder.SEGMENTED_SCANS), '')
 
         voxel_directory = fm.get_directory(fm.SpecialFolder.VOXEL_DATA) + fm.current_directory[0:-1]
 
-        for segment in ("aggregate", "binder"):
-            filename = segment + '_' + sm.configuration.get("VOXEL_RESOLUTION")
+        filename = 'segment_' + sm.configuration.get("VOXEL_RESOLUTION")
 
-            if fm.file_exists(voxel_directory + '/' + filename + ".h5"):
-                continue
+        if fm.file_exists(voxel_directory + '/' + filename + ".h5"):
+            continue
 
-            if not printed_status:
-                Logger.print("Converting segments in '" + data_directory + "' to voxels...")
-                printed_status = True
+        print_notice("Converting segments in '" + data_directory + "' to voxels...", mt.MessagePrefix.INFORMATION)
 
-            Logger.print("\tLoading " + segment + " data...\r\n\t\t", end='')
-            images = im.load_images_from_directory(data_directory, segment)
-            voxels, dimensions = process_voxels(images)
+        print_notice("\tLoading segment data...\r\n\t\t", mt.MessagePrefix.INFORMATION, end='')
+        images = im.load_images_from_directory(data_directory, "segment")
+        voxels, dimensions = process_voxels(images)
 
-            Logger.print("\t\tSaving " + segment + " voxels...\r\n\t\t", end='')
-            vp.save_voxels(voxels, dimensions, voxel_directory, filename)
-            # im.save_voxel_image_collection(voxels, fm.SpecialFolder.VOXEL_DATA, "figures/" + segment)
+        print_notice("\t\tSaving segment voxels...\r\n\t\t", mt.MessagePrefix.INFORMATION, end='')
+        vp.save_voxels(voxels, dimensions, voxel_directory, filename)
+        # im.save_voxel_image_collection(voxels, fm.SpecialFolder.VOXEL_DATA, "figures/" + segment)
 
 
 def experiment_menu():

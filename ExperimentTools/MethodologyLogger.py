@@ -122,7 +122,7 @@ class Logger:
         if name is None:
             name = "figure_" + Logger.get_timestamp()
 
-        figure.save()
+        figure.save(name)
 
         pass
 

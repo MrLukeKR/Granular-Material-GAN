@@ -70,33 +70,33 @@ def volume_to_voxels(volume_data, cubic_dimension):
             voxel_count_x != int(voxel_count_x) or \
             voxel_count_y != int(voxel_count_y) or \
             voxel_count_z != int(voxel_count_z):
-        Logger.print("Voxel division resulted in a floating-point number:")
+        print_notice("Voxel division resulted in a floating-point number:", mt.MessagePrefix.INFORMATION)
 
         if str(sm.configuration.get("VOXEL_RESOLVE_METHOD")).upper() == "LOSSY":
-            Logger.print("\tUsing LOSSY solution")
+            print_notice("\tUsing LOSSY solution", mt.MessagePrefix.INFORMATION)
 
             voxel_count_x = math.floor(voxel_count_x)
             voxel_count_y = math.floor(voxel_count_y)
         elif str(sm.configuration.get("VOXEL_RESOLVE_METHOD")).upper() == "PADDING":
-            Logger.print("\tUsing PADDING solution")
+            print_notice("\tUsing PADDING solution", mt.MessagePrefix.INFORMATION)
 
             voxel_count_x = math.ceil(voxel_count_x)
             voxel_count_y = math.ceil(voxel_count_y)
         elif str(sm.configuration.get("VOXEL_RESOLVE_METHOD")).upper() == "EXTRAPOLATE":
-            Logger.print("\tEXTRAPOLATE method has not been implemented yet!")
-
+            print_notice("\tEXTRAPOLATE method has not been implemented yet!", mt.MessagePrefix.ERROR)
+            raise NotImplementedError
             # TODO: Write the extrapolating method of voxel segmentation
 
             pass
         elif str(sm.configuration.get("VOXEL_RESOLVE_METHOD")).upper() == "SHRINK":
-            Logger.print("\tSHRINK method has not been implemented yet!")
-
+            print_notice("\tSHRINK method has not been implemented yet!", mt.MessagePrefix.ERROR)
+            raise NotImplementedError
             # TODO: Write the shrinking method of voxel segmentation
 
             pass
         elif str(sm.configuration.get("VOXEL_RESOLVE_METHOD")).upper() == "STRETCH":
-            Logger.print("\tSTRETCH method has not been implemented yet!")
-
+            print_notice("\tSTRETCH method has not been implemented yet!", mt.MessagePrefix.ERROR)
+            raise NotImplementedError
             # TODO: Write the stretching method of voxel segmentation
 
             pass
@@ -117,7 +117,8 @@ def volume_to_voxels(volume_data, cubic_dimension):
             z_start = cubic_dimension * z
             z_end = z_start + cubic_dimension
             for y in range(voxel_count_y):
-                Logger.print(pretext + " Voxel [DEPTH " + str(z) + "][ROW " + str(y) + "][COL " + str(x) + "]", end='\r', flush=True)
+                print_notice(pretext + " Voxel [DEPTH " + str(z) + "][ROW " + str(y) + "][COL " + str(x) + "]",
+                             mt.MessagePrefix.INFORMATION, end='\r')
 
                 y_start = cubic_dimension * y
                 y_end = y_start + cubic_dimension
@@ -127,7 +128,8 @@ def volume_to_voxels(volume_data, cubic_dimension):
                 if voxel.shape != (cubic_dimension, cubic_dimension, cubic_dimension):
                     resolver = str(sm.configuration.get("VOXEL_RESOLVE_METHOD")).upper()
 
-                    Logger.print("FOUND NON-PERFECT VOXEL, RESOLVING WITH [" + resolver + "]...")
+                    print_notice("FOUND NON-PERFECT VOXEL, RESOLVING WITH [" + resolver + "]...",
+                                 mt.MessagePrefix.WARNING)
 
                     if resolver == "PADDING":
                         xPad = cubic_dimension - len(voxel)
@@ -147,9 +149,9 @@ def volume_to_voxels(volume_data, cubic_dimension):
                 if voxel.shape == (cubic_dimension, cubic_dimension, cubic_dimension):
                     voxels.append(voxel)
                 else:
-                    Logger.print("!-- ERROR: Voxel was invalid size --!")
+                    print_notice("!-- ERROR: Voxel was invalid size --!", mt.MessagePrefix.ERROR)
 
-    Logger.print(pretext + " done!")
+    print(pretext + " done!")
     return voxels, dimensions
 
 
