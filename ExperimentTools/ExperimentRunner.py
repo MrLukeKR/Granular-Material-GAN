@@ -79,8 +79,11 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture)
                 aggregates.extend(loaded_aggregates)
                 binders.extend(loaded_binders)
 
+            aggregates = np.array(aggregates)
+            binders = np.array(binders)
+
             # im.save_voxel_image_collection(aggregates[10:15], fm.SpecialFolder.VOXEL_DATA, "figures/PostH5/aggregate")
-            # im.save_voxel_image_collection(binders[10:15], fm.SpecialFolder.VOXEL_DATA, "figures/PostH5/binder")
+            # im.save_voxel_imagne_collection(binders[10:15], fm.SpecialFolder.VOXEL_DATA, "figures/PostH5/binder")
 
             Logger.print("\tTraining on set " + str(ind + 1) + '/' + str(len(training_sets[fold])) + "... ")
 

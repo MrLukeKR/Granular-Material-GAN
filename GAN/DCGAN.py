@@ -89,10 +89,16 @@ class Network(AbstractGAN.Network):
     @classmethod
     def train_network(cls, epochs, batch_size, features, labels):
         print_notice("Preparing feature/label matrices...", mt.MessagePrefix.INFORMATION)
-        features = np.asarray(features)
-        features = np.expand_dims(features, 4)
-        labels = np.asarray(labels)
-        labels = np.expand_dims(np.array(labels), 4)
+        if not isinstance(features, np.array):
+            features = np.asarray(features)
+        if not len(features.shape) == 4:
+            features = np.expand_dims(features, 4)
+
+        if not isinstance(labels, np.array):
+            labels = np.asarray(labels)
+
+        if not len(labels.shape) == 4:
+            labels = np.expand_dims(np.array(labels), 4)
         print_notice("Matrices are now ready for machine learning input", mt.MessagePrefix.SUCCESS)
 
         Logger.print("Training network with: " + str(epochs) + " EPOCHS, " + str(batch_size) + " BATCH SIZE")
