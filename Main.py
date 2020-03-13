@@ -60,12 +60,7 @@ def setup():
 
 
 def get_core_image_stack(directory):
-    binder_stack = im.load_images_from_directory(directory, "binder")
-    aggregate_stack = im.load_images_from_directory(directory, "aggregate")
-
-    core = [x // 2 + y for (x, y) in zip(binder_stack, aggregate_stack)]
-
-    return core
+    return im.load_images_from_directory(directory, "segment")
 
 
 def generate_voxels():
@@ -83,11 +78,11 @@ def generate_voxels():
 
         print_notice("Converting segments in '" + data_directory + "' to voxels...", mt.MessagePrefix.INFORMATION)
 
-        print_notice("\tLoading segment data...\r\n\t\t", mt.MessagePrefix.INFORMATION, end='')
+        print_notice("\tLoading segment data...", mt.MessagePrefix.INFORMATION)
         images = im.load_images_from_directory(data_directory, "segment")
         voxels, dimensions = process_voxels(images)
 
-        print_notice("\t\tSaving segment voxels...\r\n\t\t", mt.MessagePrefix.INFORMATION, end='')
+        print_notice("\tSaving segment voxels...", mt.MessagePrefix.INFORMATION)
         vp.save_voxels(voxels, dimensions, voxel_directory, filename)
         # im.save_voxel_image_collection(voxels, fm.SpecialFolder.VOXEL_DATA, "figures/" + segment)
 

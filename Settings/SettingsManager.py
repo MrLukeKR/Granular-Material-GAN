@@ -26,7 +26,7 @@ USE_BW = True
 
 
 def load_settings():
-    for line in open("Phase1.conf", "r"):
+    for line in open("Phase1_HomeRemote.conf", "r"):
         line = line.strip()
         if not len(line) == 0 and not line.startswith('#'):
             sanitised = line.replace('"', '')
