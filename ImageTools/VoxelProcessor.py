@@ -27,15 +27,8 @@ def load_materials(directory):
 
     voxel_directory = fm.get_directory(fm.SpecialFolder.VOXEL_DATA) + fm.current_directory[0:-1]
 
-    temp_aggregates, aggregate_dimensions = load_voxels(voxel_directory,
-                                                           "aggregate_" + sm.configuration.get("VOXEL_RESOLUTION"))
-    temp_binders, binder_dimensions = load_voxels(voxel_directory,
-                                                     "binder_" + sm.configuration.get("VOXEL_RESOLUTION"))
-
-    if aggregate_dimensions != binder_dimensions:
-        raise ValueError("Aggregate and binder core dimensions must be the same!")
-    else:
-        dimensions = aggregate_dimensions
+    temp_binders, temp_aggregates, dimensions = load_voxels(voxel_directory,
+                                                           "segment_" + sm.configuration.get("VOXEL_RESOLUTION"))
 
     for voxel_ind in range(len(temp_aggregates)):
         if np.min(temp_aggregates[voxel_ind]) != np.max(temp_aggregates[voxel_ind]) and \
@@ -175,15 +168,17 @@ def load_voxels(location, filename):
         raise FileNotFoundError("There is no voxel at '" + filepath + "'")
 
     h5f = h5py.File(filepath, 'r')
-    voxels = list()
+    binder_voxels = list()
+    aggregate_voxels = list()
     dimensions = [int(x) for x in tuple(list(h5f['dimensions']))]
 
     dataset = h5f['voxels']
-    voxels += list(voxel for voxel in dataset)
+    binder_voxels += list(voxel == 128 for voxel in dataset)
+    aggregate_voxels += list(voxel == 255 for voxel in dataset)
 
     h5f.close()
 
-    return voxels, dimensions
+    return binder_voxels, aggregate_voxels, dimensions
 
 
 def plot_voxel(voxel):
