@@ -91,13 +91,16 @@ class Network(AbstractGAN.Network):
         print_notice("Preparing feature/label matrices...", mt.MessagePrefix.INFORMATION)
         if isinstance(features, list):
             features = np.asarray(features)
-        if not len(features.shape) == 4:
-            features = np.expand_dims(features, 4)
+        if not len(features.shape) == 5:
+            if len(features.shape) > 5:
+                features = np.squeeze(features)
+            elif len(features.shape) == 4:
+                features = np.expand_dims(features, 4)
 
         if isinstance(labels, list):
             labels = np.asarray(labels)
 
-        if not len(labels.shape) == 4:
+        if not len(labels.shape) == 5:
             labels = np.expand_dims(np.array(labels), 4)
         print_notice("Matrices are now ready for machine learning input", mt.MessagePrefix.SUCCESS)
 
