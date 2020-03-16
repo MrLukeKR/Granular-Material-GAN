@@ -71,23 +71,27 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture)
             training_set = training_sets[fold][ind]
             Logger.current_set = ind
 
-            aggregates = list()
-            binders = list()
+            voxels = list()
 
             for directory in training_set:
-                dimensions, loaded_aggregates, loaded_binders = vp.load_materials(directory)
-                aggregates.extend(loaded_aggregates)
-                binders.extend(loaded_binders)
+                id = str.split(directory, '/')[-2]
+                voxel_directory = fm.get_directory(fm.SpecialFolder.VOXEL_DATA) + "/" + id + "/"
 
-            aggregates = np.array(aggregates)
-            binders = np.array(binders)
+                temp_voxels, dimensions = vp.load_voxels(voxel_directory, "segment_" + sm.configuration.get("VOXEL_RESOLUTION"))
+                voxels.extend(temp_voxels)
+
+            #voxels = np.array(voxels)
+            voxels = np.array(voxels, dtype=np.uint8)
+            aggregates = np.where(voxels == 255) * 255
+            binders = np.where(voxels == 128) * 255
 
             # im.save_voxel_image_collection(aggregates[10:15], fm.SpecialFolder.VOXEL_DATA, "figures/PostH5/aggregate")
             # im.save_voxel_imagne_collection(binders[10:15], fm.SpecialFolder.VOXEL_DATA, "figures/PostH5/binder")
 
             Logger.print("\tTraining on set " + str(ind + 1) + '/' + str(len(training_sets[fold])) + "... ")
 
-            d_loss, g_loss, images = DCGAN.Network.train_network(epochs, batch_size, aggregates, binders)
+            d_loss, g_loss, images = DCGAN.Network.train_network(epochs, batch_size,
+                                                                 aggregates, binders)
 
             directory = fm.get_directory(fm.SpecialFolder.RESULTS) + "/Figures/Experiment-" + str(Logger.experiment_id) + '/Training'
             fm.create_if_not_exists(directory)

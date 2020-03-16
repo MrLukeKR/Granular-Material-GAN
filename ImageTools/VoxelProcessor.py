@@ -27,8 +27,10 @@ def load_materials(directory):
 
     voxel_directory = fm.get_directory(fm.SpecialFolder.VOXEL_DATA) + fm.current_directory[0:-1]
 
-    temp_binders, temp_aggregates, dimensions = load_voxels(voxel_directory,
-                                                           "segment_" + sm.configuration.get("VOXEL_RESOLUTION"))
+    temp_voxels, dimensions = load_voxels(voxel_directory, "segment_" + sm.configuration.get("VOXEL_RESOLUTION"))
+
+    temp_aggregates = np.where(temp_voxels == 255) * 255
+    temp_binders = np.where(temp_voxels == 128) * 255
 
     for voxel_ind in range(len(temp_aggregates)):
         if np.min(temp_aggregates[voxel_ind]) != np.max(temp_aggregates[voxel_ind]) and \
@@ -168,17 +170,16 @@ def load_voxels(location, filename):
         raise FileNotFoundError("There is no voxel at '" + filepath + "'")
 
     h5f = h5py.File(filepath, 'r')
-    binder_voxels = list()
-    aggregate_voxels = list()
+
+    voxels = list()
     dimensions = [int(x) for x in tuple(list(h5f['dimensions']))]
 
     dataset = h5f['voxels']
-    binder_voxels += list(voxel == 128 for voxel in dataset)
-    aggregate_voxels += list(voxel == 255 for voxel in dataset)
+    voxels += list(voxel for voxel in dataset)
 
     h5f.close()
 
-    return binder_voxels, aggregate_voxels, dimensions
+    return voxels, dimensions
 
 
 def plot_voxel(voxel):

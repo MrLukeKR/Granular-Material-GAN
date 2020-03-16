@@ -104,6 +104,8 @@ def experiment_menu():
     if user_input.isnumeric() and 4 >= int(user_input) > 0:
         MethodologyLogger.Logger(fm.get_directory(fm.SpecialFolder.LOGS))
     if user_input == "1":
+        core_ids, split = data_selection_menu()
+        # TODO: Convert core_ids into data directories, then do a validation function call
         ExperimentRunner.run_k_fold_cross_validation_experiment(fm.data_directories, 10, architecture_loaded)
     elif user_input == "2":
         raise NotImplementedError
@@ -207,6 +209,62 @@ def run_model_menu():
     vp.save_voxels(generated_binders, dimensions, fm.get_directory(fm.SpecialFolder.GENERATED_VOXEL_DATA), "Test")
 
 
+def data_selection_menu():
+    valid = False
+
+    while not valid:
+        print("[1] All cores")
+        print("[2] Select cores by air void percentage")
+        print("[3] Select cores by ID")
+
+        user_input = input("Input your choice > ")
+        valid = True
+
+        if user_input == "1":
+            raise NotImplementedError
+        elif user_input == "2":
+            raise NotImplementedError
+        elif user_input == "3":
+            raise NotImplementedError
+        else:
+            valid = False
+            print_notice("Not a valid input choice!", mt.MessagePrefix.ERROR)
+
+    core_ids = list()
+
+    print(core_ids)
+
+    available_for_training = len(core_ids) - 1
+    user_input = 0
+
+    if available_for_training > 1:
+        user_input = input("How many cores from the available set should be used as the training set? (1-%s) > "
+                           % str(available_for_training))
+    elif available_for_training <= 0:
+        print_notice("There are not enough cores in this set to perform validation!", mt.MessagePrefix.ERROR)
+        return None, (0, 0)
+
+    split = (user_input, str(len(core_ids) - int(user_input)))
+
+    if available_for_training >= 1:
+        print_notice("Using %s cores for training, with %s cores for validation" % split, mt.MessagePrefix.INFORMATION)
+
+    return core_ids, split
+
+
+def core_visualisation_menu():
+
+    print("[1] Export core to 3D Object File (STL)")
+    print("[2] Export core to slice stack animation (Unprocessed/Processed/Segmented/ROI)")
+    print("[3] Export image processing plots")
+    print("[4] Export segmentation plots")
+    print("[5] Export voxel plots")
+
+    user_input = input("Input your choice > ")
+
+    raise NotImplementedError
+
+
 def main_menu():
     global model_loaded, architecture_loaded
 
@@ -230,6 +288,7 @@ def main_menu():
     print("[4] Train Model")
     print("[5] Run Model")
     print("[6] Core Analysis Tools")
+    print("[7] Core Visualisation Tools")
 
     print("")
     print("[EXIT] End program")
@@ -262,6 +321,8 @@ def main_menu():
             print_notice("Please load a model first!", mt.MessagePrefix.WARNING)
     elif user_input == "6":
         core_analysis_menu()
+    elif user_input == "7":
+        core_visualisation_menu()
 
     print("")
     return user_input
