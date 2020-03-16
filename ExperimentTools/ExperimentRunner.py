@@ -1,8 +1,11 @@
 import math
+from scipy import sparse
 import os
 
 from tensorflow_core.python.client import device_lib
 
+from Settings import MessageTools as mt
+from Settings.MessageTools import print_notice
 from ExperimentTools import DatasetProcessor, MethodologyLogger
 from GAN import DCGAN
 from Settings import FileManager as fm, SettingsManager as sm, MachineLearningManager as mlm, DatabaseManager as dm
@@ -74,7 +77,7 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture)
             voxels = list()
 
             for directory in training_set:
-                id = str.split(directory, '/')[-2]
+                id = str.split(directory, '/')[-1]
                 voxel_directory = fm.get_directory(fm.SpecialFolder.VOXEL_DATA) + "/" + id + "/"
 
                 temp_voxels, dimensions = vp.load_voxels(voxel_directory, "segment_" + sm.configuration.get("VOXEL_RESOLUTION"))
@@ -82,8 +85,19 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture)
 
             #voxels = np.array(voxels)
             voxels = np.array(voxels, dtype=np.uint8)
-            aggregates = np.where(voxels == 255) * 255
-            binders = np.where(voxels == 128) * 255
+            mt.print_notice("Voxel matrix uses %sGB of memory"
+                            % str(round((voxels.size * voxels.itemsize) / (1024 * 1024 * 1024), 2)),
+                            mt.MessagePrefix.DEBUG)
+
+            aggregates = np.squeeze(np.array([voxels == 255], dtype=np.uint8) * 255)
+            mt.print_notice("Aggregates matrix uses %sGB of memory"
+                            % str(round((aggregates.size * aggregates.itemsize) / (1024 * 1024 * 1024), 2)),
+                            mt.MessagePrefix.DEBUG)
+
+            binders = np.squeeze(np.array([voxels == 127], dtype=np.uint8) * 255)
+            mt.print_notice("Binders matrix uses %sGB of memory"
+                            % str(round((binders.size * binders.itemsize) / (1024 * 1024 * 1024), 2)),
+                            mt.MessagePrefix.DEBUG)
 
             # im.save_voxel_image_collection(aggregates[10:15], fm.SpecialFolder.VOXEL_DATA, "figures/PostH5/aggregate")
             # im.save_voxel_imagne_collection(binders[10:15], fm.SpecialFolder.VOXEL_DATA, "figures/PostH5/binder")

@@ -50,7 +50,7 @@ class Network(AbstractGAN.Network):
     def create_network(cls, data=None):
         if data is None:
             data = mlm.data_template
-        Logger.print("Initialising Generator Adversarial Network...")
+        Logger.print("Initialising Generative Adversarial Network...")
 
         vox_res = int(sm.configuration.get("VOXEL_RESOLUTION"))
 
@@ -89,12 +89,12 @@ class Network(AbstractGAN.Network):
     @classmethod
     def train_network(cls, epochs, batch_size, features, labels):
         print_notice("Preparing feature/label matrices...", mt.MessagePrefix.INFORMATION)
-        if not isinstance(features, np.array):
+        if isinstance(features, list):
             features = np.asarray(features)
         if not len(features.shape) == 4:
             features = np.expand_dims(features, 4)
 
-        if not isinstance(labels, np.array):
+        if isinstance(labels, list):
             labels = np.asarray(labels)
 
         if not len(labels.shape) == 4:

@@ -105,8 +105,16 @@ def experiment_menu():
         MethodologyLogger.Logger(fm.get_directory(fm.SpecialFolder.LOGS))
     if user_input == "1":
         core_ids, split = data_selection_menu()
-        # TODO: Convert core_ids into data directories, then do a validation function call
-        ExperimentRunner.run_k_fold_cross_validation_experiment(fm.data_directories, 10, architecture_loaded)
+
+        directories = [x[1] for x in dm.get_cores_from_database() if x[0] in core_ids]
+
+        fold_count = input("How many folds? > ")
+
+        # Do train phase
+        ExperimentRunner.run_k_fold_cross_validation_experiment(directories[:int(split[0])], int(fold_count), architecture_loaded)
+
+        # TODO: Do test phase
+        # ExperimentRunner.test_network(directories[int(split[0] + 1):], )
     elif user_input == "2":
         raise NotImplementedError
     elif user_input == "3":
@@ -212,27 +220,35 @@ def run_model_menu():
 def data_selection_menu():
     valid = False
 
+    cores = dm.get_cores_from_database()
+    core_ids = list()
+
     while not valid:
         print("[1] All cores")
-        print("[2] Select cores by air void percentage")
-        print("[3] Select cores by ID")
+        print("[2] Select cores by ID")
+        print("[3] Select cores by air void percentage")
+        print("[4] Select cores by mastic content percentage")
 
         user_input = input("Input your choice > ")
         valid = True
 
         if user_input == "1":
-            raise NotImplementedError
+            core_ids = [core[0] for core in cores]
         elif user_input == "2":
             raise NotImplementedError
         elif user_input == "3":
-            raise NotImplementedError
+            air_voids = set([core[2] for core in cores])
+            print(air_voids)
+        elif user_input == "4":
+            mastic_content = set([core[3] for core in cores])
+            print(mastic_content)
         else:
             valid = False
             print_notice("Not a valid input choice!", mt.MessagePrefix.ERROR)
 
-    core_ids = list()
-
-    print(core_ids)
+    if len(core_ids) == 0:
+        print_notice("No cores available for the given selection criteria", mt.MessagePrefix.ERROR)
+        return None, (0, 0)
 
     available_for_training = len(core_ids) - 1
     user_input = 0
@@ -246,8 +262,7 @@ def data_selection_menu():
 
     split = (user_input, str(len(core_ids) - int(user_input)))
 
-    if available_for_training >= 1:
-        print_notice("Using %s cores for training, with %s cores for validation" % split, mt.MessagePrefix.INFORMATION)
+    print_notice("Using %s cores for training, with %s cores for validation" % split, mt.MessagePrefix.INFORMATION)
 
     return core_ids, split
 
