@@ -54,7 +54,7 @@ def get_cores_from_database():
     return cores
 
 
-def populate_ctscan_database():
+def populate_ct_scan_database():
     db_cursor.execute("CREATE DATABASE IF NOT EXISTS ct_scans;")
     db_cursor.execute("USE ct_scans;")
     db_cursor.execute("CREATE TABLE IF NOT EXISTS asphalt_cores"
@@ -74,13 +74,13 @@ def populate_ctscan_database():
 
     ct_ids = [name for name in os.listdir(unprocessed_ct_directory)]
 
-    for id in ct_ids:
-        directory = unprocessed_ct_directory + id
+    for ct_id in ct_ids:
+        directory = unprocessed_ct_directory + ct_id
         sql = "INSERT INTO asphalt_cores(ID, ScanDirectory, Generated) " \
               "VALUES (%s, %s, FALSE) ON DUPLICATE KEY UPDATE ScanDirectory=%s;"
-        vals = (id, directory, directory)
+        values = (ct_id, directory, directory)
 
-        db_cursor.execute(sql, vals)
+        db_cursor.execute(sql, values)
 
 
 def initialise_machine_learning_database():
@@ -171,7 +171,7 @@ def initialise_database():
 
     print_notice("Initialising database... ", mt.MessagePrefix.INFORMATION,  end='')
     try:
-        populate_ctscan_database()
+        populate_ct_scan_database()
         initialise_machine_learning_database()
     except Exception as exc:
         print_notice(str(exc), mt.MessagePrefix.ERROR)

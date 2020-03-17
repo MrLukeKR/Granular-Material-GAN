@@ -4,7 +4,7 @@ import numpy as np
 from Settings import MessageTools as mt
 from ExperimentTools import DatasetProcessor
 from GAN import DCGAN
-from Settings import FileManager as fm, SettingsManager as sm, MachineLearningManager as mlm, DatabaseManager as dm
+from Settings import FileManager as fm, SettingsManager as sm, MachineLearningManager as mlm
 from ImageTools import VoxelProcessor as vp, ImageManager as im
 from ExperimentTools.MethodologyLogger import Logger
 from ExperimentTools import DataVisualiser as dv
@@ -53,8 +53,8 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture)
 
         filepath = root_dir + "Experiment-" + str(Logger.experiment_id) + '_' + "Fold-" + str(fold + 1) + '_'
 
-        discriminator_location = filepath + "discriminator.h5"
-        generator_location = filepath + "generator.h5"
+        discriminator_loc = filepath + "discriminator.h5"
+        generator_loc = filepath + "generator.h5"
 
         discriminator = mlm.create_discriminator(gen_settings)
         generator = mlm.create_generator(disc_settings)
@@ -74,10 +74,10 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture)
                 id = str.split(directory, '/')[-1]
                 voxel_directory = fm.compile_directory(fm.SpecialFolder.VOXEL_DATA) + id + "/"
 
-                temp_voxels, dimensions = vp.load_voxels(voxel_directory, "segment_" + sm.configuration.get("VOXEL_RESOLUTION"))
+                temp_voxels, dimensions = vp.load_voxels(voxel_directory,
+                                                         "segment_" + sm.configuration.get("VOXEL_RESOLUTION"))
                 voxels.extend(temp_voxels)
 
-            #voxels = np.array(voxels)
             voxels = np.array(voxels, dtype=np.uint8)
             mt.print_notice("Voxel matrix uses %sGB of memory"
                             % str(round((voxels.size * voxels.itemsize) / (1024 * 1024 * 1024), 2)),
@@ -85,23 +85,25 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture)
 
             aggregates = np.squeeze(np.array([voxels == 255], dtype=np.uint8) * 255)
             mt.print_notice("Aggregates matrix uses %sGB of memory"
-                            % str(round((aggregates.size * aggregates.itemsize) / (1024 * 1024 * 1024), 2)),
+                            % str(round((aggregates.size * aggregates.itemsize) / (1024 ** 3), 2)),
                             mt.MessagePrefix.DEBUG)
 
             binders = np.squeeze(np.array([voxels == 127], dtype=np.uint8) * 255)
             mt.print_notice("Binders matrix uses %sGB of memory"
-                            % str(round((binders.size * binders.itemsize) / (1024 * 1024 * 1024), 2)),
+                            % str(round((binders.size * binders.itemsize) / (1024 ** 3), 2)),
                             mt.MessagePrefix.DEBUG)
 
-            # im.save_voxel_image_collection(aggregates[10:15], fm.SpecialFolder.VOXEL_DATA, "figures/PostH5/aggregate")
-            # im.save_voxel_imagne_collection(binders[10:15], fm.SpecialFolder.VOXEL_DATA, "figures/PostH5/binder")
+            mt.print_notice("Freeing voxel matrix memory... ", mt.MessagePrefix.DEBUG, end='')
+            del voxels
+            print("done!")
 
             Logger.print("\tTraining on set " + str(ind + 1) + '/' + str(len(training_sets[fold])) + "... ")
 
             d_loss, g_loss, images = DCGAN.Network.train_network(epochs, batch_size,
                                                                  aggregates, binders)
 
-            directory = fm.get_directory(fm.SpecialFolder.RESULTS) + "/Figures/Experiment-" + str(Logger.experiment_id) + '/Training'
+            filename = "Experiment-" + str(Logger.experiment_id)
+            directory = fm.compile_directory(fm.SpecialFolder.FIGURES) + filename + '/Training'
             fm.create_if_not_exists(directory)
 
             buff_ind = '0' * (len(str(len(training_set))) - len(str(ind))) + str(ind)
@@ -113,10 +115,10 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture)
             fold_g_losses.append(g_loss[0])
             fold_g_mses.append(g_loss[1])
 
-            generator.model.save_weights(generator_location)
-            discriminator.model.save_weights(discriminator_location)
+            generator.model.save_weights(generator_loc)
+            discriminator.model.save_weights(discriminator_loc)
 
-            instance_id = Logger.log_model_instance_to_database(architecture_id, generator_location, discriminator_location)
+            instance_id = Logger.log_model_instance_to_database(architecture_id, generator_loc, discriminator_loc)
             Logger.log_model_experiment_to_database(Logger.experiment_id, instance_id)
 
         test_network(testing_sets, fold, DCGAN.Network.generator)
@@ -164,47 +166,31 @@ def test_network(testing_sets, fold, test_generator):
 
             results = list(test_generator.predict(test) * 255)
 
-            directory = fm.get_directory(fm.SpecialFolder.RESULTS) + "/Figures/Experiment-" + str(
-                Logger.experiment_id) + "/Outputs"
-            fm.create_if_not_exists(directory)
+            experiment_id = "Experiment-" + str(Logger.experiment_id)
+            fold_id = "_Fold-" + str(fold)
 
-            DISPLAY_VOXELS = False
+            directory = fm.compile_directory(fm.SpecialFolder.FIGURES) + experiment_id + "/Outputs/"
+            fm.create_if_not_exists(directory)
 
             vp.save_voxels(results, dimensions, fm.SpecialFolder.GENERATED_VOXEL_DATA, "Test")
 
-            if DISPLAY_VOXELS:
-                 for ind in range(len(results)):
-                     fig = im.plt.figure(figsize=(10, 5))
-                     ax_expected = fig.add_subplot(1, 2, 1, projection='3d')
-                     ax_expected.title.set_text("Expected")
+            if all(setting == "True" for setting in
+                   [sm.configuration.get("ENABLE_IMAGE_DISPLAY"), sm.configuration.get("ENABLE_VOXEL_DISPLAY")]):
+                for ind in range(len(results)):
+                    fig = im.plt.figure(figsize=(10, 5))
+                    ax_expected = fig.add_subplot(1, 2, 1, projection='3d')
+                    ax_expected.title.set_text("Expected")
 
-                     ax_actual = fig.add_subplot(1, 2, 2, projection='3d')
-                     ax_actual.title.set_text("Actual")
+                    ax_actual = fig.add_subplot(1, 2, 2, projection='3d')
+                    ax_actual.title.set_text("Actual")
 
-                     ax_expected.voxels(test_aggregates[ind], facecolors='w', edgecolors='w')
-                     ax_expected.voxels(test_binders[ind], facecolors='k', edgecolors='k')
+                    ax_expected.voxels(test_aggregates[ind], facecolors='w', edgecolors='w')
+                    ax_expected.voxels(test_binders[ind], facecolors='k', edgecolors='k')
 
-                     ax_actual.voxels(test_aggregates[ind], facecolors='w', edgecolors='w')
-                     ax_actual.voxels(np.squeeze(results[ind]), facecolors='k', edgecolors='k')
+                    ax_actual.voxels(test_aggregates[ind], facecolors='w', edgecolors='w')
+                    ax_actual.voxels(np.squeeze(results[ind]), facecolors='k', edgecolors='k')
 
-                     im.plt.gcf().savefig(directory + '/Experiment-' + str(Logger.experiment_id) + '_Fold-' + str(
-                            fold) + '_Voxel-' + str(ind) + '.jpg')
-                     im.plt.close(im.plt.gcf())
+                    voxel_id = "_Voxel-" + str(ind)
 
-
-def run_on_existing_gan(aggregates, binders):
-    # discriminator, generator = mlm.load_network()
-    #
-    # if discriminator is None or generator is None:
-    #     discriminator = DCGAN.DCGANDiscriminator(aggregates, 2, 5)
-    #     generator = DCGAN.DCGANGenerator(aggregates, 2, 5)
-    #
-    # DCGAN.Network._discriminator = discriminator
-    # DCGAN.Network._generator = generator
-    #
-    # network = DCGAN.Network.create_network(aggregates)
-    #
-    # batch_size = 32
-    #
-    # DCGAN.Network.train_network(int(len(aggregates) / batch_size), batch_size, aggregates, binders)
-    pass
+                    im.plt.gcf().savefig(directory + experiment_id + fold_id + voxel_id + '.jpg')
+                    im.plt.close(im.plt.gcf())

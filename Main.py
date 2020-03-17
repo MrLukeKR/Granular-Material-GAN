@@ -105,16 +105,16 @@ def experiment_menu():
     user_input = input("Enter your menu choice > ")
     
     if user_input.isnumeric() and 4 >= int(user_input) > 0:
-        MethodologyLogger.Logger(fm.get_directory(fm.SpecialFolder.LOGS))
+        MethodologyLogger.Logger(fm.compile_directory(fm.SpecialFolder.LOGS))
     if user_input == "1":
         core_ids, split = data_selection_menu()
 
         directories = [x[2] for x in dm.get_cores_from_database() if x[0] in core_ids]
 
-        fold_count = input("How many folds? > ")
+        fold_count = int(input("How many folds? > "))
 
         # Do train phase
-        ExperimentRunner.run_k_fold_cross_validation_experiment(directories[:int(split[0])], int(fold_count), architecture_loaded)
+        ExperimentRunner.run_k_fold_cross_validation_experiment(directories[:int(split[0])], fold_count, architecture_loaded)
 
         # TODO: Do test phase
         # ExperimentRunner.test_network(directories[int(split[0] + 1):], )

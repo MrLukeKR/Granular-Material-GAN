@@ -22,6 +22,7 @@ class SpecialFolder(Enum):
     GENERATED_CORE_DATA = 11
     SCAN_DATA = 12
     ROI_SCANS = 13
+    FIGURES = 14
 
 
 data_directories = []
@@ -46,7 +47,8 @@ directory_ids = {
     SpecialFolder.LOGS: "IO_LOG_ROOT_DIR",
 
     SpecialFolder.GENERATED_VOXEL_DATA: "IO_GENERATED_VOXEL_ROOT_DIR",
-    SpecialFolder.GENERATED_CORE_DATA: "IO_GENERATED_CORE_ROOT_DIR"
+    SpecialFolder.GENERATED_CORE_DATA: "IO_GENERATED_CORE_ROOT_DIR",
+    SpecialFolder.FIGURES: "IO_FIGURES_ROOT_DIR"
 }
 
 
@@ -70,14 +72,15 @@ def initialise_directory_tree():
         Node(folder, parent=experiments)
 
     for folder in [SpecialFolder.GENERATED_CORE_DATA,
-                   SpecialFolder.GENERATED_VOXEL_DATA]:
+                   SpecialFolder.GENERATED_VOXEL_DATA,
+                   SpecialFolder.FIGURES]:
         Node(folder, parent=results)
 
     for pre, fill, node in RenderTree(directory_tree):
         print_notice("%s%s" % (pre, node.name), mt.MessagePrefix.DEBUG)
 
 
-def compile_directory(child_directory, add_scan_type=True):
+def compile_directory(child_directory, force_add_scan_type=False, add_scan_type_if_leaf=True):
     if not isinstance(child_directory, SpecialFolder):
         print_notice("Given directory is not of type SpecialFolder!", mt.MessagePrefix.ERROR)
 
@@ -89,7 +92,7 @@ def compile_directory(child_directory, add_scan_type=True):
         compiled_directory += get_directory(directory.name) + '/'
     compiled_directory += get_directory(child_directory) + '/'
 
-    if add_scan_type:
+    if force_add_scan_type or (add_scan_type_if_leaf and node.is_leaf):
         compiled_directory += sm.configuration.get("IO_SCAN_TYPE") + '/'
 
     return compiled_directory

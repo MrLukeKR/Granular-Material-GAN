@@ -154,11 +154,8 @@ class Network(AbstractGAN.Network):
             else:
                 g_loss = cls.adversarial.train_on_batch(features[idx], [labels[idx], valid])
 
-            Logger.print("%d [DIS loss: %f, acc: %.2f%%] [GEN loss: %f, mse: %f]" % (epoch,
-                                                                              d_loss[0],
-                                                                              100 * d_loss[1],
-                                                                              g_loss[0],
-                                                    g_loss[1]))
+            Logger.print("%d [DIS loss: %f, acc: %.2f%%] [GEN loss: %f, mse: %f]"
+                         % (epoch, d_loss[0], 100 * d_loss[1], g_loss[0], g_loss[1]))
 
             discriminator_losses.append(d_loss[0])
             discriminator_accuracies.append(d_loss[1])
@@ -267,13 +264,12 @@ class DCGANGenerator:
         z = len(voxels[0][0][0])
         w = len(voxels)
 
-        channels = 1 # TODO: Make this variable from the settings file
+        channels = 1  # TODO: Make this variable from the settings file
 
         print_notice("\t\t Input size is: " + str(w) + " (" + str(x) + " * " + str(y) + " * " + str(z) + ") voxels",
                      mt.MessagePrefix.INFORMATION)
 
         voxel_shape = (x, y, z, channels)
-
 
         # START MODEL BUILDING
 
@@ -281,15 +277,18 @@ class DCGANGenerator:
 
         for level in range(0, encoder_levels):
             if level == 0:
-                model.add(Conv3D(initial_filters * (pow(2, level)), kernel_size=kernel_size, strides=strides, input_shape=voxel_shape, padding="same"))
+                model.add(Conv3D(initial_filters * (pow(2, level)),
+                                 kernel_size=kernel_size, strides=strides, input_shape=voxel_shape, padding="same"))
             else:
-                model.add(Conv3D(initial_filters * (pow(2, level)), kernel_size=kernel_size, strides=strides, padding="same"))
+                model.add(Conv3D(initial_filters * (pow(2, level)),
+                                 kernel_size=kernel_size, strides=strides, padding="same"))
             model.add(LeakyReLU(alpha=activation_alpha))
             if ENABLE_NORMALISATION:
                 model.add(BatchNormalization(momentum=normalisation_momentum))
 
         for level in range(encoder_levels - 1, 0, -1):
-            model.add(Deconv3D(initial_filters * pow(2, level - 1), kernel_size=kernel_size, strides=strides, padding="same"))
+            model.add(Deconv3D(initial_filters * pow(2, level - 1),
+                               kernel_size=kernel_size, strides=strides, padding="same"))
             model.add(Activation("relu"))
             if ENABLE_NORMALISATION:
                 model.add(BatchNormalization(momentum=normalisation_momentum))

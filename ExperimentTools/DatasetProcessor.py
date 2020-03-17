@@ -1,4 +1,5 @@
-import random, math
+import random
+import math
 
 
 def dataset_to_train_and_test(dataset, split_percent):
