@@ -153,7 +153,7 @@ def volume_to_voxels(volume_data, cubic_dimension):
 def save_voxels(voxels, dimensions, location, filename):
     fm.create_if_not_exists(location)
 
-    filepath = location + "/" + filename + ".h5"
+    filepath = location + filename + ".h5"
 
     print_notice("Saving voxel collection to '" + filepath + "'... ", mt.MessagePrefix.INFORMATION, end='')
     h5f = h5py.File(filepath, 'w')
