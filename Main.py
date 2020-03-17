@@ -119,10 +119,13 @@ def experiment_menu():
         # TODO: Do test phase
         # ExperimentRunner.test_network(directories[int(split[0] + 1):], )
     elif user_input == "2":
+        # TODO: K-Cross fold validation with iterative generator
         raise NotImplementedError
     elif user_input == "3":
+        # TODO: Single model training (batch)
         raise NotImplementedError
     elif user_input == "4":
+        # TODO: Single model training (iterative generator)
         raise NotImplementedError
 
 
@@ -139,7 +142,7 @@ def core_analysis_menu():
     user_input = input("Enter a menu option > ")
 
     core_id = core_selection_menu()
-    core_directory = fm.get_directory(fm.SpecialFolder.SEGMENTED_SCANS) + core_id
+    core_directory = fm.compile_directory(fm.SpecialFolder.SEGMENTED_SCANS) + core_id
 
     if core_directory[-1] != '/':
         core_directory += '/'
@@ -168,8 +171,14 @@ def core_selection_menu():
     cores = dm.get_cores_from_database()
 
     for core in cores:
-        print_notice("[%s]\t Air Void Content: %s\tBitumen Content: %s\t Notes: %s"
-                     % (core[0], core[2], core[3], core[4]), mt.MessagePrefix.INFORMATION)
+        print_notice("[%s]"
+                     "\tAir Void Content: %s"
+                     "\tMastic Content: %s"
+                     "\tTortuosity: %s"
+                     "\tEuler Number: %s"
+                     "\tAverage Void Diameter: %s"
+                     "\tNotes: %s"
+                     % (core[0], core[4], core[5], core[6], core[7], core[8], core[9]), mt.MessagePrefix.INFORMATION)
 
     choice = ""
 
