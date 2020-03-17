@@ -14,10 +14,10 @@ def reinitialise_database():
     global db, db_cursor, database_connected
 
     if not database_connected:
-        print("Database is not connected!")
+        print_notice("Database is not connected!", mt.MessagePrefix.ERROR)
         exit(-1)
 
-    print("Deleting database... ", end='')
+    print_notice("Deleting database... ", mt.MessagePrefix.INFORMATION, end='')
     db_cursor.execute("DROP DATABASE ***REMOVED***_Phase1;")
     print("done!")
 

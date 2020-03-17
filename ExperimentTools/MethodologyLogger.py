@@ -43,7 +43,7 @@ class Logger:
                 if not log_file_name:
                     log_file_name = "experiment_" + str(Logger.experiment_id)
 
-                filepath = log_directory + log_file_name + '.log'
+                filepath = log_directory + '/' + log_file_name + '.log'
 
                 Logger.log_file = open(filepath, 'w')
                 Logger.print("Starting experiment logger "

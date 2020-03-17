@@ -54,7 +54,7 @@ def voxels_to_volume(voxels, dimensions):
 def volume_to_voxels(volume_data, cubic_dimension):
     voxels = list()
 
-    volume = np.array(volume_data)
+    volume = np.array(volume_data, dtype=np.uint8)
 
     # This should be equal to a hypothetical voxelCountZ, since images are square
     voxel_count_x = len(volume) / cubic_dimension
@@ -123,8 +123,8 @@ def volume_to_voxels(volume_data, cubic_dimension):
                 if voxel.shape != (cubic_dimension, cubic_dimension, cubic_dimension):
                     resolver = str(sm.configuration.get("VOXEL_RESOLVE_METHOD")).upper()
 
-                    print_notice("FOUND NON-PERFECT VOXEL, RESOLVING WITH [" + resolver + "]...",
-                                 mt.MessagePrefix.WARNING)
+                    print_notice("Found non-perfect voxel at (%d:%d, %d:%d, %d:%d), resolving with [%s]..."
+                                 % (x_start, x_end, y_start, y_end, z_start, z_end, resolver), mt.MessagePrefix.WARNING)
 
                     if resolver == "PADDING":
                         xPad = cubic_dimension - len(voxel)
