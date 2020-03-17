@@ -1,19 +1,13 @@
-import math
-from scipy import sparse
 import os
-
-from tensorflow_core.python.client import device_lib
+import numpy as np
 
 from Settings import MessageTools as mt
-from Settings.MessageTools import print_notice
-from ExperimentTools import DatasetProcessor, MethodologyLogger
+from ExperimentTools import DatasetProcessor
 from GAN import DCGAN
 from Settings import FileManager as fm, SettingsManager as sm, MachineLearningManager as mlm, DatabaseManager as dm
 from ImageTools import VoxelProcessor as vp, ImageManager as im
 from ExperimentTools.MethodologyLogger import Logger
-import tensorflow as tf
-
-import numpy as np
+from ExperimentTools import DataVisualiser as dv
 
 
 def run_model_on_core(core_id=None):
@@ -137,24 +131,8 @@ def save_training_graphs(d_loss, g_loss, directory, fold, ind):
 
     x = range(len(g_loss[0]))
 
-    gen_error_ax.plot(x, g_loss[0], '-g', label="Generator Loss")
-    gen_error_ax.plot(x, g_loss[1], '-b', label="Generator MSE")
-
-    dis_error_ax.plot(x, d_loss[0], '-r', label="Discriminator Loss")
-
-    acc_ax.plot(x, d_loss[1], '-m', label="Discriminator Accuracy")
-
-    gen_error_ax.set_xlabel("Epochs")
-    acc_ax.set_xlabel("Epochs")
-    dis_error_ax.set_xlabel("Epochs")
-
-    gen_error_ax.set_ylabel("Error")
-    dis_error_ax.set_ylabel("Error")
-
-    acc_ax.set_ylabel("Accuracy")
-    gen_error_ax.legend(loc="upper right")
-    dis_error_ax.legend(loc="upper right")
-    acc_ax.legend(loc="upper right")
+    dv.plot_training_data(gen_error_ax, dis_error_ax, acc_ax,
+                          x, g_loss[0], g_loss[1], d_loss[0], d_loss[1])
 
     im.plt.gcf().savefig(
         directory + '/Experiment-' + str(Logger.experiment_id) + '_Fold-' + str(fold) + '_TrainingSet-' + str(

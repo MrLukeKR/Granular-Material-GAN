@@ -106,17 +106,23 @@ def make_circumcircle(a, b, c):
     # Mathematical algorithm from Wikipedia: Circumscribed circle
     ox = (min(a[0], b[0], c[0]) + max(a[0], b[0], c[0])) / 2.0
     oy = (min(a[1], b[1], c[1]) + max(a[1], b[1], c[1])) / 2.0
-    ax = a[0] - ox;
+    ax = a[0] - ox
     ay = a[1] - oy
-    bx = b[0] - ox;
+    bx = b[0] - ox
     by = b[1] - oy
-    cx = c[0] - ox;
+    cx = c[0] - ox
     cy = c[1] - oy
     d = (ax * (by - cy) + bx * (cy - ay) + cx * (ay - by)) * 2.0
     if d == 0.0:
         return None
-    x = ox + ((ax * ax + ay * ay) * (by - cy) + (bx * bx + by * by) * (cy - ay) + (cx * cx + cy * cy) * (ay - by)) / d
-    y = oy + ((ax * ax + ay * ay) * (cx - bx) + (bx * bx + by * by) * (ax - cx) + (cx * cx + cy * cy) * (bx - ax)) / d
+
+    ax_ay = ax * ax + ay * ay
+    bx_by = bx * bx + by * by
+    cx_cy = cx * cx + cy * cy
+
+    x = ox + (ax_ay * (by - cy) + bx_by * (cy - ay) + cx_cy * (ay - by)) / d
+    y = oy + (ax_ay * (cx - bx) + bx_by * (ax - cx) + cx_cy * (bx - ax)) / d
+
     ra = math.hypot(x - a[0], y - a[1])
     rb = math.hypot(x - b[0], y - b[1])
     rc = math.hypot(x - c[0], y - c[1])

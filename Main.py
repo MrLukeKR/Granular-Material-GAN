@@ -6,21 +6,23 @@ from multiprocessing.pool import Pool
 
 # Image Processing >>>
 from ImageTools import VoxelProcessor as vp, ImageManager as im
-from ImageTools.CoreAnalysis import CoreAnalyser as ca
-from ImageTools.CoreAnalysis.CoreVisualiser import plot_core
-from Settings import SettingsManager as sm
-from Settings import FileManager as fm
-from Settings import DatabaseManager as dm
+from ImageTools.CoreAnalysis import CoreAnalyser as ca, CoreVisualiser as cv
 # <<< Image Processing
 
 # Experiments >>>
 from ExperimentTools import MethodologyLogger, ExperimentRunner
-from ExperimentTools.MethodologyLogger import Logger
-
-from Settings import MachineLearningManager as mlm
 # <<< Experiments
-from Settings import MessageTools as mt
+
+# Settings >>>
+from Settings import \
+    MachineLearningManager as mlm, \
+    MessageTools as mt, \
+    SettingsManager as sm, \
+    FileManager as fm, \
+    DatabaseManager as dm
+
 from Settings.MessageTools import print_notice
+# <<< Settings
 
 model_loaded = None
 architecture_loaded = None
@@ -150,7 +152,7 @@ def core_analysis_menu():
         ca.calculate_composition(core)
     elif user_input == "3":
         skeleton = ca.get_skeleton(core)
-        plot_core(skeleton)
+        cv.plot_core(skeleton)
         ca.calculate_tortuosity(skeleton)
     elif user_input == "4":
         skeleton = ca.get_skeleton(core)
@@ -267,17 +269,73 @@ def data_selection_menu():
     return core_ids, split
 
 
+def core_category_menu():
+    valid = False
+    user_input = 0
+
+    while valid:
+        print("Which core category would you like to export from?")
+        print("[1] Physical Cores")
+        print("[2] Generated Cores")
+
+        user_input = input("Enter your menu choice > ")
+        valid = True
+
+        if user_input == "1":
+            raise NotImplementedError
+        elif user_input == "2":
+            raise NotImplementedError
+        else:
+            valid = False
+            print_notice("Not a valid menu choice!", mt.MessagePrefix.ERROR)
+
+    return int(user_input)
+
+
 def core_visualisation_menu():
+    valid = False
 
-    print("[1] Export core to 3D Object File (STL)")
-    print("[2] Export core to slice stack animation (Unprocessed/Processed/Segmented/ROI)")
-    print("[3] Export image processing plots")
-    print("[4] Export segmentation plots")
-    print("[5] Export voxel plots")
+    while not valid:
+        print("[1] Export core to 3D Object File (STL)")
+        print("[2] Export core to slice stack animation (Unprocessed/Processed/Segmented/ROI)")
+        print("[3] Export image processing plots")
+        print("[4] Export segmentation plots")
+        print("[5] Export voxel plots")
 
-    user_input = input("Input your choice > ")
+        user_input = input("Input your choice > ")
+        valid = True
 
-    raise NotImplementedError
+        if user_input in ["1", "2", "4"]:
+            response = core_category_menu()
+
+            if response == 1:
+                core_id = core_selection_menu()
+                # TODO: Load core by ID
+                core = None  # TODO: Replace None with 3D matrix of core components
+            elif response == 2:
+                # TODO: Load generated core by ID
+                core = None  # TODO: Replace None with 3D matrix of core components
+                raise NotImplementedError
+            else:
+                print_notice("Not a valid menu choice!", mt.MessagePrefix.ERROR)
+                raise ValueError
+
+        if user_input == "1":
+            mesh = cv.voxels_to_mesh(core)
+            # TODO: Export mesh to STL
+            raise NotImplementedError
+        elif user_input == "2":
+            # TODO: Export core to slice fly-through animation
+            raise NotImplementedError
+        elif user_input == "3":
+            raise NotImplementedError
+        elif user_input == "4":
+            raise NotImplementedError
+        elif user_input == "5":
+            raise NotImplementedError
+        else:
+            valid = False
+            print_notice("Not a valid option!", mt.MessagePrefix.ERROR)
 
 
 def main_menu():

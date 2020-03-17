@@ -9,7 +9,7 @@ configuration = dict()
 rescale_factor = 0
 image_channels = 1
 segmentation_amount = 3
-segmentation_mode = "3D"
+segmentation_mode = "2D"
 enable_normalisation = True
 display_available = "DISPLAY" in os.environ
 if not display_available:

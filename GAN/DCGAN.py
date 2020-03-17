@@ -1,19 +1,15 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-from tensorflow_core.python.client import device_lib
 
-from Settings import MachineLearningManager as mlm, DatabaseManager as dm
-
-from ExperimentTools import MethodologyLogger
 from GAN import AbstractGAN
 from tensorflow.keras import Sequential, optimizers
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Flatten, Dense, Activation, Conv3D, Conv3DTranspose as Deconv3D, BatchNormalization, LeakyReLU
+from ExperimentTools import DataVisualiser as dv
 from ExperimentTools.MethodologyLogger import Logger
-from Settings import SettingsManager as sm
-import Settings.MessageTools as mt
 from Settings.MessageTools import print_notice
+from Settings import SettingsManager as sm, MessageTools as mt, MachineLearningManager as mlm, DatabaseManager as dm
 
 ENABLE_NORMALISATION = False
 
@@ -122,31 +118,8 @@ class Network(AbstractGAN.Network):
             plt.show(block=False)
 
         def animate(i):
-            gen_error_ax.clear()
-            dis_error_ax.clear()
-            acc_ax.clear()
-
-            gen_error_ax.plot(x, generator_losses, '-g', label="Generator Loss")
-            gen_error_ax.plot(x, generator_MSEs, '-b', label="Generator MSE")
-
-            dis_error_ax.plot(x, discriminator_losses, '-r', label="Discriminator Loss")
-
-            acc_ax.plot(x, discriminator_accuracies, '-m', label="Discriminator Accuracy")
-
-            gen_error_ax.set_xlabel("Epochs")
-            acc_ax.set_xlabel("Epochs")
-            dis_error_ax.set_xlabel("Epochs")
-
-            gen_error_ax.set_ylabel("Error")
-            dis_error_ax.set_ylabel("Error")
-
-            acc_ax.set_ylabel("Accuracy")
-            gen_error_ax.legend(loc="upper right")
-            dis_error_ax.legend(loc="upper right")
-            acc_ax.legend(loc="upper right")
-
-
-
+            dv.plot_training_data(gen_error_ax, dis_error_ax, acc_ax,
+                                  x, generator_losses, generator_MSEs, discriminator_losses, discriminator_accuracies)
         # One sided label smoothing
         valid = np.full((batch_size, 1), 0.9)
         fake = np.zeros((batch_size, 1))
@@ -185,7 +158,7 @@ class Network(AbstractGAN.Network):
                                                                               d_loss[0],
                                                                               100 * d_loss[1],
                                                                               g_loss[0],
-                                                   g_loss[1]))
+                                                    g_loss[1]))
 
             discriminator_losses.append(d_loss[0])
             discriminator_accuracies.append(d_loss[1])

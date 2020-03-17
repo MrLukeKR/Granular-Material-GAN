@@ -21,8 +21,9 @@ class SpecialFolder(Enum):
     DATASET_DATA = 8
     LOGS = 9
     GENERATED_VOXEL_DATA = 10
-    SCAN_DATA = 11
-    ROI_SCANS = 12
+    GENERATED_CORE_DATA = 11
+    SCAN_DATA = 12
+    ROI_SCANS = 13
 
 
 def check_folder_type(special_folder):
@@ -59,6 +60,8 @@ def get_settings_id(special_folder):
         return "IO_SCAN_DIR"
     elif special_folder == SpecialFolder.ROI_SCANS:
         return "IO_ROI_SCAN_ROOT_DIR"
+    elif special_folder == SpecialFolder.GENERATED_CORE_DATA:
+        return "IO_GENERATED_CORE_ROOT_DIR"
     else:
         return "NONE"
 

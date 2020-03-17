@@ -9,3 +9,7 @@ def plot_core(core):
         mt.print_notice("No displays available - Cannot show 3D core visualisation!", mt.MessagePrefix.ERROR)
 
     pts = mlab.plot3d(core)
+
+
+def voxels_to_mesh(core):
+    raise NotImplementedError
