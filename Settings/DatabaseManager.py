@@ -1,5 +1,4 @@
 import os
-
 import mysql.connector
 
 from Settings import SettingsManager as sm, MessageTools as mt, FileManager as fm

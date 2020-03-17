@@ -8,6 +8,11 @@ from Settings import MessageTools as mt
 from Settings.MessageTools import print_notice
 from ImageTools.SmallestEnclosingCircle import make_circle
 from ImageTools.CoreAnalysis.BackgroundFinder import find_background_pixels
+from ImageTools import ImageManager as im
+
+
+def get_core_image_stack(directory):
+    return im.load_images_from_directory(directory, "segment")
 
 
 def crop_to_core(core, multiprocessing_pool):
@@ -72,19 +77,20 @@ def calculate_composition(core):
         offset = 1
 
     total = sum(counts[1-offset:])
+    percentages = [x / total for x in counts[1-offset:]]
 
     print_notice("\tTotal Core Volume: " + str(total) + " voxels", mt.MessagePrefix.INFORMATION)
 
     print_notice("\tVoid Content: " + str(counts[1-offset]) + " voxels, " +
-                 str((counts[1-offset] / total) * 100.0) + "% of total", mt.MessagePrefix.INFORMATION)
+                 str(percentages[0] * 100.0) + "% of total", mt.MessagePrefix.INFORMATION)
 
     print_notice("\tBinder Content: " + str(counts[2-offset]) + " voxels, " +
-                 str((counts[2-offset] / total) * 100.0) + "% of total", mt.MessagePrefix.INFORMATION)
+                 str(percentages[1] * 100.0) + "% of total", mt.MessagePrefix.INFORMATION)
 
     print_notice("\tAggregate Content: " + str(counts[3-offset]) + " voxels, " +
-                 str((counts[3-offset] / total) * 100.0) + "% of total", mt.MessagePrefix.INFORMATION)
+                 str(percentages[2] * 100.0) + "% of total", mt.MessagePrefix.INFORMATION)
 
-    return counts
+    return counts, percentages
 
 
 def calculate_average_void_diameter(void_network):

@@ -1,4 +1,6 @@
 # Utilities >>>
+import os
+
 import numpy as np
 from multiprocessing.spawn import freeze_support
 from multiprocessing.pool import Pool
@@ -37,6 +39,35 @@ def print_introduction():
     print()
 
 
+def update_database_core_analyses():
+    print_notice("Updating core analyses in database...", mt.MessagePrefix.INFORMATION)
+
+    unprocessed_ct_directory = fm.compile_directory(fm.SpecialFolder.UNPROCESSED_SCANS)
+
+    ct_ids = [name for name in os.listdir(unprocessed_ct_directory)]
+
+    dm.db_cursor.execute("USE ct_scans;")
+
+    for ct_id in ct_ids:
+        sql = "SELECT AirVoidContent, MasticContent FROM asphalt_cores WHERE ID=%s"
+        values = (ct_id,)
+
+        dm.db_cursor.execute(sql, values)
+        res = dm.db_cursor.fetchone()
+
+        if any(x is None for x in res):
+            ct_directory = fm.compile_directory(fm.SpecialFolder.SEGMENTED_SCANS) + ct_id + '/'
+
+            core = ca.get_core_image_stack(ct_directory)
+            counts, percentages = ca.calculate_composition(core)
+
+            sql = "UPDATE asphalt_cores SET AirVoidContent=%s, MasticContent=%s WHERE ID=%s"
+            values = (float(percentages[0]), float(percentages[1]), ct_id)
+            dm.db_cursor.execute(sql, values)
+
+    dm.db_cursor.execute("USE ***REMOVED***_Phase1;")
+
+
 def process_voxels(images):
     voxels = list()
     dimensions = None
@@ -60,10 +91,6 @@ def setup():
     dm.initialise_database()
 
     mlm.initialise()
-
-
-def get_core_image_stack(directory):
-    return im.load_images_from_directory(directory, "segment")
 
 
 def generate_voxels():
@@ -147,7 +174,7 @@ def core_analysis_menu():
     if core_directory[-1] != '/':
         core_directory += '/'
 
-    core = get_core_image_stack(core_directory)
+    core = ca.get_core_image_stack(core_directory)
     core = ca.crop_to_core(core, multiprocessing_pool)
 
     if user_input == "1":
@@ -431,6 +458,8 @@ def main():
 
     generate_voxels()
 # \-- | SEGMENT-TO-VOXEL CONVERSION SUB-MODULE
+
+    update_database_core_analyses()
 
     while main_menu() != "EXIT":
         continue
