@@ -21,18 +21,21 @@ class ImageCollection:
     def __init__(self):
         pass
 
-    def viewImages(self, images):
+    @staticmethod
+    def view_images(images):
         viewer = CollectionViewer(images)
         viewer.show()
 
-    def constrainimages(self, images, dimensions):
+    @staticmethod
+    def constrain_images(images, dimensions):
         Logger.print("Constraining " + str(len(images)) + " images to " + str(dimensions) + "...")
         for i in tqdm(range(len(images))):
             images[i] = transform.resize(images[i], output_shape=dimensions)
 
         return images
 
-    def resizeimages(self, images, factor):
+    @staticmethod
+    def resize_images(images, factor):
         Logger.print("Resizing " + str(len(images)) + " images by a factor of " + str(factor) + "...")
         x, y = images[0].shape
         x = int(x * factor)

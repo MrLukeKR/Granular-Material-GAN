@@ -46,7 +46,7 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture)
         fold_g_losses = list()
         fold_g_mses = list()
 
-        root_dir = fm.root_directories[fm.SpecialFolder.MODEL_DATA.value]
+        root_dir = fm.compile_directory(fm.SpecialFolder.MODEL_DATA)
 
         if not os.path.exists(root_dir):
             os.makedirs(root_dir)
@@ -72,7 +72,7 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture)
 
             for directory in training_set:
                 id = str.split(directory, '/')[-1]
-                voxel_directory = fm.get_directory(fm.SpecialFolder.VOXEL_DATA) + "/" + id + "/"
+                voxel_directory = fm.compile_directory(fm.SpecialFolder.VOXEL_DATA) + id + "/"
 
                 temp_voxels, dimensions = vp.load_voxels(voxel_directory, "segment_" + sm.configuration.get("VOXEL_RESOLUTION"))
                 voxels.extend(temp_voxels)

@@ -38,7 +38,8 @@ def crop_to_core(core, multiprocessing_pool):
     # Label voids outside of mould as "background" (0); Internal voids are set to 1, which allows computational
     # differentiation, but very little difference when generating images
     print_notice("Labelling out-of-mould voids as background...", mt.MessagePrefix.INFORMATION)
-    for ind, res in enumerate(multiprocessing_pool.starmap(find_background_pixels, [(x, enclosed_circle) for x in cropped_core])):
+    for ind, res in enumerate(multiprocessing_pool.starmap(find_background_pixels,
+                                                           [(x, enclosed_circle) for x in cropped_core])):
         np.copyto(cropped_core[ind], res)
 
     return cropped_core

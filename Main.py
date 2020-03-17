@@ -50,15 +50,16 @@ def process_voxels(images):
 
 
 def setup():
+    print_introduction()
+
     sm.load_settings()
+    fm.initialise_directory_tree()
     fm.assign_special_folders()
 
     dm.connect_to_database()
     dm.initialise_database()
 
     mlm.initialise()
-
-    print_introduction()
 
 
 def get_core_image_stack(directory):
@@ -108,7 +109,7 @@ def experiment_menu():
     if user_input == "1":
         core_ids, split = data_selection_menu()
 
-        directories = [x[1] for x in dm.get_cores_from_database() if x[0] in core_ids]
+        directories = [x[2] for x in dm.get_cores_from_database() if x[0] in core_ids]
 
         fold_count = input("How many folds? > ")
 
@@ -407,7 +408,7 @@ def main():
     multiprocessing_pool = Pool()
     setup()
 
-    print("Please wait while data collections are processed...")
+    print_notice("Please wait while data collections are processed...", mt.MessagePrefix.INFORMATION)
 
 # | DATA PREPARATION MODULE
     if sm.configuration.get("ENABLE_PREPROCESSING") == "True":

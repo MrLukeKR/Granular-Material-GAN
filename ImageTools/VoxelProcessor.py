@@ -164,7 +164,7 @@ def save_voxels(voxels, dimensions, location, filename):
 
 
 def load_voxels(location, filename):
-    filepath = location + '/' + filename + ".h5"
+    filepath = location + filename + ".h5"
 
     if not fm.file_exists(filepath):
         raise FileNotFoundError("There is no voxel at '" + filepath + "'")

@@ -1,12 +1,10 @@
 from glob import glob
 from os import walk, path, makedirs
 
-from Settings import SettingsManager as sm
+from Settings import SettingsManager as sm, MessageTools as mt
+from Settings.MessageTools import print_notice
 from enum import Enum
-
-data_directories = []
-current_directory = str()
-root_directories = [""]
+from anytree import Node, RenderTree, Walker, search
 
 
 class SpecialFolder(Enum):
@@ -26,6 +24,77 @@ class SpecialFolder(Enum):
     ROI_SCANS = 13
 
 
+data_directories = []
+current_directory = str()
+
+directory_tree = Node(SpecialFolder.ROOT)
+
+directory_ids = {
+    SpecialFolder.ROOT: "IO_ROOT_DIR",
+    SpecialFolder.EXPERIMENTS: "IO_EXPERIMENT_ROOT_DIR",
+    SpecialFolder.SCAN_DATA: "IO_SCAN_ROOT_DIR",
+    SpecialFolder.RESULTS: "IO_RESULTS_ROOT_DIR",
+
+    SpecialFolder.PROCESSED_SCANS: "IO_PROCESSED_SCAN_ROOT_DIR",
+    SpecialFolder.UNPROCESSED_SCANS: "IO_UNPROCESSED_SCAN_ROOT_DIR",
+    SpecialFolder.SEGMENTED_SCANS: "IO_SEGMENTED_SCAN_ROOT_DIR",
+    SpecialFolder.ROI_SCANS: "IO_ROI_SCAN_ROOT_DIR",
+
+    SpecialFolder.VOXEL_DATA: "IO_VOXEL_DATA_ROOT_DIR",
+    SpecialFolder.MODEL_DATA: "IO_MODEL_ROOT_DIR",
+    SpecialFolder.DATASET_DATA: "IO_DATASET_ROOT_DIR",
+    SpecialFolder.LOGS: "IO_LOG_ROOT_DIR",
+
+    SpecialFolder.GENERATED_VOXEL_DATA: "IO_GENERATED_VOXEL_ROOT_DIR",
+    SpecialFolder.GENERATED_CORE_DATA: "IO_GENERATED_CORE_ROOT_DIR"
+}
+
+
+def initialise_directory_tree():
+    print_notice("Initialising directory tree...", mt.MessagePrefix.DEBUG)
+
+    experiments = Node(SpecialFolder.EXPERIMENTS, parent=directory_tree)
+    scans = Node(SpecialFolder.SCAN_DATA, parent=directory_tree)
+    results = Node(SpecialFolder.RESULTS, parent=experiments)
+
+    for folder in [SpecialFolder.PROCESSED_SCANS,
+                   SpecialFolder.UNPROCESSED_SCANS,
+                   SpecialFolder.SEGMENTED_SCANS,
+                   SpecialFolder.ROI_SCANS]:
+        Node(folder, parent=scans)
+
+    for folder in [SpecialFolder.VOXEL_DATA,
+                   SpecialFolder.MODEL_DATA,
+                   SpecialFolder.DATASET_DATA,
+                   SpecialFolder.LOGS]:
+        Node(folder, parent=experiments)
+
+    for folder in [SpecialFolder.GENERATED_CORE_DATA,
+                   SpecialFolder.GENERATED_VOXEL_DATA]:
+        Node(folder, parent=results)
+
+    for pre, fill, node in RenderTree(directory_tree):
+        print_notice("%s%s" % (pre, node.name), mt.MessagePrefix.DEBUG)
+
+
+def compile_directory(child_directory, add_scan_type=True):
+    if not isinstance(child_directory, SpecialFolder):
+        print_notice("Given directory is not of type SpecialFolder!", mt.MessagePrefix.ERROR)
+
+    node = search.find(directory_tree, filter_=lambda n: n.name == child_directory)
+
+    compiled_directory = ""
+
+    for directory in node.ancestors:
+        compiled_directory += get_directory(directory.name) + '/'
+    compiled_directory += get_directory(child_directory) + '/'
+
+    if add_scan_type:
+        compiled_directory += sm.configuration.get("IO_SCAN_TYPE") + '/'
+
+    return compiled_directory
+
+
 def check_folder_type(special_folder):
     if not isinstance(special_folder, SpecialFolder):
         raise TypeError("special_folder must be of enum type SpecialFolder")
@@ -34,41 +103,13 @@ def check_folder_type(special_folder):
 def get_settings_id(special_folder):
     check_folder_type(special_folder)
 
-    if special_folder == SpecialFolder.ROOT:
-        return "IO_ROOT_DIR"
-    elif special_folder == SpecialFolder.PROCESSED_SCANS:
-        return "IO_PROCESSED_SCAN_ROOT_DIR"
-    elif special_folder == SpecialFolder.UNPROCESSED_SCANS:
-        return "IO_UNPROCESSED_SCAN_ROOT_DIR"
-    elif special_folder == SpecialFolder.SEGMENTED_SCANS:
-        return "IO_SEGMENTED_SCAN_ROOT_DIR"
-    elif special_folder == SpecialFolder.EXPERIMENTS:
-        return "IO_EXPERIMENT_ROOT_DIR"
-    elif special_folder == SpecialFolder.RESULTS:
-        return "IO_RESULTS_ROOT_DIR"
-    elif special_folder == SpecialFolder.GENERATED_VOXEL_DATA:
-        return "IO_GENERATED_VOXEL_ROOT_DIR"
-    elif special_folder == SpecialFolder.VOXEL_DATA:
-        return "IO_VOXEL_DATA_ROOT_DIR"
-    elif special_folder == SpecialFolder.MODEL_DATA:
-        return "IO_MODEL_ROOT_DIR"
-    elif special_folder == SpecialFolder.DATASET_DATA:
-        return "IO_DATASET_ROOT_DIR"
-    elif special_folder == SpecialFolder.LOGS:
-        return "IO_LOG_ROOT_DIR"
-    elif special_folder == SpecialFolder.SCAN_DATA:
-        return "IO_SCAN_DIR"
-    elif special_folder == SpecialFolder.ROI_SCANS:
-        return "IO_ROI_SCAN_ROOT_DIR"
-    elif special_folder == SpecialFolder.GENERATED_CORE_DATA:
-        return "IO_GENERATED_CORE_ROOT_DIR"
+    if special_folder in directory_ids:
+        return directory_ids.get(special_folder)
     else:
         return "NONE"
 
 
 def assign_special_folders():
-    root_directories.insert(SpecialFolder.ROOT.value, sm.configuration.get(get_settings_id(SpecialFolder.ROOT)))
-
     missing_key = False
 
     for folder in SpecialFolder:
@@ -77,54 +118,53 @@ def assign_special_folders():
             missing_key = True
             continue
 
-        if folder != SpecialFolder.ROOT:
-            root_directories.insert(
-                folder.value,
-                root_directories[SpecialFolder.ROOT.value] + sm.configuration.get(get_settings_id(folder))
-            )
+        directory = sm.configuration.get(get_settings_id(folder))
+
+        if len(directory) > 0:
+            create_if_not_exists(compile_directory(folder, False))
+        else:
+            print_notice("No directory information was found for " + str(folder), mt.MessagePrefix.ERROR)
+            raise ValueError
 
     if missing_key:
         raise KeyError
-
-    for directory in root_directories:
-        if len(directory) > 0:
-            create_if_not_exists(directory)
 
 
 def get_directory(special_folder):
     check_folder_type(special_folder)
 
-    return root_directories[special_folder.value]
+    return sm.configuration.get(directory_ids.get(special_folder))
 
 
-def get_directories(special_folder):
+def compile_directories(special_folder):
     check_folder_type(special_folder)
 
     return [f.replace('\\', '/')
-            for f in glob(root_directories[special_folder.value] + "**/", recursive=True)]
+            for f in glob(compile_directory(special_folder) + "**/", recursive=True)]
 
 
 def prepare_directories(special_folder):
     check_folder_type(special_folder)
 
-    data_dir = get_directories(special_folder)
+    data_dirs = compile_directories(special_folder)
 
     to_remove = set()
 
-    for data_directory in data_dir:
+    for data_directory in data_dirs:
         for dPaths, dNames, fNames in walk(data_directory):
             if len(fNames) == 0:
                 to_remove.add(data_directory)
 
     for directory in to_remove:
-        data_dir.remove(directory)
+        data_dirs.remove(directory)
 
-    return data_dir
+    return data_dirs
 
 
 def create_if_not_exists(directory):
     if not path.exists(directory):
         try:
+            print_notice("Creating directory '%s'" % directory, mt.MessagePrefix.DEBUG)
             makedirs(directory)
         except FileExistsError:
             pass
