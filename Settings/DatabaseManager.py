@@ -16,7 +16,8 @@ def reinitialise_database():
         print_notice("Database is not connected!", mt.MessagePrefix.ERROR)
         exit(-1)
 
-    print_notice("Deleting database... ", mt.MessagePrefix.INFORMATION, end='')
+    print_notice("Deleting databases... ", mt.MessagePrefix.INFORMATION, end='')
+    db_cursor.execute("DROP DATABASE ct_scans;")
     db_cursor.execute("DROP DATABASE ***REMOVED***_Phase1;")
     print("done!")
 
@@ -58,7 +59,6 @@ def populate_ct_scan_database():
     db_cursor.execute("USE ct_scans;")
     db_cursor.execute("CREATE TABLE IF NOT EXISTS asphalt_cores"
                       "(ID varchar(10) NOT NULL,"
-                      "Generated BOOL NOT NULL,"
                       "ScanDirectory VARCHAR(256) NOT NULL,"
                       "ModelFileLocation VARCHAR(256) NULL,"
                       "AirVoidContent DOUBLE NULL,"
@@ -69,14 +69,28 @@ def populate_ct_scan_database():
                       "Notes VARCHAR(1024) NULL,"
                       "PRIMARY KEY (ID));")
 
+    db_cursor.execute("CREATE TABLE IF NOT EXISTS generated_asphalt_cores"
+                      "(ID INT(11) AUTO_INCREMENT NOT NULL,"
+                      "GeneratorModelID INT(11 ) NOT NULL,"
+                      "VoxelDirectory VARCHAR(256) NOT NULL,"
+                      "ModelFileLocation VARCHAR(256) NULL,"
+                      "AirVoidContent DOUBLE NULL,"
+                      "MasticContent DOUBLE NULL,"
+                      "Tortuosity DOUBLE NULL,"
+                      "EulerNumber DOUBLE NULL,"
+                      "AverageVoidDiameter DOUBLE NULL,"
+                      "Notes VARCHAR(1024) NULL,"
+                      "PRIMARY KEY (ID),"
+                      "FOREIGN KEY (GeneratorModelID) REFERENCES ***REMOVED***_Phase1.model_instances(ID));")
+
     unprocessed_ct_directory = fm.compile_directory(fm.SpecialFolder.UNPROCESSED_SCANS)
 
     ct_ids = [name for name in os.listdir(unprocessed_ct_directory)]
 
     for ct_id in ct_ids:
         directory = unprocessed_ct_directory + ct_id
-        sql = "INSERT INTO asphalt_cores(ID, ScanDirectory, Generated) " \
-              "VALUES (%s, %s, FALSE) ON DUPLICATE KEY UPDATE ScanDirectory=%s;"
+        sql = "INSERT INTO asphalt_cores(ID, ScanDirectory) " \
+              "VALUES (%s, %s) ON DUPLICATE KEY UPDATE ScanDirectory=%s;"
         values = (ct_id, directory, directory)
 
         db_cursor.execute(sql, values)
@@ -108,7 +122,7 @@ def initialise_machine_learning_database():
                       "DiscriminatorFilters, DiscriminatorNormalisationMomentum, DiscriminatorActivationAlpha));")
 
     db_cursor.execute("CREATE TABLE IF NOT EXISTS model_instances"
-                      "(ID INT AUTO_INCREMENT NOT NULL,"
+                      "(ID INT(11) AUTO_INCREMENT NOT NULL,"
                       "ArchitectureID INT NOT NULL,"
                       "GeneratorFilePath VARCHAR(256) NOT NULL,"
                       "DiscriminatorFilePath VARCHAR(256) NOT NULL,"
@@ -170,8 +184,8 @@ def initialise_database():
 
     print_notice("Initialising database... ", mt.MessagePrefix.INFORMATION,  end='')
     try:
-        populate_ct_scan_database()
         initialise_machine_learning_database()
+        populate_ct_scan_database()
     except Exception as exc:
         print_notice(str(exc), mt.MessagePrefix.ERROR)
         exit(-1)

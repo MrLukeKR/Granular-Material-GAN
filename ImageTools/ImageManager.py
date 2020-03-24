@@ -65,11 +65,19 @@ def segment_images(multiprocessing_pool, use_rois=True):
             clean_binders = list()
             aggregates = list()
 
+            clean_segments = list()
+
+            print_notice("\tRemoving Blobs... ", mt.MessagePrefix.INFORMATION, end="")
+            #for ind, res in enumerate(multiprocessing_pool.map(pop.remove_binder_particles, segments)):
+            #    clean_segments.insert(ind, res)
+            for i in range(len(segments)):
+                pop.remove_particles(segments[i])
+
             print_notice("\tCleaning Aggregates... ", mt.MessagePrefix.INFORMATION, end="")
             # for ind, res in enumerate(multiprocessing_pool.map(pop.fill_holes, [x == 2 for x in segments])):
             #     clean_aggregates.insert(ind, res)
 
-            for ind, res in enumerate(multiprocessing_pool.map(pop.open_close_segment, [x == 2 for x in segments])):
+            for ind, res in enumerate(multiprocessing_pool.map(pop.open_close_segment, [x == 2 for x in clean_segments])):
                 aggregates.insert(ind, res)
 
             print("done!")
