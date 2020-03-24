@@ -19,18 +19,23 @@ def remove_particles(image):
 
         contours, hierarchy = cv2.findContours(segment, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
+        # Get contours
         contours_area = []
         for con in contours:
             area = cv2.contourArea(con)
             if area <= max_contour_area:
                 contours_area.append(con)
 
-        image = cv2.cvtColor(segment, cv2.COLOR_GRAY2BGR)
-        cv2.drawContours(image, contours_area, -1, (0, 0, 255), 1)
-        cv2.imshow("Blobs", image)
+        debug_image = cv2.cvtColor(segment, cv2.COLOR_GRAY2BGR)
+        cv2.drawContours(debug_image, contours_area, -1, (0, 0, 255), 1)
+
+        # Remove white contours
+        cv2.drawContours(segment, contours_area, -1, (0, 0, 0), -1)
+        fixed_image += np.array([x == 255 for x in segment], dtype=np.uint8) * i
+
+        cv2.imshow("Blobs", debug_image)
         cv2.waitKey(0)
-        fixed_image += ([i for x in segment if x == 255])
-        prev_image = segment
+        prev_image += segment
 
 
 def close_segment(image, iterations=1):
