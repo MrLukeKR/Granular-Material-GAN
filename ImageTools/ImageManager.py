@@ -43,7 +43,7 @@ def segment_images(multiprocessing_pool, use_rois=True):
 
     for data_directory in fm.data_directories:
         images = load_images_from_directory(data_directory)
-        fm.current_directory = data_directory.replace(fm.get_directory(
+        fm.current_directory = data_directory.replace(fm.compile_directory(
             fm.SpecialFolder.ROI_SCANS if use_rois else fm.SpecialFolder.PROCESSED_SCANS), '')
 
         if not fm.current_directory.endswith('/'):
@@ -68,10 +68,12 @@ def segment_images(multiprocessing_pool, use_rois=True):
             clean_segments = list()
 
             print_notice("\tRemoving Blobs... ", mt.MessagePrefix.INFORMATION, end="")
-            #for ind, res in enumerate(multiprocessing_pool.map(pop.remove_binder_particles, segments)):
-            #    clean_segments.insert(ind, res)
+            # for ind, res in enumerate(multiprocessing_pool.map(pop.remove_particles, segments)):
+                # clean_segments.insert(ind, res)
             for i in range(len(segments)):
-                pop.remove_particles(segments[i])
+                clean_segments.insert(i, pop.remove_particles(segments[i]))
+
+            print("done!")
 
             print_notice("\tCleaning Aggregates... ", mt.MessagePrefix.INFORMATION, end="")
             # for ind, res in enumerate(multiprocessing_pool.map(pop.fill_holes, [x == 2 for x in segments])):
@@ -83,7 +85,7 @@ def segment_images(multiprocessing_pool, use_rois=True):
             print("done!")
 
             print_notice("\tCleaning Binders... ", mt.MessagePrefix.INFORMATION, end="")
-            for ind, res in enumerate(multiprocessing_pool.map(pop.open_close_segment, [x == 1 for x in segments])):
+            for ind, res in enumerate(multiprocessing_pool.map(pop.open_close_segment, [x == 1 for x in clean_segments])):
                 clean_binders.insert(ind, res)
 
             binders = np.logical_and(clean_binders, np.logical_not(aggregates))
@@ -139,9 +141,9 @@ def extract_rois(multiprocessing_pool, use_segmented=False):
 
     for data_directory in fm.data_directories:
         if use_segmented:
-            fm.current_directory = data_directory.replace(fm.get_directory(fm.SpecialFolder.SEGMENTED_SCANS), '')
+            fm.current_directory = data_directory.replace('/' + fm.get_directory(fm.SpecialFolder.SEGMENTED_SCANS), '')
         else:
-            fm.current_directory = data_directory.replace(fm.get_directory(fm.SpecialFolder.PROCESSED_SCANS), '')
+            fm.current_directory = data_directory.replace('/' + fm.get_directory(fm.SpecialFolder.PROCESSED_SCANS), '')
 
         images = load_images_from_directory(data_directory)
         images = extract_roi(np.array(images))
@@ -207,7 +209,7 @@ def preprocess_images(multiprocessing_pool):
         return
 
     for data_directory in fm.data_directories:
-        fm.current_directory = data_directory.replace(fm.get_directory(fm.SpecialFolder.UNPROCESSED_SCANS), '')
+        fm.current_directory = data_directory.replace('/' + fm.get_directory(fm.SpecialFolder.UNPROCESSED_SCANS), '')
 
         images = load_images_from_directory(data_directory)
         images = apply_preprocessing_pipeline(images, multiprocessing_pool)
@@ -239,7 +241,7 @@ def save_plot(filename, save_location, root_directory, use_current_directory):
 
 def save_images(images, filename_pretext, root_directory, multiprocessing_pool, save_location="", use_current_directory=True):
     image_count = len(images)
-    arguments = zip(images, itertools.repeat(fm.get_directory(root_directory), image_count),
+    arguments = zip(images, itertools.repeat(fm.compile_directory(root_directory), image_count),
                     itertools.repeat(save_location + fm.current_directory, image_count),
                     itertools.repeat(filename_pretext, image_count), itertools.repeat(len(str(len(images))), image_count),
                     range(image_count), itertools.repeat(use_current_directory, image_count))

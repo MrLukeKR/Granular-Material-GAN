@@ -7,35 +7,51 @@ from ExperimentTools.MethodologyLogger import Logger
 import ImageTools.ImageManager as im
 
 
-def remove_particles(image):
+def get_contours(image):
     max_contour_area = int(sm.configuration.get("MAXIMUM_BLOB_AREA"))
 
-    prev_image = np.zeros(image.shape, dtype=np.uint8)
+    contours, hierarchy = cv2.findContours(image, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+    # Get contours
+    contours_area = []
+    for con in contours:
+        area = cv2.contourArea(con)
+        if area <= max_contour_area:
+            contours_area.append(con)
+
+    return contours_area
+
+
+def remove_particles(image):
     fixed_image = np.zeros(image.shape, dtype=np.uint8)
 
-    for i in range(0, 2):
+    for i in range(3):
         segment = np.array([x == i for x in image], dtype=np.uint8) * 255
-        segment -= prev_image
+        segment -= np.array((fixed_image != 0), dtype=np.uint8) * 255
 
-        contours, hierarchy = cv2.findContours(segment, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        contours_area = get_contours(segment)
 
-        # Get contours
-        contours_area = []
-        for con in contours:
-            area = cv2.contourArea(con)
-            if area <= max_contour_area:
-                contours_area.append(con)
-
-        debug_image = cv2.cvtColor(segment, cv2.COLOR_GRAY2BGR)
-        cv2.drawContours(debug_image, contours_area, -1, (0, 0, 255), 1)
+        #debug_image = cv2.cvtColor(segment, cv2.COLOR_GRAY2BGR)
+        #cv2.drawContours(debug_image, contours_area, -1, (0, 0, 255), 1)
+        #cv2.imshow("Blobs Before", debug_image)
 
         # Remove white contours
         cv2.drawContours(segment, contours_area, -1, (0, 0, 0), -1)
+
+        contours_area = get_contours(segment)
+        # Remove black contours
+        cv2.drawContours(segment, contours_area, -1, (255, 255, 255), -1)
         fixed_image += np.array([x == 255 for x in segment], dtype=np.uint8) * i
 
-        cv2.imshow("Blobs", debug_image)
-        cv2.waitKey(0)
-        prev_image += segment
+        #debug_image = cv2.cvtColor(segment, cv2.COLOR_GRAY2BGR)
+        #cv2.drawContours(debug_image, contours_area, -1, (0, 0, 255), 1)
+        #cv2.imshow("Blobs After", debug_image)
+
+        #cv2.waitKey(0)
+
+    #cv2.imshow("Fixed image", fixed_image * 127)
+    #cv2.waitKey(0)
+    return fixed_image
 
 
 def close_segment(image, iterations=1):
