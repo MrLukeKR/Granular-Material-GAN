@@ -141,9 +141,9 @@ def extract_rois(multiprocessing_pool, use_segmented=False):
 
     for data_directory in fm.data_directories:
         if use_segmented:
-            fm.current_directory = data_directory.replace('/' + fm.get_directory(fm.SpecialFolder.SEGMENTED_SCANS), '')
+            fm.current_directory = data_directory.replace(fm.compile_directory(fm.SpecialFolder.SEGMENTED_SCANS), '')
         else:
-            fm.current_directory = data_directory.replace('/' + fm.get_directory(fm.SpecialFolder.PROCESSED_SCANS), '')
+            fm.current_directory = data_directory.replace(fm.compile_directory(fm.SpecialFolder.PROCESSED_SCANS), '')
 
         images = load_images_from_directory(data_directory)
         images = extract_roi(np.array(images))

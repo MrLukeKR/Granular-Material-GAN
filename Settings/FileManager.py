@@ -89,8 +89,15 @@ def compile_directory(child_directory, force_add_scan_type=False, add_scan_type_
     compiled_directory = ""
 
     for directory in node.ancestors:
-        compiled_directory += get_directory(directory.name) + '/'
-    compiled_directory += get_directory(child_directory) + '/'
+        compiled_directory += get_directory(directory.name)
+
+        if compiled_directory[-1] != '/':
+            compiled_directory += '/'
+
+    compiled_directory += get_directory(child_directory)
+
+    if compiled_directory[-1] != '/':
+        compiled_directory += '/'
 
     if force_add_scan_type or (add_scan_type_if_leaf and node.is_leaf):
         compiled_directory += sm.configuration.get("IO_SCAN_TYPE") + '/'
