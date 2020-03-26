@@ -351,9 +351,8 @@ def core_visualisation_menu():
                 raise ValueError
 
         if user_input == "1":
-            mesh = cv.voxels_to_mesh(core)
-            # TODO: Export mesh to STL
-            raise NotImplementedError
+            core_mesh = cv.voxels_to_mesh(core)
+            core_mesh.export("test.stl")
         elif user_input == "2":
             # TODO: Export core to slice fly-through animation
             raise NotImplementedError
