@@ -10,7 +10,7 @@ def save_image(image, root_directory, save_location, filename, digits=None, ind=
         filename += "_" + ('0' * preamble_digits) + str(ind)
 
     if isinstance(root_directory, fm.SpecialFolder):
-        directory = fm.root_directories[root_directory.value]
+        directory = fm.compile_directory(root_directory)
     else:
         directory = root_directory
 
