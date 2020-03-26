@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as anim
 import numpy as np
 
+from Settings import MessageTools as mt
+from Settings.MessageTools import print_notice
 from matplotlib import style
 
 style.use('fast')

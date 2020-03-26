@@ -69,7 +69,7 @@ def segment_images(multiprocessing_pool, use_rois=True):
 
             print_notice("\tRemoving Blobs... ", mt.MessagePrefix.INFORMATION, end="")
             # for ind, res in enumerate(multiprocessing_pool.map(pop.remove_particles, segments)):
-                # clean_segments.insert(ind, res)
+            #     clean_segments.insert(ind, res)
             for i in range(len(segments)):
                 clean_segments.insert(i, pop.remove_particles(segments[i]))
 

@@ -11,6 +11,10 @@ from ImageTools import VoxelProcessor as vp, ImageManager as im
 from ImageTools.CoreAnalysis import CoreAnalyser as ca, CoreVisualiser as cv
 # <<< Image Processing
 
+# Data Visualisation >>>
+from ImageTools import DataVisualiser as dv
+# <<< Data Visualisation
+
 # Experiments >>>
 from ExperimentTools import MethodologyLogger, ExperimentRunner
 # <<< Experiments
@@ -56,9 +60,7 @@ def update_database_core_analyses():
         res = dm.db_cursor.fetchone()
 
         if any(x is None for x in res):
-            ct_directory = fm.compile_directory(fm.SpecialFolder.SEGMENTED_SCANS) + ct_id + '/'
-
-            core = ca.get_core_image_stack(ct_directory)
+            core = ca.get_core_by_id(ct_id)
             counts, percentages = ca.calculate_composition(core)
 
             sql = "UPDATE asphalt_cores SET AirVoidContent=%s, MasticContent=%s WHERE ID=%s"
@@ -169,12 +171,7 @@ def core_analysis_menu():
     user_input = input("Enter a menu option > ")
 
     core_id = core_selection_menu()
-    core_directory = fm.compile_directory(fm.SpecialFolder.SEGMENTED_SCANS) + core_id
-
-    if core_directory[-1] != '/':
-        core_directory += '/'
-
-    core = ca.get_core_image_stack(core_directory)
+    core = ca.get_core_by_id(core_id)
     core = ca.crop_to_core(core, multiprocessing_pool)
 
     if user_input == "1":
@@ -205,7 +202,7 @@ def core_selection_menu():
                      "\tEuler Number: %s"
                      "\tAverage Void Diameter: %s"
                      "\tNotes: %s"
-                     % (core[0], core[4], core[5], core[6], core[7], core[8], core[9]), mt.MessagePrefix.INFORMATION)
+                     % (core[0], core[3], core[4], core[5], core[6], core[7], core[8]), mt.MessagePrefix.INFORMATION)
 
     choice = ""
 
@@ -308,9 +305,8 @@ def data_selection_menu():
 
 def core_category_menu():
     valid = False
-    user_input = 0
 
-    while valid:
+    while not valid:
         print("Which core category would you like to export from?")
         print("[1] Physical Cores")
         print("[2] Generated Cores")
@@ -318,15 +314,12 @@ def core_category_menu():
         user_input = input("Enter your menu choice > ")
         valid = True
 
-        if user_input == "1":
-            raise NotImplementedError
-        elif user_input == "2":
-            raise NotImplementedError
+        if user_input in {"1", "2"}:
+            return int(user_input)
         else:
             valid = False
             print_notice("Not a valid menu choice!", mt.MessagePrefix.ERROR)
-
-    return int(user_input)
+            return -1
 
 
 def core_visualisation_menu():
@@ -341,14 +334,14 @@ def core_visualisation_menu():
 
         user_input = input("Input your choice > ")
         valid = True
+        core = None
 
         if user_input in ["1", "2", "4"]:
             response = core_category_menu()
 
             if response == 1:
                 core_id = core_selection_menu()
-                # TODO: Load core by ID
-                core = None  # TODO: Replace None with 3D matrix of core components
+                core = ca.get_core_by_id(core_id)
             elif response == 2:
                 # TODO: Load generated core by ID
                 core = None  # TODO: Replace None with 3D matrix of core components
@@ -365,10 +358,13 @@ def core_visualisation_menu():
             # TODO: Export core to slice fly-through animation
             raise NotImplementedError
         elif user_input == "3":
+            # TODO: Export image processing images
             raise NotImplementedError
         elif user_input == "4":
+            # TODO: Export segmentation images
             raise NotImplementedError
         elif user_input == "5":
+            # TODO: Export voxel images
             raise NotImplementedError
         else:
             valid = False

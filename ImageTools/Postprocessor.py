@@ -22,35 +22,41 @@ def get_contours(image):
     return contours_area
 
 
-def remove_particles(image):
-    fixed_image = np.zeros(image.shape, dtype=np.uint8)
+def remove_particles(image, iterations=1):
+    fixed_image = None
 
-    for i in range(3):
-        segment = np.array([x == i for x in image], dtype=np.uint8) * 255
-        segment -= np.array((fixed_image != 0), dtype=np.uint8) * 255
+    for iter in range(iterations):
+        fixed_image = np.zeros(image.shape, dtype=np.uint8)
 
-        contours_area = get_contours(segment)
+        for i in {2, 1, 0}:
+            segment = np.array([x == i for x in image], dtype=np.uint8) * 255
+            # segment -= np.array((fixed_image != 0), dtype=np.uint8) * 255
 
-        #debug_image = cv2.cvtColor(segment, cv2.COLOR_GRAY2BGR)
-        #cv2.drawContours(debug_image, contours_area, -1, (0, 0, 255), 1)
-        #cv2.imshow("Blobs Before", debug_image)
+            # Remove white contours
+            contours_area = get_contours(segment)
 
-        # Remove white contours
-        cv2.drawContours(segment, contours_area, -1, (0, 0, 0), -1)
+            #debug_image = cv2.cvtColor(segment, cv2.COLOR_GRAY2BGR)
+            #cv2.drawContours(debug_image, contours_area, -1, (0, 0, 255), 1)
+            #cv2.imshow("Blobs Before", debug_image)
 
-        contours_area = get_contours(segment)
-        # Remove black contours
-        cv2.drawContours(segment, contours_area, -1, (255, 255, 255), -1)
-        fixed_image += np.array([x == 255 for x in segment], dtype=np.uint8) * i
+            cv2.drawContours(segment, contours_area, -1, (0, 0, 0), -1)
 
-        #debug_image = cv2.cvtColor(segment, cv2.COLOR_GRAY2BGR)
-        #cv2.drawContours(debug_image, contours_area, -1, (0, 0, 255), 1)
-        #cv2.imshow("Blobs After", debug_image)
+            # Remove black contours
+            contours_area = get_contours(np.array([x == 0 for x in segment], np.uint8) * 255)
+            cv2.drawContours(segment, contours_area, -1, (255, 255, 255), -1)
+            fixed_image += np.array([x == 255 for x in segment], dtype=np.uint8) * i
 
+            #debug_image = cv2.cvtColor(segment, cv2.COLOR_GRAY2BGR)
+            #cv2.drawContours(debug_image, contours_area, -1, (0, 0, 255), 1)
+            #cv2.imshow("Blobs After", debug_image)
+
+            #cv2.waitKey(0)
+
+        #cv2.imshow("Fixed image", fixed_image * 127)
         #cv2.waitKey(0)
+        if iterations > 1:
+            image = fixed_image
 
-    #cv2.imshow("Fixed image", fixed_image * 127)
-    #cv2.waitKey(0)
     return fixed_image
 
 

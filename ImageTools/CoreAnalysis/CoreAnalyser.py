@@ -1,14 +1,19 @@
-import math
 import numpy as np
-import porespy as ps
 
 from skimage.morphology import skeletonize_3d
 from tqdm import tqdm
-from Settings import MessageTools as mt
+from Settings import MessageTools as mt, FileManager as fm
 from Settings.MessageTools import print_notice
-from ImageTools.SmallestEnclosingCircle import make_circle
-from ImageTools.CoreAnalysis.BackgroundFinder import find_background_pixels
 from ImageTools import ImageManager as im
+
+
+def get_core_by_id(core_id):
+    core_directory = fm.compile_directory(fm.SpecialFolder.SEGMENTED_SCANS) + core_id
+
+    if core_directory[-1] != '/':
+        core_directory += '/'
+
+    return get_core_image_stack(core_directory)
 
 
 def get_core_image_stack(directory):
