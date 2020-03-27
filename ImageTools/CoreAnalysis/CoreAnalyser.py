@@ -5,6 +5,9 @@ from tqdm import tqdm
 from Settings import MessageTools as mt, FileManager as fm
 from Settings.MessageTools import print_notice
 from ImageTools import ImageManager as im
+import matplotlib.pyplot as plt
+
+from ImageTools.CoreAnalysis import CoreVisualiser as cv
 
 
 def get_core_by_id(core_id):
@@ -105,8 +108,13 @@ def calculate_average_void_diameter(void_network):
     raise NotImplementedError
 
 
-def get_skeleton(core):
-    print_notice("Converting core to skeleton...", mt.MessagePrefix.INFORMATION)
+def get_skeleton(core, suppress_messages=False):
+    if not suppress_messages:
+        print_notice("Converting core to skeleton...", mt.MessagePrefix.INFORMATION)
+
+    if isinstance(core, list):
+        core = np.array(core, dtype=np.uint8)
+
     return skeletonize_3d(core)
 
 
@@ -124,7 +132,28 @@ def calculate_euler_number(core, core_is_skeleton=True):
     print_notice("Calculating Core Euler Number...", mt.MessagePrefix.INFORMATION)
 
     if not core_is_skeleton:
-        core = get_skeleton(core)
+        print_notice("\tConverting to pore network...", mt.MessagePrefix.INFORMATION)
+        core = np.array([x == 0 for x in core], np.bool)
+    print_notice("\tConverting to skeleton...", mt.MessagePrefix.INFORMATION)
+    skeleton = get_skeleton(core, True)
 
-    # TODO: Calculate euler number
-    raise NotImplementedError
+    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(8, 4),
+                             sharex=True, sharey=True)
+
+    ax = axes.ravel()
+
+    ax[0].imshow(core, cmap=plt.cm.gray)
+    ax[0].axis('off')
+    ax[0].set_title('original', fontsize=20)
+
+    ax[1].imshow(skeleton, cmap=plt.cm.gray)
+    ax[1].axis('off')
+    ax[1].set_title('skeleton', fontsize=20)
+
+    fig.tight_layout()
+    plt.show()
+
+    euler = core.euler_number
+    print_notice("\tEuler number = " + str(euler))
+
+    return euler

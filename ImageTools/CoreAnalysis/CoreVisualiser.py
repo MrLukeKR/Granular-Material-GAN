@@ -4,9 +4,7 @@ import trimesh
 
 from Settings import SettingsManager as sm, MessageTools as mt
 from Settings.MessageTools import print_notice
-from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from skimage import measure
-from stl import mesh
 
 if sm.display_available:
     from mayavi import mlab
@@ -19,16 +17,17 @@ def plot_core(core):
     pts = mlab.plot3d(core)
 
 
-def voxels_to_mesh(core):
-    print_notice("Converting image stack of voxels to 3D mesh... ", mt.MessagePrefix.INFORMATION, end='')
+def voxels_to_mesh(core, suppress_messages=False):
+    if not suppress_messages:
+        print_notice("Converting image stack of voxels to 3D mesh... ", mt.MessagePrefix.INFORMATION, end='')
 
-    aggregates = np.array([x == 255 for x in core], np.bool)
-    # binders = [x == 1 for x in core]
+    core = np.array(core, np.uint8)
 
-    verts, faces, _, _ = measure.marching_cubes_lewiner(aggregates)
+    verts, faces, _, _ = measure.marching_cubes_lewiner(core)
 
     core_mesh = trimesh.Trimesh(verts, faces)
 
-    print("done")
+    if not suppress_messages:
+        print("done")
 
     return core_mesh

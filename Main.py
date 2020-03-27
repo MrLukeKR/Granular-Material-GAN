@@ -52,8 +52,10 @@ def update_database_core_analyses():
 
     dm.db_cursor.execute("USE ct_scans;")
 
+    included_calculations = "AirVoidContent, MasticContent, EulerNumber"
+
     for ct_id in ct_ids:
-        sql = "SELECT AirVoidContent, MasticContent FROM asphalt_cores WHERE ID=%s"
+        sql = "SELECT " + included_calculations + " FROM asphalt_cores WHERE ID=%s"
         values = (ct_id,)
 
         dm.db_cursor.execute(sql, values)
@@ -62,9 +64,10 @@ def update_database_core_analyses():
         if any(x is None for x in res):
             core = ca.get_core_by_id(ct_id)
             counts, percentages = ca.calculate_composition(core)
+            euler_number = ca.calculate_euler_number(core, False)
 
-            sql = "UPDATE asphalt_cores SET AirVoidContent=%s, MasticContent=%s WHERE ID=%s"
-            values = (float(percentages[0]), float(percentages[1]), ct_id)
+            sql = "UPDATE asphalt_cores SET AirVoidContent=%s, MasticContent=%s, EulerNumber=%s WHERE ID=%s"
+            values = (float(percentages[0]), float(percentages[1]), float(euler_number), ct_id)
             dm.db_cursor.execute(sql, values)
 
     dm.db_cursor.execute("USE ***REMOVED***_Phase1;")
@@ -183,8 +186,8 @@ def core_analysis_menu():
         cv.plot_core(skeleton)
         ca.calculate_tortuosity(skeleton)
     elif user_input == "4":
-        skeleton = ca.get_skeleton(core)
-        ca.calculate_euler_number(skeleton)
+        #skeleton = ca.get_skeleton(core)
+        ca.calculate_euler_number(core, False)
     elif user_input == "5":
         ca.calculate_average_void_diameter(core)
 
