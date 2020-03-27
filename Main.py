@@ -52,7 +52,7 @@ def update_database_core_analyses():
 
     dm.db_cursor.execute("USE ct_scans;")
 
-    included_calculations = "AirVoidContent, MasticContent, EulerNumber"
+    included_calculations = "AirVoidContent, MasticContent, AverageVoidDiameter, EulerNumber"
 
     for ct_id in ct_ids:
         sql = "SELECT " + included_calculations + " FROM asphalt_cores WHERE ID=%s"
@@ -64,10 +64,16 @@ def update_database_core_analyses():
         if any(x is None for x in res):
             core = ca.get_core_by_id(ct_id)
             counts, percentages = ca.calculate_composition(core)
-            euler_number = ca.calculate_euler_number(core, False)
+            void_network = np.array([x == 0 for x in core], np.bool)
 
-            sql = "UPDATE asphalt_cores SET AirVoidContent=%s, MasticContent=%s, EulerNumber=%s WHERE ID=%s"
-            values = (float(percentages[0]), float(percentages[1]), float(euler_number), ct_id)
+            # gradation = ca.calculate_aggregate_gradation(np.array([x == 2 for x in core], np.bool))
+            avd = ca.calculate_average_void_diameter(void_network)
+            euler_number = ca.calculate_euler_number(void_network)
+
+            sql = "UPDATE asphalt_cores SET AirVoidContent=%s, MasticContent=%s, AverageVoidDiameter=%s,  " \
+                  "EulerNumber=%s WHERE ID=%s"
+
+            values = (float(percentages[0]), float(percentages[1]), float(avd), float(euler_number), ct_id)
             dm.db_cursor.execute(sql, values)
 
     dm.db_cursor.execute("USE ***REMOVED***_Phase1;")

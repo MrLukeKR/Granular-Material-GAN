@@ -6,6 +6,8 @@ from Settings import MessageTools as mt, FileManager as fm
 from Settings.MessageTools import print_notice
 from ImageTools import ImageManager as im
 import matplotlib.pyplot as plt
+import cv2
+from mpl_toolkits import mplot3d
 
 from ImageTools.CoreAnalysis import CoreVisualiser as cv
 
@@ -74,6 +76,14 @@ def calculate_all(core):
     return results
 
 
+def calculate_aggregate_gradation(aggregates):
+    print_notice("Calculating Aggregate Gradation...", mt.MessagePrefix.INFORMATION)
+    aggregates = list()
+
+    # TODO: Calculate gradations
+    return aggregates
+
+
 def calculate_composition(core):
     print_notice("Calculating Core Compositions...", mt.MessagePrefix.INFORMATION)
 
@@ -104,8 +114,31 @@ def calculate_composition(core):
 def calculate_average_void_diameter(void_network):
     print_notice("Calculating Core Average Void Diameter...", mt.MessagePrefix.INFORMATION)
 
-    # TODO: Calculate average void diameter
-    raise NotImplementedError
+    volume_total_diameter = 0
+
+    for i in range(len(void_network)):
+        image = np.array(void_network[i], dtype=np.uint8) * 255
+        image_total_diameter = 0
+        contours, hierarchy = cv2.findContours(image, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+        # Get contours
+        for con in contours:
+            (_, _), radius = cv2.minEnclosingCircle(con)
+            diam = radius * 2
+            image_total_diameter += diam
+
+        image_average = image_total_diameter / len(contours)
+        print_notice("\tAverage Void Diameter (Image %d) = %f Pixels" % (i + 1, image_average))
+        # TODO: Convert pixels to mm
+
+        volume_total_diameter += image_average
+
+    avd = volume_total_diameter / len(void_network)
+
+    print("")
+    # TODO: Convert pixels to mm
+    print_notice("\tAverage Void Diameter (Volume) = Pixels" + str(avd))
+    return avd
 
 
 def get_skeleton(core, suppress_messages=False):
@@ -137,20 +170,11 @@ def calculate_euler_number(core, core_is_skeleton=True):
     print_notice("\tConverting to skeleton...", mt.MessagePrefix.INFORMATION)
     skeleton = get_skeleton(core, True)
 
-    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(8, 4),
-                             sharex=True, sharey=True)
+    fig = plt.figure()
+    ax = plt.axes(projection='3d')
 
-    ax = axes.ravel()
+    ax.voxels   (skeleton)
 
-    ax[0].imshow(core, cmap=plt.cm.gray)
-    ax[0].axis('off')
-    ax[0].set_title('original', fontsize=20)
-
-    ax[1].imshow(skeleton, cmap=plt.cm.gray)
-    ax[1].axis('off')
-    ax[1].set_title('skeleton', fontsize=20)
-
-    fig.tight_layout()
     plt.show()
 
     euler = core.euler_number
