@@ -150,7 +150,9 @@ def get_skeleton(core, suppress_messages=False):
     if isinstance(core, list):
         core = np.array(core, dtype=np.uint8)
 
-    return kimimaro.skeletonize(core, progress=True, parallel=True)
+    return kimimaro.skeletonize(core, progress=True, parallel=0, parallel_chunk_size=64)#,
+                                #teasar_params={'max_paths': 100}
+                                #)
 
 
 def calculate_tortuosity(core, core_is_skeleton=True):
@@ -163,23 +165,26 @@ def calculate_tortuosity(core, core_is_skeleton=True):
     raise NotImplementedError
 
 
-def calculate_euler_number(core, core_is_skeleton=True):
+def calculate_euler_number(core, core_is_pore_network=True):
     print_notice("Calculating Core Euler Number...", mt.MessagePrefix.INFORMATION)
 
-    if not core_is_skeleton:
+    if not core_is_pore_network:
         print_notice("\tConverting to pore network...", mt.MessagePrefix.INFORMATION)
         core = np.array([x == 0 for x in core], np.bool)
     print_notice("\tConverting to skeleton...", mt.MessagePrefix.INFORMATION)
-    skeleton = get_skeleton(core, True)
+    skeleton = get_skeleton(core, True).pop(1)
+    verts = list(np.array(skeleton.vertices, dtype=np.int))
+    skeleton_model = np.zeros(core.shape)
 
-    fig = plt.figure()
-    ax = plt.axes(projection='3d')
+    print_notice("\tGenerating skeleton model...", mt.MessagePrefix.DEBUG)
+    for i in range(len(verts)):
+        temp_vert = tuple([verts[i][x] for x in {1, 2, 0}])
+        skeleton_model[temp_vert] = 255
 
-    ax.voxels   (skeleton)
+    skel = cv.voxels_to_mesh(skeleton_model)
+    skel.export("test.stl")
 
-    plt.show()
-
-    euler = core.euler_number
+    euler = skel.euler_number
     print_notice("\tEuler number = " + str(euler))
 
     return euler

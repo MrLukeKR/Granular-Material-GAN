@@ -23,7 +23,7 @@ def voxels_to_mesh(core, suppress_messages=False):
 
     core = np.array(core, np.uint8)
 
-    verts, faces, _, _ = measure.marching_cubes_lewiner(core)
+    verts, faces, _, _ = measure.marching_cubes(core)
 
     core_mesh = trimesh.Trimesh(verts, faces)
 
