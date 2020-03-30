@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 import cv2
 from mpl_toolkits import mplot3d
 
+import kimimaro
+
 from ImageTools.CoreAnalysis import CoreVisualiser as cv
 
 
@@ -148,7 +150,7 @@ def get_skeleton(core, suppress_messages=False):
     if isinstance(core, list):
         core = np.array(core, dtype=np.uint8)
 
-    return skeletonize_3d(core)
+    return kimimaro.skeletonize(core, progress=True, parallel=True)
 
 
 def calculate_tortuosity(core, core_is_skeleton=True):
