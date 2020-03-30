@@ -129,17 +129,17 @@ def calculate_average_void_diameter(void_network):
             diam = radius * 2
             image_total_diameter += diam
 
-        image_average = image_total_diameter / len(contours)
-        print_notice("\tAverage Void Diameter (Image %d) = %f Pixels" % (i + 1, image_average))
-        # TODO: Convert pixels to mm
+        img_avd = image_total_diameter / len(contours)
+        print_notice("\tAverage Void Diameter (Image %d) = %f Pixels" % (i + 1, img_avd), mt.MessagePrefix.DEBUG)  # TODO: Convert pixels to mm
 
-        volume_total_diameter += image_average
+        volume_total_diameter += img_avd
 
     avd = volume_total_diameter / len(void_network)
 
     print("")
-    # TODO: Convert pixels to mm
-    print_notice("\tAverage Void Diameter (Volume) = %f Pixels" % avd)
+
+    print_notice("\tAverage Void Diameter (Volume) = %f Pixels" % avd)  # TODO: Convert pixels to mm
+
     return avd
 
 
@@ -172,19 +172,12 @@ def calculate_euler_number(core, core_is_pore_network=True):
         print_notice("\tConverting to pore network...", mt.MessagePrefix.INFORMATION)
         core = np.array([x == 0 for x in core], np.bool)
     print_notice("\tConverting to skeleton...", mt.MessagePrefix.INFORMATION)
-    skeleton = get_skeleton(core, True).pop(1)
-    verts = list(np.array(skeleton.vertices, dtype=np.int))
-    skeleton_model = np.zeros(core.shape)
 
-    print_notice("\tGenerating skeleton model...", mt.MessagePrefix.DEBUG)
-    for i in range(len(verts)):
-        temp_vert = tuple([verts[i][x] for x in {1, 2, 0}])
-        skeleton_model[temp_vert] = 255
+    skeleton = get_skeleton(core, True)
 
-    skel = cv.voxels_to_mesh(skeleton_model)
-    skel.export("test.stl")
+    # TODO: Calculate Euler number
+    euler = core.euler_number
 
-    euler = skel.euler_number
     print_notice("\tEuler number = " + str(euler))
 
     return euler

@@ -7,6 +7,8 @@ from multiprocessing.pool import Pool
 # <<< Utilities
 
 # Image Processing >>>
+# import pymesh
+
 from ImageTools import VoxelProcessor as vp, ImageManager as im
 from ImageTools.CoreAnalysis import CoreAnalyser as ca, CoreVisualiser as cv
 # <<< Image Processing
@@ -52,7 +54,7 @@ def update_database_core_analyses():
 
     dm.db_cursor.execute("USE ct_scans;")
 
-    included_calculations = "AirVoidContent, MasticContent, AverageVoidDiameter, EulerNumber"
+    included_calculations = "AirVoidContent, MasticContent, AverageVoidDiameter"
 
     for ct_id in ct_ids:
         sql = "SELECT " + included_calculations + " FROM asphalt_cores WHERE ID=%s"
@@ -68,12 +70,11 @@ def update_database_core_analyses():
 
             # gradation = ca.calculate_aggregate_gradation(np.array([x == 2 for x in core], np.bool))
             avd = ca.calculate_average_void_diameter(void_network)
-            euler_number = ca.calculate_euler_number(void_network)
+            # euler_number = ca.calculate_euler_number(void_network)
 
-            sql = "UPDATE asphalt_cores SET AirVoidContent=%s, MasticContent=%s, AverageVoidDiameter=%s,  " \
-                  "EulerNumber=%s WHERE ID=%s"
+            sql = "UPDATE asphalt_cores SET AirVoidContent=%s, MasticContent=%s, AverageVoidDiameter=%s WHERE ID=%s"
 
-            values = (float(percentages[0]), float(percentages[1]), float(avd), float(euler_number), ct_id)
+            values = (float(percentages[0]), float(percentages[1]), float(avd), ct_id)
             dm.db_cursor.execute(sql, values)
 
     dm.db_cursor.execute("USE ***REMOVED***_Phase1;")
@@ -361,7 +362,11 @@ def core_visualisation_menu():
 
         if user_input == "1":
             core_mesh = cv.voxels_to_mesh(core)
-            core_mesh.export("test.stl")
+            core_mesh = cv.simplify_mesh(core_mesh)
+            model_dir = fm.compile_directory(fm.SpecialFolder.REAL_ASPHALT_3D_MODELS) + str(core_id) + '.stl'
+            core_mesh.export(model_dir)
+            # pymesh.save_mesh(model_dir, core_mesh)  # TODO: Make 3D model directories
+
         elif user_input == "2":
             # TODO: Export core to slice fly-through animation
             raise NotImplementedError
