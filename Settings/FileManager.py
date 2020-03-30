@@ -23,6 +23,9 @@ class SpecialFolder(Enum):
     SCAN_DATA = 12
     ROI_SCANS = 13
     FIGURES = 14
+    THREE_DIMENSIONAL_MODELS = 15
+    REAL_ASPHALT_3D_MODELS = 16
+    GENERATED_ASPHALT_3D_MODELS = 17
 
 
 data_directories = []
@@ -42,13 +45,17 @@ directory_ids = {
     SpecialFolder.ROI_SCANS: "IO_ROI_SCAN_ROOT_DIR",
 
     SpecialFolder.VOXEL_DATA: "IO_VOXEL_DATA_ROOT_DIR",
+    SpecialFolder.THREE_DIMENSIONAL_MODELS: "IO_3D_MODEL_ROOT_DIR",
     SpecialFolder.MODEL_DATA: "IO_MODEL_ROOT_DIR",
     SpecialFolder.DATASET_DATA: "IO_DATASET_ROOT_DIR",
     SpecialFolder.LOGS: "IO_LOG_ROOT_DIR",
 
     SpecialFolder.GENERATED_VOXEL_DATA: "IO_GENERATED_VOXEL_ROOT_DIR",
     SpecialFolder.GENERATED_CORE_DATA: "IO_GENERATED_CORE_ROOT_DIR",
-    SpecialFolder.FIGURES: "IO_FIGURES_ROOT_DIR"
+    SpecialFolder.FIGURES: "IO_FIGURES_ROOT_DIR",
+
+    SpecialFolder.GENERATED_ASPHALT_3D_MODELS: "IO_GENERATED_ASPHALT_3D_MODEL_DIR",
+    SpecialFolder.REAL_ASPHALT_3D_MODELS: "IO_ASPHALT_3D_MODEL_DIR"
 }
 
 
@@ -58,6 +65,7 @@ def initialise_directory_tree():
     experiments = Node(SpecialFolder.EXPERIMENTS, parent=directory_tree)
     scans = Node(SpecialFolder.SCAN_DATA, parent=directory_tree)
     results = Node(SpecialFolder.RESULTS, parent=experiments)
+    models_3d = Node(SpecialFolder.THREE_DIMENSIONAL_MODELS, parent=results)
 
     for folder in [SpecialFolder.PROCESSED_SCANS,
                    SpecialFolder.UNPROCESSED_SCANS,
@@ -75,6 +83,10 @@ def initialise_directory_tree():
                    SpecialFolder.GENERATED_VOXEL_DATA,
                    SpecialFolder.FIGURES]:
         Node(folder, parent=results)
+
+    for folder in [SpecialFolder.REAL_ASPHALT_3D_MODELS,
+                   SpecialFolder.GENERATED_ASPHALT_3D_MODELS]:
+        Node(folder, parent=models_3d)
 
     for pre, fill, node in RenderTree(directory_tree):
         print_notice("%s%s" % (pre, node.name), mt.MessagePrefix.DEBUG)

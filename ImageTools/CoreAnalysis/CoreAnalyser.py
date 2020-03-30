@@ -127,17 +127,17 @@ def calculate_average_void_diameter(void_network):
             diam = radius * 2
             image_total_diameter += diam
 
-        image_average = image_total_diameter / len(contours)
-        print_notice("\tAverage Void Diameter (Image %d) = %f Pixels" % (i + 1, image_average))
-        # TODO: Convert pixels to mm
+        img_avd = image_total_diameter / len(contours)
+        print_notice("\tAverage Void Diameter (Image %d) = %f Pixels" % (i + 1, img_avd), mt.MessagePrefix.DEBUG)  # TODO: Convert pixels to mm
 
-        volume_total_diameter += image_average
+        volume_total_diameter += img_avd
 
     avd = volume_total_diameter / len(void_network)
 
     print("")
-    # TODO: Convert pixels to mm
-    print_notice("\tAverage Void Diameter (Volume) = Pixels" + str(avd))
+
+    print_notice("\tAverage Void Diameter (Volume) = %f Pixels" % avd)  # TODO: Convert pixels to mm
+
     return avd
 
 
@@ -170,13 +170,7 @@ def calculate_euler_number(core, core_is_skeleton=True):
     print_notice("\tConverting to skeleton...", mt.MessagePrefix.INFORMATION)
     skeleton = get_skeleton(core, True)
 
-    fig = plt.figure()
-    ax = plt.axes(projection='3d')
-
-    ax.voxels   (skeleton)
-
-    plt.show()
-
+    # TODO: Calculate Euler number
     euler = core.euler_number
     print_notice("\tEuler number = " + str(euler))
 

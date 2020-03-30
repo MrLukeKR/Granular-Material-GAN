@@ -1,5 +1,5 @@
-import matplotlib.pyplot as plt
 import numpy as np
+# import pymesh
 import trimesh
 
 from Settings import SettingsManager as sm, MessageTools as mt
@@ -17,6 +17,13 @@ def plot_core(core):
     pts = mlab.plot3d(core)
 
 
+def simplify_mesh(mesh):
+    # TODO: Decimate/Simplify mesh
+    print_notice("Simplifying mesh to reduce file size... ", mt.MessagePrefix.INFORMATION, end='')
+    print("done")
+    return mesh
+
+
 def voxels_to_mesh(core, suppress_messages=False):
     if not suppress_messages:
         print_notice("Converting image stack of voxels to 3D mesh... ", mt.MessagePrefix.INFORMATION, end='')
@@ -26,6 +33,7 @@ def voxels_to_mesh(core, suppress_messages=False):
     verts, faces, _, _ = measure.marching_cubes_lewiner(core)
 
     core_mesh = trimesh.Trimesh(verts, faces)
+    # core_mesh = pymesh.form_mesh(verts, faces)
 
     if not suppress_messages:
         print("done")
