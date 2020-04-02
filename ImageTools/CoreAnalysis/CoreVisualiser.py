@@ -33,7 +33,7 @@ def fix_mesh(mesh, detail="normal"):
 
     count = 0
     print_notice("\tRemoving degenerated triangles... ", mt.MessagePrefix.INFORMATION)
-    mesh, __ = pymesh.remove_degenerated_triangles(mesh, 100)
+    mesh, __ = pymesh.remove_degenerated_triangles(mesh)
 
     print_notice("\tSplitting long edges... ", mt.MessagePrefix.INFORMATION)
     mesh, __ = pymesh.split_long_edges(mesh, target_len)
@@ -43,12 +43,8 @@ def fix_mesh(mesh, detail="normal"):
         print_notice("\tCollapsing short edges... ", mt.MessagePrefix.INFORMATION)
         mesh, __ = pymesh.collapse_short_edges(mesh, 1e-6)
 
-        print_notice("\tCollapsing short edges to target length (preserving features)... ", mt.MessagePrefix.INFORMATION)
-        mesh, __ = pymesh.collapse_short_edges(mesh, target_len,
-                preserve_feature=True)
-
         print_notice("\tRemoving obtuse triangles... ", mt.MessagePrefix.INFORMATION)
-        mesh, __ = pymesh.remove_obtuse_triangles(mesh, 150.0, 100)
+        mesh, __ = pymesh.remove_obtuse_triangles(mesh, 150.0)
         if mesh.num_vertices == num_vertices:
             break
 
