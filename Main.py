@@ -332,6 +332,16 @@ def core_category_menu():
             return -1
 
 
+def model_all_cores():
+    cores = dm.get_cores_from_database()
+
+    for core in [x[0] for x in cores]:
+        core_mesh = cv.voxels_to_mesh(ca.get_core_by_id(core))
+        core_mesh = cv.simplify_mesh(core_mesh)
+        model_dir = fm.compile_directory(fm.SpecialFolder.REAL_ASPHALT_3D_MODELS) + str(core) + '.stl'
+        core_mesh.export(model_dir)
+
+
 def core_visualisation_menu():
     valid = False
 
@@ -469,6 +479,8 @@ def main():
 # \-- | SEGMENT-TO-VOXEL CONVERSION SUB-MODULE
 
     update_database_core_analyses()
+
+    model_all_cores()
 
     while main_menu() != "EXIT":
         continue
