@@ -33,7 +33,7 @@ def fix_mesh(mesh, detail="normal"):
 
     count = 0
     print_notice("\tRemoving degenerated triangles... ", mt.MessagePrefix.INFORMATION)
-    mesh, __ = pymesh.remove_degenerated_triangles(mesh)
+    mesh, __ = pymesh.remove_degenerated_triangles(mesh, 100)
 
     print_notice("\tSplitting long edges... ", mt.MessagePrefix.INFORMATION)
     mesh, __ = pymesh.split_long_edges(mesh, target_len)
@@ -42,9 +42,10 @@ def fix_mesh(mesh, detail="normal"):
     while True:
         print_notice("\tCollapsing short edges... ", mt.MessagePrefix.INFORMATION)
         mesh, __ = pymesh.collapse_short_edges(mesh, 1e-6)
+        mesh, __ = pymesh.collapse_short_edges(mesh, target_len, preserve_feature=True)
 
         print_notice("\tRemoving obtuse triangles... ", mt.MessagePrefix.INFORMATION)
-        mesh, __ = pymesh.remove_obtuse_triangles(mesh, 150.0)
+        mesh, __ = pymesh.remove_obtuse_triangles(mesh, 150.0, 100)
         if mesh.num_vertices == num_vertices:
             break
 
@@ -78,29 +79,22 @@ def fix_mesh(mesh, detail="normal"):
 def simplify_mesh(mesh):
     print_notice("Simplifying mesh to reduce file size... ", mt.MessagePrefix.INFORMATION)
 
-    mesh = pymesh.form_mesh(mesh.vertices, mesh.faces)
-
     print_notice("\tVertices before: %d Faces before: %d\t" % (mesh.num_vertices, mesh.num_faces), mt.MessagePrefix.DEBUG)
-    mesh = fix_mesh(mesh)
+    mesh = fix_mesh(mesh, "high")
     print_notice("\tVertices after: %d Faces after: %d\t" % (mesh.num_vertices, mesh.num_faces), mt.MessagePrefix.DEBUG)
-
-    mesh = trimesh.Trimesh(mesh.vertices, mesh.faces)
 
     return mesh
 
 
 def voxels_to_mesh(core, suppress_messages=False):
     if not suppress_messages:
-        print_notice("Converting image stack of voxels to 3D mesh... ", mt.MessagePrefix.INFORMATION, end='')
+        print_notice("Converting image stack of voxels to 3D mesh... ", mt.MessagePrefix.INFORMATION)
 
-    core = np.array(core, np.uint8)
+    core = np.array(core, dtype=np.float)
 
-    verts, faces, _, _ = measure.marching_cubes(core)
+    stepsize = int(sm.configuration.get("VOXEL_MESH_STEP_SIZE"))
+    verts, faces, _, _ = measure.marching_cubes(core, step_size=stepsize, allow_degenerate=False)
 
-    core_mesh = trimesh.Trimesh(verts, faces)
-    # core_mesh = pymesh.form_mesh(verts, faces)
-
-    if not suppress_messages:
-        print("done")
+    core_mesh = pymesh.form_mesh(verts, faces)
 
     return core_mesh

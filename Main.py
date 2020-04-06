@@ -333,13 +333,22 @@ def core_category_menu():
 
 
 def model_all_cores():
+    import pymesh
     cores = dm.get_cores_from_database()
 
     for core in [x[0] for x in cores]:
-        core_mesh = cv.voxels_to_mesh(ca.get_core_by_id(core))
-        core_mesh = cv.simplify_mesh(core_mesh)
-        model_dir = fm.compile_directory(fm.SpecialFolder.REAL_ASPHALT_3D_MODELS) + str(core) + '.stl'
-        core_mesh.export(model_dir)
+        core_stack = ca.get_core_by_id(core)
+        aggregate = np.array([x == 255 for x in core_stack], np.bool)
+        binder = np.array([x == 127 for x in core_stack], np.bool)
+
+        model = [aggregate, binder]
+        segment = ["aggregate", "binder"]
+
+        for ind in range(2):
+            core_mesh = cv.voxels_to_mesh(model[ind])
+            # core_mesh = cv.simplify_mesh(core_mesh)
+            model_dir = fm.compile_directory(fm.SpecialFolder.REAL_ASPHALT_3D_MODELS) + str(core) + '_' + segment[ind] + '.stl'
+            pymesh.save_mesh(model_dir, core_mesh)
 
 
 def core_visualisation_menu():
