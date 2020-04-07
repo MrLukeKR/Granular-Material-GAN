@@ -88,7 +88,9 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture)
                             % str(round((aggregates.size * aggregates.itemsize) / (1024 ** 3), 2)),
                             mt.MessagePrefix.DEBUG)
 
-            binders = np.squeeze(np.array([voxels == 127], dtype=np.uint8) * 255)
+            # Due to implementations using floats/ints sometimes resulting in either 127 or 128 for the binder
+            # value, here we determine binder as "not void or aggregate"
+            binders = np.squeeze(np.array([(voxels != 0) & (voxels != 255)], dtype=np.uint8) * 255)
             mt.print_notice("Binders matrix uses %sGB of memory"
                             % str(round((binders.size * binders.itemsize) / (1024 ** 3), 2)),
                             mt.MessagePrefix.DEBUG)
