@@ -148,7 +148,7 @@ def experiment_menu():
     if user_input == "1":
         core_ids, split = data_selection_menu()
 
-        directories = [x[2] for x in dm.get_cores_from_database() if x[0] in core_ids]
+        directories = [x[1] for x in dm.get_cores_from_database() if x[0] in core_ids]
 
         fold_count = int(input("How many folds? > "))
 
@@ -334,19 +334,44 @@ def core_category_menu():
 
 def model_all_cores():
     import pymesh
+    print_notice("Converting cores to 3D objects...")
     cores = dm.get_cores_from_database()
 
     for core in [x[0] for x in cores]:
-        core_stack = ca.get_core_by_id(core)
-        aggregate = np.array([x == 255 for x in core_stack], np.bool)
-        binder = np.array([x == 127 for x in core_stack], np.bool)
+        core_stack = None
 
-        model = [aggregate, binder]
-        segment = ["aggregate", "binder"]
+        segment = []
+        model = []
 
-        for ind in range(2):
+        if not fm.file_exists(fm.compile_directory(fm.SpecialFolder.REAL_ASPHALT_3D_MODELS) +
+                          str(core) + '_aggregate.stl'):
+            if core_stack is None:
+                core_stack = ca.get_core_by_id(core)
+            aggregate = np.array([x == 255 for x in core_stack], np.bool)
+            segment += ["aggregate"]
+            model += [aggregate]
+
+        if not fm.file_exists(fm.compile_directory(fm.SpecialFolder.REAL_ASPHALT_3D_MODELS) +
+                              str(core) + '_binder.stl'):
+            if core_stack is None:
+                core_stack = ca.get_core_by_id(core)
+            binder = np.array([x == 127 for x in core_stack], np.bool)
+            segment += ["binder"]
+            model += [binder]
+
+        if not fm.file_exists(fm.compile_directory(fm.SpecialFolder.REAL_ASPHALT_3D_MODELS) +
+                          str(core) + '_void.stl'):
+            if core_stack is None:
+                core_stack = ca.get_core_by_id(core)
+            void = np.array([x == 0 for x in core_stack], np.bool)
+            segment += ["void"]
+            model += [void]
+
+        for ind in range(len(model)):
+            print_notice("\tConverting " + segment[ind])
             core_mesh = cv.voxels_to_mesh(model[ind])
             # core_mesh = cv.simplify_mesh(core_mesh)
+            #core_mesh = cv.tetrahedralise_mesh(core_mesh)
             model_dir = fm.compile_directory(fm.SpecialFolder.REAL_ASPHALT_3D_MODELS) + str(core) + '_' + segment[ind] + '.stl'
             pymesh.save_mesh(model_dir, core_mesh)
 

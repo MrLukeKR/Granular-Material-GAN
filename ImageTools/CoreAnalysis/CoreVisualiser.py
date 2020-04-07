@@ -86,6 +86,10 @@ def simplify_mesh(mesh):
     return mesh
 
 
+def tetrahedralise_mesh(mesh):
+    return pymesh.tetrahedralize(mesh, 1)
+
+
 def voxels_to_mesh(core, suppress_messages=False):
     if not suppress_messages:
         print_notice("Converting image stack of voxels to 3D mesh... ", mt.MessagePrefix.INFORMATION)
@@ -93,7 +97,10 @@ def voxels_to_mesh(core, suppress_messages=False):
     core = np.array(core, dtype=np.float)
 
     stepsize = int(sm.configuration.get("VOXEL_MESH_STEP_SIZE"))
-    verts, faces, _, _ = measure.marching_cubes(core, step_size=stepsize, allow_degenerate=False)
+
+    core = np.pad(core, stepsize, 'constant', constant_values=0)
+
+    verts, faces, normals, _ = measure.marching_cubes(core, step_size=stepsize, allow_degenerate=False)
 
     core_mesh = pymesh.form_mesh(verts, faces)
 
