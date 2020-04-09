@@ -2,8 +2,8 @@ import datetime
 import cpuinfo
 
 from psutil import virtual_memory
-from Settings import DatabaseManager as dm
-
+from Settings import DatabaseManager as dm, MessageTools as mt
+from Settings.MessageTools import print_notice
 
 def get_system_info():
     print("Gathering system information... ", end='')
@@ -57,6 +57,7 @@ class Logger:
 
     @staticmethod
     def log_model_instance_to_database(architecture_id, gen_filepath, disc_filepath):
+        print_notice("Logging model instance to database... ", mt.MessagePrefix.DEBUG, end='')
         if dm.database_connected:
             sql = "INSERT INTO model_instances (ArchitectureID, GeneratorFilePath, DiscriminatorFilePath) VALUES (%s, %s, %s);"
             val = (architecture_id, gen_filepath, disc_filepath)
@@ -64,6 +65,8 @@ class Logger:
 
             dm.db_cursor.execute("SELECT ID FROM model_instances "
                                  "WHERE GeneratorFilePath = '%s' AND DiscriminatorFilePath = '%s'" % (gen_filepath, disc_filepath))
+
+            print('done')
 
             return dm.db_cursor.fetchone()
         else:

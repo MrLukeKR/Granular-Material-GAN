@@ -18,30 +18,21 @@ def load_materials(directory):
     aggregates = list()
     binders = list()
 
-    print_notice("Loading voxels for core " + directory, mt.MessagePrefix.INFORMATION)
+    print_notice("Loading voxels for core " + directory + "... ", mt.MessagePrefix.INFORMATION, end='')
 
-    fm.current_directory = directory.replace(fm.get_directory(fm.SpecialFolder.SEGMENTED_SCANS), '')
+    fm.current_directory = directory.replace(fm.compile_directory(fm.SpecialFolder.ROI_SCANS), '')
 
     if fm.current_directory[-1] != '/':
         fm.current_directory += '/'
 
-    voxel_directory = fm.get_directory(fm.SpecialFolder.VOXEL_DATA) + fm.current_directory[0:-1]
+    voxel_directory = fm.compile_directory(fm.SpecialFolder.VOXEL_DATA) + fm.current_directory
 
     temp_voxels, dimensions = load_voxels(voxel_directory, "segment_" + sm.configuration.get("VOXEL_RESOLUTION"))
 
-    temp_aggregates = np.where(temp_voxels == 255) * 255
-    temp_binders = np.where(temp_voxels == 128) * 255
+    aggregates = np.array([x == 255 for x in temp_voxels]) * 255
+    binders = np.array([(x != 255) & (x != 0) for x in temp_voxels]) * 255
 
-    for voxel_ind in range(len(temp_aggregates)):
-        if np.min(temp_aggregates[voxel_ind]) != np.max(temp_aggregates[voxel_ind]) and \
-                np.min(temp_binders[voxel_ind]) != np.max(temp_binders[voxel_ind]):
-            binder = temp_binders[voxel_ind]
-            aggregate = temp_aggregates[voxel_ind]
-
-            aggregates.append(aggregate * 255)
-            binders.append(binder * 255)
-
-    print_notice("Loaded aggregates and binders", mt.MessagePrefix.SUCCESS)
+    print("done")
 
     return dimensions, aggregates, binders
 

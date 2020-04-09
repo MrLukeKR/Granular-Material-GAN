@@ -1,5 +1,6 @@
 import os
 import numpy as np
+from tqdm import tqdm
 
 from Settings import MessageTools as mt
 from ExperimentTools import DatasetProcessor
@@ -8,6 +9,7 @@ from Settings import FileManager as fm, SettingsManager as sm, MachineLearningMa
 from ImageTools import VoxelProcessor as vp, ImageManager as im
 from ExperimentTools.MethodologyLogger import Logger
 from ExperimentTools import DataVisualiser as dv
+from Settings.MessageTools import print_notice
 
 
 def run_model_on_core(core_id=None):
@@ -40,6 +42,7 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture)
     for fold in range(k):
         Logger.print("Running Cross Validation Fold " + str(fold + 1) + "/" + str(k))
         Logger.current_fold = fold
+        database_logged = False
 
         fold_d_losses = list()
         fold_d_accuracies = list()
@@ -53,8 +56,8 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture)
 
         filepath = root_dir + "Experiment-" + str(Logger.experiment_id) + '_' + "Fold-" + str(fold + 1) + '_'
 
-        discriminator_loc = filepath + "discriminator.h5"
-        generator_loc = filepath + "generator.h5"
+        discriminator_loc = filepath + "discriminator"
+        generator_loc = filepath + "generator"
 
         discriminator = mlm.create_discriminator(gen_settings)
         generator = mlm.create_generator(disc_settings)
@@ -83,14 +86,14 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture)
                             % str(round((voxels.size * voxels.itemsize) / (1024 * 1024 * 1024), 2)),
                             mt.MessagePrefix.DEBUG)
 
-            aggregates = np.squeeze(np.array([voxels == 255], dtype=np.uint8) * 255)
+            aggregates = np.squeeze(np.array([voxels == 255]) * 1.0)
             mt.print_notice("Aggregates matrix uses %sGB of memory"
                             % str(round((aggregates.size * aggregates.itemsize) / (1024 ** 3), 2)),
                             mt.MessagePrefix.DEBUG)
 
             # Due to implementations using floats/ints sometimes resulting in either 127 or 128 for the binder
             # value, here we determine binder as "not void or aggregate"
-            binders = np.squeeze(np.array([(voxels != 0) & (voxels != 255)], dtype=np.uint8) * 255)
+            binders = np.squeeze(np.array([(voxels != 0) & (voxels != 255)]) * 1.0)
             mt.print_notice("Binders matrix uses %sGB of memory"
                             % str(round((binders.size * binders.itemsize) / (1024 ** 3), 2)),
                             mt.MessagePrefix.DEBUG)
@@ -120,8 +123,11 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture)
             generator.model.save_weights(generator_loc)
             discriminator.model.save_weights(discriminator_loc)
 
-            instance_id = Logger.log_model_instance_to_database(architecture_id, generator_loc, discriminator_loc)
-            Logger.log_model_experiment_to_database(Logger.experiment_id, instance_id)
+            # If on the first iteration
+            if not database_logged:
+                instance_id = Logger.log_model_instance_to_database(architecture_id, generator_loc, discriminator_loc)[0]
+                Logger.log_model_experiment_to_database(Logger.experiment_id, instance_id)
+                database_logged = True
 
         test_network(testing_sets, fold, DCGAN.Network.generator)
 
@@ -153,46 +159,42 @@ def test_network(testing_sets, fold, test_generator):
 
         test_aggregates = list()
         test_binders = list()
+        dimensions = None
 
         for directory in testing_set:
-            Logger.print("\tLoading voxels from " + directory + "... ", end='')
-
             dimensions, test_aggregate, test_binder = vp.load_materials(directory)
-            test_aggregates.append(test_aggregate)
-            test_binders.append(test_binder)
+            test_aggregates.extend(test_aggregate)
+            test_binders.extend(test_binder)
 
-            Logger.print("done!")
+        test = np.array(test_aggregates)
+        test = np.expand_dims(test, 4)
 
-            test = np.array(test_aggregates)
-            test = np.expand_dims(test, 4)
+        results = list(test_generator.predict(test) * 255)
 
-            results = list(test_generator.predict(test) * 255)
+        experiment_id = "Experiment-" + str(Logger.experiment_id)
+        fold_id = "_Fold-" + str(fold)
 
-            experiment_id = "Experiment-" + str(Logger.experiment_id)
-            fold_id = "_Fold-" + str(fold)
+        directory = fm.compile_directory(fm.SpecialFolder.FIGURES) + experiment_id + "/Outputs/"
+        fm.create_if_not_exists(directory)
 
-            directory = fm.compile_directory(fm.SpecialFolder.FIGURES) + experiment_id + "/Outputs/"
-            fm.create_if_not_exists(directory)
+        vp.save_voxels(results, dimensions, directory, "Test")
 
-            vp.save_voxels(results, dimensions, fm.SpecialFolder.GENERATED_VOXEL_DATA, "Test")
+        print_notice("Saving Real vs. Generated voxel plots... ", end='')
+        for ind in tqdm(range(len(results))):
+            fig = im.plt.figure(figsize=(10, 5))
+            ax_expected = fig.add_subplot(1, 2, 1, projection='3d')
+            ax_expected.title.set_text("Real")
 
-            if all(setting == "True" for setting in
-                   [sm.configuration.get("ENABLE_IMAGE_DISPLAY"), sm.configuration.get("ENABLE_VOXEL_DISPLAY")]):
-                for ind in range(len(results)):
-                    fig = im.plt.figure(figsize=(10, 5))
-                    ax_expected = fig.add_subplot(1, 2, 1, projection='3d')
-                    ax_expected.title.set_text("Expected")
+            ax_actual = fig.add_subplot(1, 2, 2, projection='3d')
+            ax_actual.title.set_text("Generated")
 
-                    ax_actual = fig.add_subplot(1, 2, 2, projection='3d')
-                    ax_actual.title.set_text("Actual")
+            ax_expected.voxels(test_aggregates[ind], facecolors='w', edgecolors='w')
+            ax_expected.voxels(test_binders[ind], facecolors='k', edgecolors='k')
 
-                    ax_expected.voxels(test_aggregates[ind], facecolors='w', edgecolors='w')
-                    ax_expected.voxels(test_binders[ind], facecolors='k', edgecolors='k')
+            ax_actual.voxels(test_aggregates[ind], facecolors='w', edgecolors='w')
+            ax_actual.voxels(np.squeeze(results[ind]), facecolors='k', edgecolors='k')
 
-                    ax_actual.voxels(test_aggregates[ind], facecolors='w', edgecolors='w')
-                    ax_actual.voxels(np.squeeze(results[ind]), facecolors='k', edgecolors='k')
+            voxel_id = "_Voxel-" + str(ind)
 
-                    voxel_id = "_Voxel-" + str(ind)
-
-                    im.plt.gcf().savefig(directory + experiment_id + fold_id + voxel_id + '.jpg')
-                    im.plt.close(im.plt.gcf())
+            im.plt.gcf().savefig(directory + experiment_id + fold_id + voxel_id + '.jpg')
+            im.plt.close(im.plt.gcf())

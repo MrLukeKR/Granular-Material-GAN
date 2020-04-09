@@ -154,7 +154,7 @@ def load_model_from_database(modelID=None):
                     print_notice("That experiment ID does not exist", mt.MessagePrefix.WARNING)
                     choice = ""
 
-        print_notice("Loading model [" + choice + "]", mt.MessagePrefix.INFORMATION)
+        print_notice("Loading model [" + str(choice) + "]", mt.MessagePrefix.INFORMATION)
         instance = get_model_instance(choice)
         generator_loc = instance[2]
         discriminator_loc = instance[3]
@@ -263,7 +263,7 @@ def create_generator(settings, template=None):
                                     settings["levels"])
 
 
-# Models are saved as discriminator.h5 and generator.h5, under an experimental ID
+# Models are saved as discriminator.ckpt and generator.ckpt, under an experimental ID
 def load_network(locations, architectures):
     if not isinstance(locations, tuple):
         raise TypeError

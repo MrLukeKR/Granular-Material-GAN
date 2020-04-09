@@ -150,6 +150,9 @@ def experiment_menu():
 
         directories = [x[1] for x in dm.get_cores_from_database() if x[0] in core_ids]
 
+        directories = [str.replace(x, fm.compile_directory(fm.SpecialFolder.UNPROCESSED_SCANS),
+                                   fm.compile_directory(fm.SpecialFolder.ROI_SCANS)) for x in directories]
+
         fold_count = int(input("How many folds? > "))
 
         # Do train phase
