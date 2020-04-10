@@ -156,7 +156,7 @@ def experiment_menu():
         fold_count = int(input("How many folds? > "))
 
         # Do train phase
-        ExperimentRunner.run_k_fold_cross_validation_experiment(directories[:int(split[0])], fold_count, architecture_loaded)
+        ExperimentRunner.run_k_fold_cross_validation_experiment(directories[:int(split[0])], fold_count, architecture_loaded, multiprocessing_pool)
 
         # TODO: Do test phase
         # ExperimentRunner.test_network(directories[int(split[0] + 1):], )

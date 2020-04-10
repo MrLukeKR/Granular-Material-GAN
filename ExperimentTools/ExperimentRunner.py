@@ -1,4 +1,6 @@
 import os
+from itertools import repeat
+
 import numpy as np
 from tqdm import tqdm
 
@@ -20,7 +22,7 @@ def run_train_test_split_experiment(aggregates, binders, split_percentage):
     pass
 
 
-def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture):
+def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture, multiprocessing_pool=None):
     if not isinstance(architecture, tuple):
         raise TypeError
 
@@ -86,14 +88,14 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture)
                             % str(round((voxels.size * voxels.itemsize) / (1024 * 1024 * 1024), 2)),
                             mt.MessagePrefix.DEBUG)
 
-            aggregates = np.squeeze(np.array([voxels == 255]) * 1.0)
+            aggregates = np.squeeze(np.array([voxels == 255]) * 2.0 - 1.0)
             mt.print_notice("Aggregates matrix uses %sGB of memory"
                             % str(round((aggregates.size * aggregates.itemsize) / (1024 ** 3), 2)),
                             mt.MessagePrefix.DEBUG)
 
             # Due to implementations using floats/ints sometimes resulting in either 127 or 128 for the binder
             # value, here we determine binder as "not void or aggregate"
-            binders = np.squeeze(np.array([(voxels != 0) & (voxels != 255)]) * 1.0)
+            binders = np.squeeze(np.array([(voxels != 0) & (voxels != 255)]) * 2.0 - 1.0)
             mt.print_notice("Binders matrix uses %sGB of memory"
                             % str(round((binders.size * binders.itemsize) / (1024 ** 3), 2)),
                             mt.MessagePrefix.DEBUG)
@@ -129,7 +131,7 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture)
                 Logger.log_model_experiment_to_database(Logger.experiment_id, instance_id)
                 database_logged = True
 
-        test_network(testing_sets, fold, DCGAN.Network.generator)
+        test_network(testing_sets, fold, DCGAN.Network.generator, multiprocessing_pool)
 
 
 def save_training_graphs(d_loss, g_loss, directory, fold, ind):
@@ -150,7 +152,7 @@ def save_training_graphs(d_loss, g_loss, directory, fold, ind):
     im.plt.close(im.plt.gcf())
 
 
-def test_network(testing_sets, fold, test_generator):
+def test_network(testing_sets, fold, test_generator, multiprocessing_pool=None):
     Logger.print("Testing GAN on unseen aggregate voxels...")
 
     for testing_set in testing_sets[fold]:
@@ -169,7 +171,7 @@ def test_network(testing_sets, fold, test_generator):
         test = np.array(test_aggregates)
         test = np.expand_dims(test, 4)
 
-        results = list(test_generator.predict(test) * 255)
+        results = list(test_generator.predict(test) * 127.5 + 127.5)
 
         experiment_id = "Experiment-" + str(Logger.experiment_id)
         fold_id = "_Fold-" + str(fold)
@@ -177,24 +179,40 @@ def test_network(testing_sets, fold, test_generator):
         directory = fm.compile_directory(fm.SpecialFolder.FIGURES) + experiment_id + "/Outputs/"
         fm.create_if_not_exists(directory)
 
-        vp.save_voxels(results, dimensions, directory, "Test")
+        vp.save_voxels(results, dimensions, directory, "GeneratedVoxels")
 
         print_notice("Saving Real vs. Generated voxel plots... ", end='')
-        for ind in tqdm(range(len(results))):
-            fig = im.plt.figure(figsize=(10, 5))
-            ax_expected = fig.add_subplot(1, 2, 1, projection='3d')
-            ax_expected.title.set_text("Real")
+        file_location = directory + experiment_id + fold_id
 
-            ax_actual = fig.add_subplot(1, 2, 2, projection='3d')
-            ax_actual.title.set_text("Generated")
+        result_length = range(len(results))
 
-            ax_expected.voxels(test_aggregates[ind], facecolors='w', edgecolors='w')
-            ax_expected.voxels(test_binders[ind], facecolors='k', edgecolors='k')
+        if multiprocessing_pool is None:
+            for ind in tqdm(result_length):
+                plot_real_vs_generated_voxels(test_aggregates[ind], test_binders[ind], results[ind], file_location, ind)
+        else:
+            multiprocessing_pool.starmap(plot_real_vs_generated_voxels,
+                                         zip(test_aggregates, test_binders, results,
+                                             repeat(file_location, len(results)), list(result_length)))
 
-            ax_actual.voxels(test_aggregates[ind], facecolors='w', edgecolors='w')
-            ax_actual.voxels(np.squeeze(results[ind]), facecolors='k', edgecolors='k')
 
-            voxel_id = "_Voxel-" + str(ind)
+def plot_real_vs_generated_voxels(aggregates, expected, actual, file_location, ind):
+    fig = im.plt.figure(figsize=(10, 5))
+    ax_expected = fig.add_subplot(1, 2, 1, projection='3d')
+    ax_expected.title.set_text("Real")
 
-            im.plt.gcf().savefig(directory + experiment_id + fold_id + voxel_id + '.jpg')
-            im.plt.close(im.plt.gcf())
+    ax_actual = fig.add_subplot(1, 2, 2, projection='3d')
+    ax_actual.title.set_text("Generated")
+
+    ax_expected.voxels(aggregates, facecolors='w', edgecolors='w')
+    ax_expected.voxels(expected, facecolors='k', edgecolors='k')
+
+    actual = np.squeeze(actual)
+    aggregates[np.argwhere(actual >= 0.5)] = 0
+
+    ax_actual.voxels(aggregates, facecolors='w', edgecolors='w')
+    ax_actual.voxels(actual, facecolors='k', edgecolors='k')
+
+    voxel_id = "_Voxel-" + str(ind)
+
+    im.plt.gcf().savefig(file_location + voxel_id + '.pdf')
+    im.plt.close(im.plt.gcf())
