@@ -336,10 +336,16 @@ def model_all_cores():
     cores = dm.get_cores_from_database()
 
     for core in [x[0] for x in cores]:
-        core_mesh = cv.voxels_to_mesh(ca.get_core_by_id(core))
-        core_mesh = cv.simplify_mesh(core_mesh)
-        model_dir = fm.compile_directory(fm.SpecialFolder.REAL_ASPHALT_3D_MODELS) + str(core) + '.stl'
-        core_mesh.export(model_dir)
+        core_stack = ca.get_core_by_id(core)
+        aggregate = np.array([x == 255 for x in core_stack], dtype=np.bool)
+        binder = np.array([x == 127 for x in core_stack], dtype=np.bool)
+
+        for level in [aggregate, binder]:
+            core_mesh = cv.voxels_to_mesh(level)
+            core_mesh = cv.simplify_mesh(core_mesh)
+            model_dir = fm.compile_directory(fm.SpecialFolder.REAL_ASPHALT_3D_MODELS) + str(core) + '_' + \
+                        ("aggregate" if level == aggregate else "binder") + '.stl'
+            core_mesh.export(model_dir)
 
 
 def core_visualisation_menu():
