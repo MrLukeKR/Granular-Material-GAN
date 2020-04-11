@@ -167,12 +167,12 @@ def voxels_to_core(voxels, dimensions):
     for x in range(dimensions[0]):
         x_min = x * vox_res
         x_max = x_min + vox_res
-        for y in range(dimensions[1]):
-            y_min = y * vox_res
-            y_max = y_min + vox_res
-            for z in range(dimensions[2]):
-                z_min = z * vox_res
-                z_max = z_min + vox_res
+        for z in range(dimensions[1]):
+            z_min = z * vox_res
+            z_max = z_min + vox_res
+            for y in range(dimensions[2]):
+                y_min = y * vox_res
+                y_max = y_min + vox_res
                 core[x_min:x_max, y_min:y_max, z_min:z_max] = voxels[ind]
                 ind += 1
 
@@ -202,7 +202,8 @@ def test_network(testing_sets, fold, test_generator, multiprocessing_pool=None):
             directory = fm.compile_directory(fm.SpecialFolder.FIGURES) + experiment_id + "/Outputs/"
             fm.create_if_not_exists(directory)
 
-            binder_core = voxels_to_core(results, dimensions)
+            test_aggregate = np.squeeze(test_aggregate)
+            binder_core = voxels_to_core(np.array([x == 255 for x in results]), dimensions)
             aggregate_core = voxels_to_core(test_aggregate, dimensions)
 
             binder_core = cv.voxels_to_mesh(binder_core)
