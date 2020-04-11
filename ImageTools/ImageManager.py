@@ -209,7 +209,7 @@ def preprocess_images(multiprocessing_pool):
         return
 
     for data_directory in fm.data_directories:
-        fm.current_directory = data_directory.replace('/' + fm.get_directory(fm.SpecialFolder.UNPROCESSED_SCANS), '')
+        fm.current_directory = data_directory.replace(fm.compile_directory(fm.SpecialFolder.UNPROCESSED_SCANS), '')
 
         images = load_images_from_directory(data_directory)
         images = apply_preprocessing_pipeline(images, multiprocessing_pool)

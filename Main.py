@@ -130,6 +130,8 @@ def generate_voxels():
 
 
 def experiment_menu():
+    global model_loaded
+
     if architecture_loaded is None and model_loaded is None:
         print_notice("Please load an architecture or model first!", mt.MessagePrefix.WARNING)
         return
@@ -230,6 +232,8 @@ def core_selection_menu():
 
 
 def run_model_menu():
+    global model_loaded
+
     choice = core_selection_menu()
 
     dimensions, aggregates, binders = vp.load_materials(choice)
@@ -376,7 +380,7 @@ def model_all_cores():
             # core_mesh = cv.simplify_mesh(core_mesh)
             #core_mesh = cv.tetrahedralise_mesh(core_mesh)
             model_dir = fm.compile_directory(fm.SpecialFolder.REAL_ASPHALT_3D_MODELS) + str(core) + '_' + segment[ind] + '.stl'
-            pymesh.save_mesh(model_dir, core_mesh)
+            cv.save_mesh(core_mesh, model_dir)
 
 
 def core_visualisation_menu():

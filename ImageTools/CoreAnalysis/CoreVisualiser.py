@@ -90,6 +90,10 @@ def tetrahedralise_mesh(mesh):
     return pymesh.tetrahedralize(mesh, 1)
 
 
+def save_mesh(mesh, directory):
+    pymesh.save_mesh(directory, mesh)
+
+
 def voxels_to_mesh(core, suppress_messages=False):
     if not suppress_messages:
         print_notice("Converting image stack of voxels to 3D mesh... ", mt.MessagePrefix.INFORMATION)

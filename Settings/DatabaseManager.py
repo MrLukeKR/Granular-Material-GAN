@@ -87,6 +87,8 @@ def populate_ct_scan_database():
 
     ct_ids = [name for name in os.listdir(unprocessed_ct_directory)]
 
+    unprocessed_ct_directory = unprocessed_ct_directory.replace(fm.compile_directory(fm.SpecialFolder.ROOT), '')
+
     for ct_id in ct_ids:
         directory = unprocessed_ct_directory + ct_id
         sql = "INSERT INTO asphalt_cores(ID, ScanDirectory) " \

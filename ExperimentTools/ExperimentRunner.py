@@ -12,6 +12,7 @@ from ImageTools import VoxelProcessor as vp, ImageManager as im
 from ExperimentTools.MethodologyLogger import Logger
 from ExperimentTools import DataVisualiser as dv
 from Settings.MessageTools import print_notice
+from ImageTools.CoreAnalysis import CoreVisualiser as cv
 
 
 def run_model_on_core(core_id=None):
@@ -152,6 +153,33 @@ def save_training_graphs(d_loss, g_loss, directory, fold, ind):
     im.plt.close(im.plt.gcf())
 
 
+def voxels_to_core(voxels, dimensions):
+    voxels = np.squeeze(voxels)
+    print_notice("Building (%s) core from voxels... " % (str(dimensions)), end='')
+    vox_res = int(sm.configuration.get("VOXEL_RESOLUTION"))
+
+    core = np.zeros((dimensions[0] * vox_res,
+                     dimensions[1] * vox_res,
+                     dimensions[2] * vox_res))
+
+    ind = 0
+
+    for x in range(dimensions[0]):
+        x_min = x * vox_res
+        x_max = x_min + vox_res
+        for y in range(dimensions[1]):
+            y_min = y * vox_res
+            y_max = y_min + vox_res
+            for z in range(dimensions[2]):
+                z_min = z * vox_res
+                z_max = z_min + vox_res
+                core[x_min:x_max, y_min:y_max, z_min:z_max] = voxels[ind]
+                ind += 1
+
+    print("done")
+    return core
+
+
 def test_network(testing_sets, fold, test_generator, multiprocessing_pool=None):
     Logger.print("Testing GAN on unseen aggregate voxels...")
 
@@ -159,40 +187,45 @@ def test_network(testing_sets, fold, test_generator, multiprocessing_pool=None):
         if not isinstance(testing_set, list):
             testing_set = list(testing_sets[fold])
 
-        test_aggregates = list()
-        test_binders = list()
-        dimensions = None
-
         for directory in testing_set:
-            dimensions, test_aggregate, test_binder = vp.load_materials(directory)
-            test_aggregates.extend(test_aggregate)
-            test_binders.extend(test_binder)
+            core = str.split(directory, '/')[-1]
+            dimensions, test_aggregate, test_binder = vp.load_materials(core)
 
-        test = np.array(test_aggregates)
-        test = np.expand_dims(test, 4)
+            test_aggregate = np.expand_dims(test_aggregate, 4)
 
-        results = list(test_generator.predict(test) * 127.5 + 127.5)
+            results = test_generator.predict(test_aggregate) * 127.5 + 127.5
+            results = np.squeeze(results)
 
-        experiment_id = "Experiment-" + str(Logger.experiment_id)
-        fold_id = "_Fold-" + str(fold)
+            experiment_id = "Experiment-" + str(Logger.experiment_id)
+            fold_id = "_Fold-" + str(fold)
 
-        directory = fm.compile_directory(fm.SpecialFolder.FIGURES) + experiment_id + "/Outputs/"
-        fm.create_if_not_exists(directory)
+            directory = fm.compile_directory(fm.SpecialFolder.FIGURES) + experiment_id + "/Outputs/"
+            fm.create_if_not_exists(directory)
 
-        vp.save_voxels(results, dimensions, directory, "GeneratedVoxels")
+            binder_core = voxels_to_core(results, dimensions)
+            aggregate_core = voxels_to_core(test_aggregate, dimensions)
 
-        print_notice("Saving Real vs. Generated voxel plots... ", end='')
-        file_location = directory + experiment_id + fold_id
+            binder_core = cv.voxels_to_mesh(binder_core)
+            aggregate_core = cv.voxels_to_mesh(aggregate_core)
 
-        result_length = range(len(results))
+            cv.save_mesh(binder_core, directory + "binder.stl")
+            cv.save_mesh(aggregate_core, directory + "aggregate.stl")
 
-        if multiprocessing_pool is None:
-            for ind in tqdm(result_length):
-                plot_real_vs_generated_voxels(test_aggregates[ind], test_binders[ind], results[ind], file_location, ind)
-        else:
-            multiprocessing_pool.starmap(plot_real_vs_generated_voxels,
-                                         zip(test_aggregates, test_binders, results,
-                                             repeat(file_location, len(results)), list(result_length)))
+            results = list(results)
+            vp.save_voxels(results, dimensions, directory, "GeneratedVoxels")
+
+            print_notice("Saving Real vs. Generated voxel plots... ", end='')
+            file_location = directory + experiment_id + fold_id + "_core-" + core
+
+            result_length = range(len(results))
+
+            if multiprocessing_pool is None:
+                for ind in tqdm(result_length):
+                    plot_real_vs_generated_voxels(test_aggregate[ind], test_binder[ind], results[ind], file_location, ind)
+            else:
+                multiprocessing_pool.starmap(plot_real_vs_generated_voxels,
+                                             zip(test_aggregate, test_binder, results,
+                                                 repeat(file_location, len(results)), list(result_length)))
 
 
 def plot_real_vs_generated_voxels(aggregates, expected, actual, file_location, ind):
@@ -207,7 +240,6 @@ def plot_real_vs_generated_voxels(aggregates, expected, actual, file_location, i
     ax_expected.voxels(expected, facecolors='k', edgecolors='k')
 
     actual = np.squeeze(actual)
-    aggregates[np.argwhere(actual >= 0.5)] = 0
 
     ax_actual.voxels(aggregates, facecolors='w', edgecolors='w')
     ax_actual.voxels(actual, facecolors='k', edgecolors='k')

@@ -14,18 +14,10 @@ from Settings import FileManager as fm, SettingsManager as sm
 from ExperimentTools.MethodologyLogger import Logger
 
 
-def load_materials(directory):
-    aggregates = list()
-    binders = list()
+def load_materials(core):
+    print_notice("Loading voxels for core " + core + "... ", mt.MessagePrefix.INFORMATION, end='')
 
-    print_notice("Loading voxels for core " + directory + "... ", mt.MessagePrefix.INFORMATION, end='')
-
-    fm.current_directory = directory.replace(fm.compile_directory(fm.SpecialFolder.ROI_SCANS), '')
-
-    if fm.current_directory[-1] != '/':
-        fm.current_directory += '/'
-
-    voxel_directory = fm.compile_directory(fm.SpecialFolder.VOXEL_DATA) + fm.current_directory
+    voxel_directory = fm.compile_directory(fm.SpecialFolder.VOXEL_DATA) + core + '/'
 
     temp_voxels, dimensions = load_voxels(voxel_directory, "segment_" + sm.configuration.get("VOXEL_RESOLUTION"))
 
