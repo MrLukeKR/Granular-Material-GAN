@@ -4,7 +4,7 @@ from matplotlib import cm
 import matplotlib.pyplot as plt
 import h5py
 
-from Settings import MessageTools as mt
+from Settings import MessageTools as mt, SettingsManager as sm
 from Settings.MessageTools import print_notice
 
 # DO NOT DELETE THIS! It shows as unused but it is vital to 3D projection
@@ -200,3 +200,30 @@ def plot_voxel(voxel):
 
         return fig
     return None
+
+
+def voxels_to_core(voxels, dimensions):
+    voxels = np.squeeze(voxels)
+    print_notice("Building (%s) core from voxels... " % (str(dimensions)), end='')
+    vox_res = int(sm.configuration.get("VOXEL_RESOLUTION"))
+
+    core = np.zeros((dimensions[0] * vox_res,
+                     dimensions[1] * vox_res,
+                     dimensions[2] * vox_res))
+
+    ind = 0
+
+    for x in range(dimensions[0]):
+        x_min = x * vox_res
+        x_max = x_min + vox_res
+        for z in range(dimensions[1]):
+            z_min = z * vox_res
+            z_max = z_min + vox_res
+            for y in range(dimensions[2]):
+                y_min = y * vox_res
+                y_max = y_min + vox_res
+                core[x_min:x_max, y_min:y_max, z_min:z_max] = voxels[ind]
+                ind += 1
+
+    print("done")
+    return core

@@ -8,6 +8,8 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Flatten, Dense, Activation, Conv3D, Conv3DTranspose as Deconv3D, BatchNormalization, LeakyReLU
 from ExperimentTools import DataVisualiser as dv
 from ExperimentTools.MethodologyLogger import Logger
+from ImageTools.CoreAnalysis.CoreVisualiser import save_mesh, voxels_to_mesh
+from ImageTools.VoxelProcessor import voxels_to_core
 from Settings.MessageTools import print_notice
 from Settings import SettingsManager as sm, MessageTools as mt, MachineLearningManager as mlm, DatabaseManager as dm
 
@@ -83,7 +85,7 @@ class Network(AbstractGAN.Network):
                                 optimizer=optimizer)
 
     @classmethod
-    def train_network(cls, epochs, batch_size, features, labels):
+    def train_network(cls, epochs, batch_size, features, labels, core_animation_data=None):
         print_notice("Preparing feature/label matrices...", mt.MessagePrefix.INFORMATION)
         if isinstance(features, list):
             features = np.asarray(features)
@@ -178,6 +180,11 @@ class Network(AbstractGAN.Network):
 
                 dm.db_cursor.execute(sql, val)
                 dm.db.commit()
+
+            if core_animation_data is not None and len(core_animation_data) == 3:
+                core = gan_to_core(cls.adversarial, core_animation_data[0], core_animation_data[1])
+                mesh = voxels_to_mesh(core)
+                save_mesh(mesh, core_animation_data[2] + 'Epoch_' + str(epoch) + '.stl')
 
             # im.save_voxel_image_collection(gen_missing, fm.SpecialFolder.VOXEL_DATA, "figures/postGAN/generated")
             # im.save_voxel_image_collection(labels, fm.SpecialFolder.VOXEL_DATA, "figures/postGAN/expected")
@@ -302,3 +309,14 @@ class DCGANGenerator:
         gen_missing = model(input_voxel)
 
         self._model = Model(input_voxel, gen_missing)
+
+
+def gan_to_core(network, aggregates, aggregate_dimensions):
+    results = gan_to_voxels(network, aggregates)
+    return voxels_to_core(results, aggregate_dimensions)
+
+
+def gan_to_voxels(network, aggregates):
+    results, _ = network.predict(aggregates)
+    results = results * 127.5 + 127.5
+    return np.squeeze(results)

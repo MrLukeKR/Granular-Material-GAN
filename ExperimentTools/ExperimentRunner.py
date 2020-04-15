@@ -4,6 +4,8 @@ from itertools import repeat
 import numpy as np
 from tqdm import tqdm
 
+from GAN.DCGAN import gan_to_voxels
+from ImageTools.VoxelProcessor import voxels_to_core
 from Settings import MessageTools as mt
 from ExperimentTools import DatasetProcessor
 from GAN import DCGAN
@@ -42,6 +44,10 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
 
     architecture_id, gen_settings, disc_settings = architecture
 
+    core = str.split(testing_sets[0][0], '/')[-1]
+    animation_dimensions, animation_aggregates, _ = vp.load_materials(core)
+    animation_aggregates = np.expand_dims(animation_aggregates, 4)
+
     for fold in range(k):
         Logger.print("Running Cross Validation Fold " + str(fold + 1) + "/" + str(k))
         Logger.current_fold = fold
@@ -57,7 +63,10 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
         if not os.path.exists(root_dir):
             os.makedirs(root_dir)
 
-        filepath = root_dir + "Experiment-" + str(Logger.experiment_id) + '_' + "Fold-" + str(fold + 1) + '_'
+        experiment_id = "Experiment-" + str(Logger.experiment_id)
+        fold_id = "_Fold-" + str(fold)
+
+        filepath = root_dir + experiment_id + fold_id + '_'
 
         discriminator_loc = filepath + "discriminator"
         generator_loc = filepath + "generator"
@@ -107,8 +116,14 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
 
             Logger.print("\tTraining on set " + str(ind + 1) + '/' + str(len(training_sets[fold])) + "... ")
 
+            directory = fm.compile_directory(fm.SpecialFolder.FIGURES) + experiment_id + "/Outputs/CoreAnimation/"
+            fm.create_if_not_exists(directory)
+
+            animation_data = (animation_aggregates, animation_dimensions, directory)
+
             d_loss, g_loss, images = DCGAN.Network.train_network(epochs, batch_size,
-                                                                 aggregates, binders)
+                                                                 aggregates, binders,
+                                                                 animation_data)
 
             filename = "Experiment-" + str(Logger.experiment_id)
             directory = fm.compile_directory(fm.SpecialFolder.FIGURES) + filename + '/Training'
@@ -153,33 +168,6 @@ def save_training_graphs(d_loss, g_loss, directory, fold, ind):
     im.plt.close(im.plt.gcf())
 
 
-def voxels_to_core(voxels, dimensions):
-    voxels = np.squeeze(voxels)
-    print_notice("Building (%s) core from voxels... " % (str(dimensions)), end='')
-    vox_res = int(sm.configuration.get("VOXEL_RESOLUTION"))
-
-    core = np.zeros((dimensions[0] * vox_res,
-                     dimensions[1] * vox_res,
-                     dimensions[2] * vox_res))
-
-    ind = 0
-
-    for x in range(dimensions[0]):
-        x_min = x * vox_res
-        x_max = x_min + vox_res
-        for z in range(dimensions[1]):
-            z_min = z * vox_res
-            z_max = z_min + vox_res
-            for y in range(dimensions[2]):
-                y_min = y * vox_res
-                y_max = y_min + vox_res
-                core[x_min:x_max, y_min:y_max, z_min:z_max] = voxels[ind]
-                ind += 1
-
-    print("done")
-    return core
-
-
 def test_network(testing_sets, fold, test_generator, multiprocessing_pool=None):
     Logger.print("Testing GAN on unseen aggregate voxels...")
 
@@ -193,8 +181,7 @@ def test_network(testing_sets, fold, test_generator, multiprocessing_pool=None):
 
             test_aggregate = np.expand_dims(test_aggregate, 4)
 
-            results = test_generator.predict(test_aggregate) * 127.5 + 127.5
-            results = np.squeeze(results)
+            results = gan_to_voxels(test_generator, test_aggregate)
 
             experiment_id = "Experiment-" + str(Logger.experiment_id)
             fold_id = "_Fold-" + str(fold)
@@ -203,7 +190,7 @@ def test_network(testing_sets, fold, test_generator, multiprocessing_pool=None):
             fm.create_if_not_exists(directory)
 
             test_aggregate = np.squeeze(test_aggregate)
-            binder_core = voxels_to_core(np.array([x == 255 for x in results]), dimensions)
+            binder_core = voxels_to_core(np.array([x >= 128 for x in results]), dimensions)
             aggregate_core = voxels_to_core(test_aggregate, dimensions)
 
             binder_core = cv.voxels_to_mesh(binder_core)
