@@ -4,7 +4,8 @@ from matplotlib import cm
 import matplotlib.pyplot as plt
 import h5py
 
-from Settings import MessageTools as mt, SettingsManager as sm
+from ImageTools import ImageManager as im
+from Settings import MessageTools as mt, SettingsManager as sm, FileManager as fm
 from Settings.MessageTools import print_notice
 
 # DO NOT DELETE THIS! It shows as unused but it is vital to 3D projection
@@ -227,3 +228,39 @@ def voxels_to_core(voxels, dimensions):
 
     print("done")
     return core
+
+
+def process_voxels(images):
+    voxels = list()
+    dimensions = None
+
+    if sm.configuration.get("ENABLE_VOXEL_SEPARATION") == "True":
+        voxels, dimensions = vp.volume_to_voxels(images, int(sm.configuration.get("VOXEL_RESOLUTION")))
+
+        if sm.configuration.get("ENABLE_VOXEL_INPUT_SAVING") == "True":
+            im.save_voxel_images(voxels, "Unsegmented")
+    return voxels, dimensions
+
+
+def generate_voxels():
+    fm.data_directories = fm.prepare_directories(fm.SpecialFolder.SEGMENTED_SCANS)
+
+    for data_directory in fm.data_directories:
+        fm.current_directory = data_directory.replace(fm.compile_directory(fm.SpecialFolder.SEGMENTED_SCANS), '')
+
+        voxel_directory = fm.compile_directory(fm.SpecialFolder.VOXEL_DATA) + fm.current_directory[0:-1] + '/'
+
+        filename = 'segment_' + sm.configuration.get("VOXEL_RESOLUTION")
+
+        if fm.file_exists(voxel_directory + filename + ".h5"):
+            continue
+
+        print_notice("Converting segments in '" + data_directory + "' to voxels...", mt.MessagePrefix.INFORMATION)
+
+        print_notice("\tLoading segment data...", mt.MessagePrefix.INFORMATION)
+        images = im.load_images_from_directory(data_directory, "segment")
+        voxels, dimensions = process_voxels(images)
+
+        print_notice("\tSaving segment voxels...", mt.MessagePrefix.INFORMATION)
+        vp.save_voxels(voxels, dimensions, voxel_directory, filename)
+        # im.save_voxel_image_collection(voxels, fm.SpecialFolder.VOXEL_DATA, "figures/" + segment)

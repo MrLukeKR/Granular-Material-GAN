@@ -25,7 +25,7 @@ def get_contours(image):
 def remove_particles(image, iterations=1):
     fixed_image = None
 
-    for iter in range(iterations):
+    for iteration in range(iterations):
         fixed_image = np.zeros(image.shape, dtype=np.uint8)
 
         for i in {2, 1, 0}:

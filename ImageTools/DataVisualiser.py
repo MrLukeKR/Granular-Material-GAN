@@ -2,8 +2,6 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as anim
 import numpy as np
 
-from Settings import MessageTools as mt
-from Settings.MessageTools import print_notice
 from matplotlib import style
 
 style.use('fast')
@@ -43,7 +41,7 @@ def set_current_axis(ax):
     current_axis = ax
 
 
-def update_live_graph(i, xs, ys):
+def update_live_graph(_, xs, ys):
     global current_axis
 
     current_axis.clear()

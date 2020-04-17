@@ -24,8 +24,8 @@ def segment_image(voxel):
         fig.close()
 
 
-def segment_slice(slice):
-    thresholds = threshold_otsu(slice, 3)
+def segment_slice(ct_slice):
+    thresholds = threshold_otsu(ct_slice, 3)
 
     return thresholds
 

@@ -99,7 +99,7 @@ def make_diameter(a, b):
     cy = (a[1] + b[1]) / 2.0
     r0 = math.hypot(cx - a[0], cy - a[1])
     r1 = math.hypot(cx - b[0], cy - b[1])
-    return (cx, cy, max(r0, r1))
+    return cx, cy, max(r0, r1)
 
 
 def make_circumcircle(a, b, c):
@@ -126,7 +126,7 @@ def make_circumcircle(a, b, c):
     ra = math.hypot(x - a[0], y - a[1])
     rb = math.hypot(x - b[0], y - b[1])
     rc = math.hypot(x - c[0], y - c[1])
-    return (x, y, max(ra, rb, rc))
+    return x, y, max(ra, rb, rc)
 
 
 _MULTIPLICATIVE_EPSILON = 1 + 1e-14

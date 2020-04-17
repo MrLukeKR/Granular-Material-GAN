@@ -1,36 +1,33 @@
-2
 # Utilities >>>
-import os
+
+from multiprocessing.pool import Pool
+from multiprocessing.spawn import freeze_support
 
 import numpy as np
-from multiprocessing.spawn import freeze_support
-from multiprocessing.pool import Pool
-# <<< Utilities
-
-# Image Processing >>>
-# import pymesh
-
-from ImageTools import VoxelProcessor as vp, ImageManager as im
-from ImageTools.CoreAnalysis import CoreAnalyser as ca, CoreVisualiser as cv
-# <<< Image Processing
-
-# Data Visualisation >>>
-from ImageTools import DataVisualiser as dv
-# <<< Data Visualisation
 
 # Experiments >>>
 from ExperimentTools import MethodologyLogger, ExperimentRunner
-# <<< Experiments
-
+from ImageTools import VoxelProcessor as vp, ImageManager as im
+from ImageTools.CoreAnalysis import CoreAnalyser as ca, CoreVisualiser as cv
 # Settings >>>
+from ImageTools.CoreAnalysis.CoreAnalyser import update_database_core_analyses
+from ImageTools.CoreAnalysis.CoreVisualiser import model_all_cores
+from ImageTools.VoxelProcessor import generate_voxels
 from Settings import \
     MachineLearningManager as mlm, \
     MessageTools as mt, \
     SettingsManager as sm, \
     FileManager as fm, \
     DatabaseManager as dm
-
 from Settings.MessageTools import print_notice
+
+# <<< Utilities
+# Image Processing >>>
+# import pymesh
+# <<< Image Processing
+# Data Visualisation >>>
+# <<< Data Visualisation
+# <<< Experiments
 # <<< Settings
 
 model_loaded = None
@@ -46,53 +43,6 @@ def print_introduction():
     print()
 
 
-def update_database_core_analyses():
-    print_notice("Updating core analyses in database...", mt.MessagePrefix.INFORMATION)
-
-    unprocessed_ct_directory = fm.compile_directory(fm.SpecialFolder.UNPROCESSED_SCANS)
-
-    ct_ids = [name for name in os.listdir(unprocessed_ct_directory)]
-
-    dm.db_cursor.execute("USE ct_scans;")
-
-    included_calculations = "AirVoidContent, MasticContent, AverageVoidDiameter"
-
-    for ct_id in ct_ids:
-        sql = "SELECT " + included_calculations + " FROM asphalt_cores WHERE ID=%s"
-        values = (ct_id,)
-
-        dm.db_cursor.execute(sql, values)
-        res = dm.db_cursor.fetchone()
-
-        if any(x is None for x in res):
-            core = ca.get_core_by_id(ct_id)
-            counts, percentages = ca.calculate_composition(core)
-            void_network = np.array([x == 0 for x in core], np.bool)
-
-            # gradation = ca.calculate_aggregate_gradation(np.array([x == 2 for x in core], np.bool))
-            avd = ca.calculate_average_void_diameter(void_network)
-            # euler_number = ca.calculate_euler_number(void_network)
-
-            sql = "UPDATE asphalt_cores SET AirVoidContent=%s, MasticContent=%s, AverageVoidDiameter=%s WHERE ID=%s"
-
-            values = (float(percentages[0]), float(percentages[1]), float(avd), ct_id)
-            dm.db_cursor.execute(sql, values)
-
-    dm.db_cursor.execute("USE ***REMOVED***_Phase1;")
-
-
-def process_voxels(images):
-    voxels = list()
-    dimensions = None
-
-    if sm.configuration.get("ENABLE_VOXEL_SEPARATION") == "True":
-        voxels, dimensions = vp.volume_to_voxels(images, int(sm.configuration.get("VOXEL_RESOLUTION")))
-
-        if sm.configuration.get("ENABLE_VOXEL_INPUT_SAVING") == "True":
-            im.save_voxel_images(voxels, "Unsegmented")
-    return voxels, dimensions
-
-
 def setup():
     print_introduction()
 
@@ -104,30 +54,6 @@ def setup():
     dm.initialise_database()
 
     mlm.initialise()
-
-
-def generate_voxels():
-    fm.data_directories = fm.prepare_directories(fm.SpecialFolder.SEGMENTED_SCANS)
-
-    for data_directory in fm.data_directories:
-        fm.current_directory = data_directory.replace(fm.compile_directory(fm.SpecialFolder.SEGMENTED_SCANS), '')
-
-        voxel_directory = fm.compile_directory(fm.SpecialFolder.VOXEL_DATA) + fm.current_directory[0:-1] + '/'
-
-        filename = 'segment_' + sm.configuration.get("VOXEL_RESOLUTION")
-
-        if fm.file_exists(voxel_directory + filename + ".h5"):
-            continue
-
-        print_notice("Converting segments in '" + data_directory + "' to voxels...", mt.MessagePrefix.INFORMATION)
-
-        print_notice("\tLoading segment data...", mt.MessagePrefix.INFORMATION)
-        images = im.load_images_from_directory(data_directory, "segment")
-        voxels, dimensions = process_voxels(images)
-
-        print_notice("\tSaving segment voxels...", mt.MessagePrefix.INFORMATION)
-        vp.save_voxels(voxels, dimensions, voxel_directory, filename)
-        # im.save_voxel_image_collection(voxels, fm.SpecialFolder.VOXEL_DATA, "figures/" + segment)
 
 
 def experiment_menu():
@@ -145,7 +71,7 @@ def experiment_menu():
     print("[4] Single Model (Entire Dataset Generator)")
 
     user_input = input("Enter your menu choice > ")
-    
+
     if user_input.isnumeric() and 4 >= int(user_input) > 0:
         MethodologyLogger.Logger(fm.compile_directory(fm.SpecialFolder.LOGS))
     if user_input == "1":
@@ -159,7 +85,8 @@ def experiment_menu():
         fold_count = int(input("How many folds? > "))
 
         # Do train phase
-        ExperimentRunner.run_k_fold_cross_validation_experiment(directories[:int(split[0])], fold_count, architecture_loaded, multiprocessing_pool)
+        ExperimentRunner.run_k_fold_cross_validation_experiment(directories[:int(split[0])], fold_count,
+                                                                architecture_loaded, multiprocessing_pool)
 
         # TODO: Do test phase
         # ExperimentRunner.test_network(directories[int(split[0] + 1):], )
@@ -199,7 +126,7 @@ def core_analysis_menu():
         cv.plot_core(skeleton)
         ca.calculate_tortuosity(skeleton)
     elif user_input == "4":
-        #skeleton = ca.get_skeleton(core)
+        # skeleton = ca.get_skeleton(core)
         ca.calculate_euler_number(core, False)
     elif user_input == "5":
         ca.calculate_average_void_diameter(core)
@@ -340,50 +267,6 @@ def core_category_menu():
             return -1
 
 
-def model_all_cores():
-    import pymesh
-    print_notice("Converting cores to 3D objects...")
-    cores = dm.get_cores_from_database()
-
-    for core in [x[0] for x in cores]:
-        core_stack = None
-
-        segment = []
-        model = []
-
-        if not fm.file_exists(fm.compile_directory(fm.SpecialFolder.REAL_ASPHALT_3D_MODELS) +
-                          str(core) + '_aggregate.stl'):
-            if core_stack is None:
-                core_stack = ca.get_core_by_id(core)
-            aggregate = np.array([x == 255 for x in core_stack], np.bool)
-            segment += ["aggregate"]
-            model += [aggregate]
-
-        if not fm.file_exists(fm.compile_directory(fm.SpecialFolder.REAL_ASPHALT_3D_MODELS) +
-                              str(core) + '_binder.stl'):
-            if core_stack is None:
-                core_stack = ca.get_core_by_id(core)
-            binder = np.array([x == 127 for x in core_stack], np.bool)
-            segment += ["binder"]
-            model += [binder]
-
-        if not fm.file_exists(fm.compile_directory(fm.SpecialFolder.REAL_ASPHALT_3D_MODELS) +
-                          str(core) + '_void.stl'):
-            if core_stack is None:
-                core_stack = ca.get_core_by_id(core)
-            void = np.array([x == 0 for x in core_stack], np.bool)
-            segment += ["void"]
-            model += [void]
-
-        for ind in range(len(model)):
-            print_notice("\tConverting " + segment[ind])
-            core_mesh = cv.voxels_to_mesh(model[ind])
-            # core_mesh = cv.simplify_mesh(core_mesh)
-            #core_mesh = cv.tetrahedralise_mesh(core_mesh)
-            model_dir = fm.compile_directory(fm.SpecialFolder.REAL_ASPHALT_3D_MODELS) + str(core) + '_' + segment[ind] + '.stl'
-            cv.save_mesh(core_mesh, model_dir)
-
-
 def core_visualisation_menu():
     valid = False
 
@@ -397,6 +280,7 @@ def core_visualisation_menu():
         user_input = input("Input your choice > ")
         valid = True
         core = None
+        core_id = None
 
         if user_input in ["1", "2", "4"]:
             response = core_category_menu()
@@ -507,18 +391,18 @@ def main():
 
     print_notice("Please wait while data collections are processed...", mt.MessagePrefix.INFORMATION)
 
-# | DATA PREPARATION MODULE
+    # | DATA PREPARATION MODULE
     if sm.configuration.get("ENABLE_PREPROCESSING") == "True":
         im.preprocess_images(multiprocessing_pool)
 
     im.extract_rois(multiprocessing_pool)
 
-# \-- | DATA LOADING SUB-MODULE
+    # \-- | DATA LOADING SUB-MODULE
     if sm.configuration.get("ENABLE_SEGMENTATION") == "True":
         im.segment_images(multiprocessing_pool)
 
     generate_voxels()
-# \-- | SEGMENT-TO-VOXEL CONVERSION SUB-MODULE
+    # \-- | SEGMENT-TO-VOXEL CONVERSION SUB-MODULE
 
     update_database_core_analyses()
 

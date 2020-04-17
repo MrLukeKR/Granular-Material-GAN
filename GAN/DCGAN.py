@@ -119,7 +119,7 @@ class Network(AbstractGAN.Network):
         if sm.display_available:
             plt.show(block=False)
 
-        def animate(i):
+        def animate(_):
             dv.plot_training_data(gen_error_ax, dis_error_ax, acc_ax,
                                   x, generator_losses, generator_MSEs, discriminator_losses, discriminator_accuracies)
         # One sided label smoothing

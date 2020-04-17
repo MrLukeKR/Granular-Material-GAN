@@ -1,17 +1,16 @@
+import os
+
 import numpy as np
 
 from skimage.morphology import skeletonize_3d
 from tqdm import tqdm
-from Settings import MessageTools as mt, FileManager as fm
+from Settings import MessageTools as mt, FileManager as fm, DatabaseManager as dm
 from Settings.MessageTools import print_notice
 from ImageTools import ImageManager as im
-import matplotlib.pyplot as plt
 import cv2
 from mpl_toolkits import mplot3d
 
 import kimimaro
-
-from ImageTools.CoreAnalysis import CoreVisualiser as cv
 
 
 def get_core_by_id(core_id):
@@ -27,7 +26,7 @@ def get_core_image_stack(directory):
     return im.load_images_from_directory(directory, "segment")
 
 
-def crop_to_core(core, multiprocessing_pool):
+def crop_to_core(core):
     mask_core = [x != 0 for x in core]
     flattened_core = np.zeros(np.shape(core[0]))
 
@@ -181,3 +180,38 @@ def calculate_euler_number(core, core_is_pore_network=True):
     print_notice("\tEuler number = " + str(euler))
 
     return euler
+
+
+def update_database_core_analyses():
+    print_notice("Updating core analyses in database...", mt.MessagePrefix.INFORMATION)
+
+    unprocessed_ct_directory = fm.compile_directory(fm.SpecialFolder.UNPROCESSED_SCANS)
+
+    ct_ids = [name for name in os.listdir(unprocessed_ct_directory)]
+
+    dm.db_cursor.execute("USE ct_scans;")
+
+    included_calculations = "AirVoidContent, MasticContent, AverageVoidDiameter"
+
+    for ct_id in ct_ids:
+        sql = "SELECT " + included_calculations + " FROM asphalt_cores WHERE ID=%s"
+        values = (ct_id,)
+
+        dm.db_cursor.execute(sql, values)
+        res = dm.db_cursor.fetchone()
+
+        if any(x is None for x in res):
+            core = get_core_by_id(ct_id)
+            counts, percentages = calculate_composition(core)
+            void_network = np.array([x == 0 for x in core], np.bool)
+
+            # gradation = ca.calculate_aggregate_gradation(np.array([x == 2 for x in core], np.bool))
+            avd = calculate_average_void_diameter(void_network)
+            # euler_number = ca.calculate_euler_number(void_network)
+
+            sql = "UPDATE asphalt_cores SET AirVoidContent=%s, MasticContent=%s, AverageVoidDiameter=%s WHERE ID=%s"
+
+            values = (float(percentages[0]), float(percentages[1]), float(avd), ct_id)
+            dm.db_cursor.execute(sql, values)
+
+    dm.db_cursor.execute("USE ***REMOVED***_Phase1;")

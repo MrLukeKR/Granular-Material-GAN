@@ -86,8 +86,8 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
             voxels = list()
 
             for directory in training_set:
-                id = str.split(directory, '/')[-1]
-                voxel_directory = fm.compile_directory(fm.SpecialFolder.VOXEL_DATA) + id + "/"
+                core_id = str.split(directory, '/')[-1]
+                voxel_directory = fm.compile_directory(fm.SpecialFolder.VOXEL_DATA) + core_id + "/"
 
                 temp_voxels, dimensions = vp.load_voxels(voxel_directory,
                                                          "segment_" + sm.configuration.get("VOXEL_RESOLUTION"))

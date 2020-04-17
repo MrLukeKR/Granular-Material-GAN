@@ -179,7 +179,8 @@ def remove_background(image):
         plt.show()
         #plt.close(fig)
 
-    return np.expand_dims(anomaly_mask, 2)
+        return np.expand_dims(anomaly_mask, 2)
+    return None
 
 
 def remove_anomaly(image):

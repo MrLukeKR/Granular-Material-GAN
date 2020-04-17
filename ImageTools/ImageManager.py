@@ -223,14 +223,14 @@ def save_plot(filename, save_location, root_directory, use_current_directory):
     if not isinstance(root_directory, fm.SpecialFolder):
         raise TypeError("root_directory must be of enum type 'SpecialFolder'")
 
-    directory = fm.root_directories[root_directory.value]
+    plot_directory = fm.root_directories[root_directory.value]
     if use_current_directory:
-        directory += '/' + fm.current_directory
-    directory += '/' + save_location
+        plot_directory += '/' + fm.current_directory
+    plot_directory += '/' + save_location
 
-    fm.create_if_not_exists(directory)
+    fm.create_if_not_exists(plot_directory)
 
-    file_loc = directory + '/' + filename + '.' + sm.configuration.get("IO_IMAGE_FILETYPE")
+    file_loc = plot_directory + '/' + filename + '.' + sm.configuration.get("IO_IMAGE_FILETYPE")
 
     if not fm.file_exists(file_loc):
         if sm.USE_BW:
@@ -284,11 +284,11 @@ def save_segmentation_plots(images, segments, voids, binders, aggregates):
 
 
 def save_voxel_image(voxel, file_name, save_location):
-    directory = sm.configuration.get("IO_ROOT_DIR") + fm.current_directory + save_location
+    image_directory = sm.configuration.get("IO_ROOT_DIR") + fm.current_directory + save_location
 
-    file_loc = directory + file_name + '.' + sm.configuration.get("IO_IMAGE_FILETYPE")
+    file_loc = image_directory + file_name + '.' + sm.configuration.get("IO_IMAGE_FILETYPE")
 
-    fm.create_if_not_exists(directory)
+    fm.create_if_not_exists(image_directory)
 
     if fm.file_exists(file_loc):
         return
@@ -428,14 +428,14 @@ def load_images_from_list(file_list):
     return ims
 
 
-def load_images_from_directory(directory, containing_keyword=None):
+def load_images_from_directory(image_directory, containing_keyword=None):
     files = []
 
-    if not directory.endswith('/'):
-        directory += '/'
+    if not image_directory.endswith('/'):
+        image_directory += '/'
 
-    for (dPaths, dNames, fNames) in walk(directory):
-        files.extend([directory + '{0}'.format(i) for i in fNames])
+    for (dPaths, dNames, fNames) in walk(image_directory):
+        files.extend([image_directory + '{0}'.format(i) for i in fNames])
 
     if containing_keyword is not None:
         files = list(f for f in files if containing_keyword in f)

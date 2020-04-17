@@ -32,21 +32,21 @@ def isfloatnumeric(value):
         return False
 
 
-def get_clean_input(prompt, min=None, max=None):
+def get_clean_input(prompt, min_value=None, max_value=None):
     user_input = ""
 
     while not isfloatnumeric(user_input):
         print(prompt)
         user_input = input("Enter a value > ")
 
-        if isfloatnumeric(user_input) and min is not None or max is not None:
-            if max is None:
-                max = math.inf
+        if isfloatnumeric(user_input) and min_value is not None or max_value is not None:
+            if max_value is None:
+                max_value = math.inf
 
-            if min is None:
-                min = -math.inf
+            if min_value is None:
+                min_value = -math.inf
 
-            if float(user_input) < min or float(user_input) > max:
+            if float(user_input) < min_value or float(user_input) > max_value:
                 user_input = ""
 
         print("")
@@ -55,7 +55,7 @@ def get_clean_input(prompt, min=None, max=None):
 
 
 def safe_get_gpu(gpu_id):
-    class dummy_context_mgr():
+    class dummy_context_mgr:
         def __enter__(self):
             return None
 
@@ -120,8 +120,10 @@ def get_model_architecture(architecture_id):
     return dm.db_cursor.fetchone()
 
 
-def load_model_from_database(modelID=None):
-    if modelID is None:
+def load_model_from_database(model_id=None):
+    choice = ""
+
+    if model_id is None:
         models = get_model_instances()
 
         if len(models) == 0:
@@ -177,7 +179,7 @@ def load_architecture_from_database(architecture_id=None):
 
     if cursor.rowcount == 0:
         print_notice("There are no architectures in the database", mt.MessagePrefix.WARNING)
-        return (None, None, None)
+        return None, None, None
     elif cursor.rowcount != 1:
         print("The following architectures are available:")
         for model in models:
@@ -201,40 +203,30 @@ def load_architecture_from_database(architecture_id=None):
     model_choice = models[choice]
 
     print_notice("Loading architecture [" + str(model_choice[0]) + "] - '" + model_choice[1] + "'...", mt.MessagePrefix.INFORMATION)
-    print_notice("\tGenerator:", mt.MessagePrefix.INFORMATION)
-    print_notice("\t\tStrides\t" + str(model_choice[2]), mt.MessagePrefix.INFORMATION)
-    print_notice("\t\tKernel Size\t" + str(model_choice[3]), mt.MessagePrefix.INFORMATION)
-    print_notice("\t\tNumber of Levels\t" + str(model_choice[4]), mt.MessagePrefix.INFORMATION)
-    print_notice("\t\tFilters\t" + str(model_choice[5]), mt.MessagePrefix.INFORMATION)
-    print_notice("\t\tNormalisation Momentum\t" + str(model_choice[6]), mt.MessagePrefix.INFORMATION)
-    print_notice("\t\tActivation Alpha\t" + str(model_choice[7]), mt.MessagePrefix.INFORMATION)
-
-    print_notice("\tDiscriminator:", mt.MessagePrefix.INFORMATION)
-    print_notice("\t\tStrides\t" + str(model_choice[8]), mt.MessagePrefix.INFORMATION)
-    print_notice("\t\tKernel Size\t" + str(model_choice[9]), mt.MessagePrefix.INFORMATION)
-    print_notice("\t\tNumber of Levels\t" + str(model_choice[10]), mt.MessagePrefix.INFORMATION)
-    print_notice("\t\tFilters\t" + str(model_choice[11]), mt.MessagePrefix.INFORMATION)
-    print_notice("\t\tNormalisation Momentum\t" + str(model_choice[12]), mt.MessagePrefix.INFORMATION)
-    print_notice("\t\tActivation Alpha\t" + str(model_choice[13]), mt.MessagePrefix.INFORMATION)
 
     gen_settings = dict()
     disc_settings = dict()
 
     architecture_id = int(model_choice[0])
 
-    gen_settings["strides"] = int(model_choice[2])
-    gen_settings["kernel_size"] = int(model_choice[3])
-    gen_settings["levels"] = int(model_choice[4])
-    gen_settings["filters"] = int(model_choice[5])
-    gen_settings["normalisation_momentum"] = float(model_choice[6])
-    gen_settings["activation_alpha"] = float(model_choice[7])
+    setting_ind = 2
 
-    disc_settings["strides"] = int(model_choice[8])
-    disc_settings["kernel_size"] = int(model_choice[9])
-    disc_settings["levels"] = int(model_choice[10])
-    disc_settings["filters"] = int(model_choice[11])
-    disc_settings["normalisation_momentum"] = float(model_choice[12])
-    disc_settings["activation_alpha"] = float(model_choice[13])
+    for setting_collection in [gen_settings, disc_settings]:
+        if setting_ind == 2:
+            print_notice("\tGenerator:")
+        else:
+            print_notice("\tDiscriminator:", mt.MessagePrefix.INFORMATION)
+
+        for setting in [("Strides", "strides"), ("Kernel Size", "kernel_size"), ("Number of Levels", "levels"),
+                        ("Filters", "filters")]:
+            setting_collection[setting[1]] = int(model_choice[setting_ind])
+            print_notice("\t\t" + setting[0] + "\t" + str(setting_collection[setting[1]]))
+            setting_ind += 1
+
+        for setting in [("Normalisation Momentum", "normalisation_momentum"), ("Activation Alpha", "activation_alpha")]:
+            setting_collection[setting[1]] = float(model_choice[setting_ind])
+            print_notice("\t\t" + setting[0] + "\t" + str(gen_settings[setting[1]]))
+            setting_ind += 1
 
     return architecture_id, gen_settings, disc_settings
 
