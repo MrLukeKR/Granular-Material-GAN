@@ -2,6 +2,7 @@
 
 from multiprocessing.pool import Pool
 from multiprocessing.spawn import freeze_support
+import random
 
 import numpy as np
 
@@ -76,19 +77,17 @@ def experiment_menu():
         MethodologyLogger.Logger(fm.compile_directory(fm.SpecialFolder.LOGS))
     if user_input == "1":
         core_ids, split = data_selection_menu()
-
-        directories = [x[1] for x in dm.get_cores_from_database() if x[0] in core_ids]
-
-        directories = [str.replace(x, fm.compile_directory(fm.SpecialFolder.UNPROCESSED_SCANS),
-                                   fm.compile_directory(fm.SpecialFolder.ROI_SCANS)) for x in directories]
+        random.shuffle(core_ids)
 
         fold_count = int(input("How many folds? > "))
 
         # Do train phase
-        ExperimentRunner.run_k_fold_cross_validation_experiment(directories[:int(split[0])], fold_count,
+        training_core_ids = core_ids[0:int(split[0])]
+        ExperimentRunner.run_k_fold_cross_validation_experiment(training_core_ids, fold_count,
                                                                 architecture_loaded, multiprocessing_pool)
 
         # TODO: Do test phase
+        testing_core_ids = core_ids[int(split[0]):int(split[1])]
         # ExperimentRunner.test_network(directories[int(split[0] + 1):], )
     elif user_input == "2":
         # TODO: K-Cross fold validation with iterative generator

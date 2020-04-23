@@ -98,21 +98,21 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
                             % str(round((voxels.size * voxels.itemsize) / (1024 * 1024 * 1024), 2)),
                             mt.MessagePrefix.DEBUG)
 
-            aggregates = np.squeeze(np.array([voxels == 255]) * 2.0 - 1.0)
-            mt.print_notice("Aggregates matrix uses %sGB of memory"
-                            % str(round((aggregates.size * aggregates.itemsize) / (1024 ** 3), 2)),
-                            mt.MessagePrefix.DEBUG)
+#            aggregates = np.squeeze(np.array([voxels == 255]) * 2.0 - 1.0)
+#            mt.print_notice("Aggregates matrix uses %sGB of memory"
+#                            % str(round((aggregates.size * aggregates.itemsize) / (1024 ** 3), 2)),
+#                            mt.MessagePrefix.DEBUG)
 
             # Due to implementations using floats/ints sometimes resulting in either 127 or 128 for the binder
             # value, here we determine binder as "not void or aggregate"
-            binders = np.squeeze(np.array([(voxels != 0) & (voxels != 255)]) * 2.0 - 1.0)
-            mt.print_notice("Binders matrix uses %sGB of memory"
-                            % str(round((binders.size * binders.itemsize) / (1024 ** 3), 2)),
-                            mt.MessagePrefix.DEBUG)
+            #binders = np.squeeze(np.array([(voxels != 0) & (voxels != 255)]) * 2.0 - 1.0)
+            #mt.print_notice("Binders matrix uses %sGB of memory"
+#                            % str(round((binders.size * binders.itemsize) / (1024 ** 3), 2)),
+                            #mt.MessagePrefix.DEBUG)
 
-            mt.print_notice("Freeing voxel matrix memory... ", mt.MessagePrefix.DEBUG, end='')
-            del voxels
-            print("done!")
+#            mt.print_notice("Freeing voxel matrix memory... ", mt.MessagePrefix.DEBUG, end='')
+#            del voxels
+#            print("done!")
 
             Logger.print("\tTraining on set " + str(ind + 1) + '/' + str(len(training_sets[fold])) + "... ")
 
@@ -121,9 +121,11 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
 
             animation_data = (animation_aggregates, animation_dimensions, directory)
 
-            d_loss, g_loss, images = DCGAN.Network.train_network(epochs, batch_size,
-                                                                 aggregates, binders,
-                                                                 animation_data)
+            d_loss, g_loss, images = DCGAN.Network.\
+                train_network(epochs, batch_size,
+                              np.squeeze(np.array([voxels == 255], dtype=bool)),
+                              np.squeeze(np.array([(voxels != 0) & (voxels != 255)], dtype=bool)),
+                              animation_data)
 
             filename = "Experiment-" + str(Logger.experiment_id)
             directory = fm.compile_directory(fm.SpecialFolder.FIGURES) + filename + '/Training'

@@ -134,27 +134,27 @@ class Network(AbstractGAN.Network):
             # This is the binder generated for a given aggregate arrangement
             if mlm.get_available_gpus() == 2:
                 with tf.device('gpu:1'):
-                    gen_missing = cls.generator.predict(features[idx])
+                    gen_missing = cls.generator.predict(features[idx] * 2.0 - 1.0)
             else:
-                gen_missing = cls.generator.predict(features[idx])
+                gen_missing = cls.generator.predict(features[idx] * 2.0 - 1.0)
             generated_images += gen_missing
 
             if mlm.get_available_gpus() == 2:
                 with tf.device('gpu:0'):
                     # This trains the discriminator on real samples
-                    d_loss_real = cls.discriminator.train_on_batch(labels[idx], valid)
+                    d_loss_real = cls.discriminator.train_on_batch(labels[idx] * 2.0 - 1.0, valid)
                     # This trains the discriminator on fake samples
-                    d_loss_fake = cls.discriminator.train_on_batch(gen_missing, fake)
+                    d_loss_fake = cls.discriminator.train_on_batch(gen_missing * 2.0 - 1.0, fake)
             else:
-                d_loss_real = cls.discriminator.train_on_batch(labels[idx], valid)
+                d_loss_real = cls.discriminator.train_on_batch(labels[idx] * 2.0 - 1.0, valid)
                 d_loss_fake = cls.discriminator.train_on_batch(gen_missing, fake)
             d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
 
             if mlm.get_available_gpus() == 2:
                 with tf.device('gpu:1'):
-                    g_loss = cls.adversarial.train_on_batch(features[idx], [labels[idx], valid])
+                    g_loss = cls.adversarial.train_on_batch(features[idx] * 2.0 - 1.0, [labels[idx] * 2.0 - 1.0, valid])
             else:
-                g_loss = cls.adversarial.train_on_batch(features[idx], [labels[idx], valid])
+                g_loss = cls.adversarial.train_on_batch(features[idx] * 2.0 - 1.0, [labels[idx] * 2.0 - 1.0, valid])
 
             Logger.print("%d [DIS loss: %f, acc: %.2f%%] [GEN loss: %f, mse: %f]"
                          % (epoch, d_loss[0], 100 * d_loss[1], g_loss[0], g_loss[1]))

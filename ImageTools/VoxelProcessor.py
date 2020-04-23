@@ -18,7 +18,10 @@ from ExperimentTools.MethodologyLogger import Logger
 def load_materials(core):
     print_notice("Loading voxels for core " + core + "... ", mt.MessagePrefix.INFORMATION, end='')
 
-    voxel_directory = fm.compile_directory(fm.SpecialFolder.VOXEL_DATA) + core + '/'
+    voxel_directory = fm.compile_directory(fm.SpecialFolder.VOXEL_DATA)
+    if voxel_directory[-1] != '/':
+        voxel_directory += '/'
+    voxel_directory += core + '/'
 
     temp_voxels, dimensions = load_voxels(voxel_directory, "segment_" + sm.configuration.get("VOXEL_RESOLUTION"))
 
@@ -235,7 +238,7 @@ def process_voxels(images):
     dimensions = None
 
     if sm.configuration.get("ENABLE_VOXEL_SEPARATION") == "True":
-        voxels, dimensions = vp.volume_to_voxels(images, int(sm.configuration.get("VOXEL_RESOLUTION")))
+        voxels, dimensions = volume_to_voxels(images, int(sm.configuration.get("VOXEL_RESOLUTION")))
 
         if sm.configuration.get("ENABLE_VOXEL_INPUT_SAVING") == "True":
             im.save_voxel_images(voxels, "Unsegmented")
@@ -262,5 +265,5 @@ def generate_voxels():
         voxels, dimensions = process_voxels(images)
 
         print_notice("\tSaving segment voxels...", mt.MessagePrefix.INFORMATION)
-        vp.save_voxels(voxels, dimensions, voxel_directory, filename)
+        save_voxels(voxels, dimensions, voxel_directory, filename)
         # im.save_voxel_image_collection(voxels, fm.SpecialFolder.VOXEL_DATA, "figures/" + segment)
