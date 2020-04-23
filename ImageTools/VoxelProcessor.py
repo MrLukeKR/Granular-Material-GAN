@@ -213,7 +213,7 @@ def voxels_to_core(voxels, dimensions):
 
     core = np.zeros((dimensions[0] * vox_res,
                      dimensions[1] * vox_res,
-                     dimensions[2] * vox_res))
+                     dimensions[2] * vox_res), dtype=np.uint8)
 
     ind = 0
 

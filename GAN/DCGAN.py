@@ -126,8 +126,6 @@ class Network(AbstractGAN.Network):
         valid = np.full((batch_size, 1), 0.9)
         fake = np.zeros((batch_size, 1))
 
-        generated_images = list()
-
         for epoch in range(epochs):
             idx = np.random.randint(0, len(features), batch_size)
 
@@ -137,7 +135,6 @@ class Network(AbstractGAN.Network):
                     gen_missing = cls.generator.predict(features[idx] * 2.0 - 1.0)
             else:
                 gen_missing = cls.generator.predict(features[idx] * 2.0 - 1.0)
-            generated_images += gen_missing
 
             if mlm.get_available_gpus() == 2:
                 with tf.device('gpu:0'):
@@ -189,7 +186,7 @@ class Network(AbstractGAN.Network):
             # im.save_voxel_image_collection(gen_missing, fm.SpecialFolder.VOXEL_DATA, "figures/postGAN/generated")
             # im.save_voxel_image_collection(labels, fm.SpecialFolder.VOXEL_DATA, "figures/postGAN/expected")
 
-        return (discriminator_losses, discriminator_accuracies), (generator_losses, generator_MSEs), generated_images
+        return (discriminator_losses, discriminator_accuracies), (generator_losses, generator_MSEs)
 
     @classmethod
     def test_network(cls, testing_set):
@@ -319,4 +316,6 @@ def gan_to_core(network, aggregates, aggregate_dimensions):
 def gan_to_voxels(network, aggregates):
     results, _ = network.predict(aggregates)
     results = results * 127.5 + 127.5
+    results = np.array(results, dtype=np.uint8)
+    np.put(results, [np.argwhere(results == 128)], 127)
     return np.squeeze(results)

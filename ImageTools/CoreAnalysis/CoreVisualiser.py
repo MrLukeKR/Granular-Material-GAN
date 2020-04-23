@@ -16,7 +16,7 @@ def voxels_to_mesh(core, suppress_messages=False):
     if not suppress_messages:
         print_notice("Converting image stack of voxels to 3D mesh... ", mt.MessagePrefix.INFORMATION)
 
-    core = np.array(core, dtype=np.float)
+    core = np.array(core, dtype=np.uint8)
 
     stepsize = int(sm.configuration.get("VOXEL_MESH_STEP_SIZE"))
 
