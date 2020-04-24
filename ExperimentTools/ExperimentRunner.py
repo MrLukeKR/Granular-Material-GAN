@@ -133,7 +133,7 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
 
             buff_ind = '0' * (len(str(len(training_set))) - len(str(ind))) + str(ind)
 
-            save_training_graphs(d_loss, g_loss, directory, fold, buff_ind)
+            save_training_graphs(d_loss, g_loss, directory, experiment_id, fold, buff_ind)
 
             fold_d_losses.append(d_loss[0])
             fold_d_accuracies.append(d_loss[1])

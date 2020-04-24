@@ -120,8 +120,8 @@ class Network(AbstractGAN.Network):
             plt.show(block=False)
 
         def animate(_):
-            dv.plot_training_data(generator_losses, generator_MSEs, discriminator_losses, discriminator_accuracies, x,
-                                  gen_error_ax, dis_error_ax, acc_ax)
+            dv.plot_training_data(generator_losses, generator_MSEs, discriminator_losses, discriminator_accuracies, x=x,
+                                  gen_error_ax=gen_error_ax, dis_error_ax=dis_error_ax, acc_ax=acc_ax)
         # One sided label smoothing
         valid = np.full((batch_size, 1), 0.9)
         fake = np.zeros((batch_size, 1))

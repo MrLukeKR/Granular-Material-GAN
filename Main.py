@@ -352,7 +352,7 @@ def data_visualisation_menu():
 
             save_training_graphs((disc_loss, disc_accuracy), (gen_loss, gen_mse),
                                  fm.compile_directory(fm.SpecialFolder.FIGURES) + 'Experiment-' + experiment_id,
-                                 fold_id, training_set_id, animate=True)
+                                 experiment_id, fold_id, training_set_id, animate=True)
 
         else:
             valid = False

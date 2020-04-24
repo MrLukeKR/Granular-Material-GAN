@@ -5,9 +5,11 @@ from ImageTools import ImageManager as im
 
 import numpy as np
 
+from Settings.MessageTools import print_notice
 
-def plot_training_data(generator_losses, generator_errors, discriminator_losses, discriminator_accuracies, x=None,
-                       gen_error_ax=None, dis_error_ax=None, acc_ax=None):
+
+def plot_training_data(generator_losses, generator_errors, discriminator_losses, discriminator_accuracies,
+                       experiment_id=None, x=None, gen_error_ax=None, dis_error_ax=None, acc_ax=None):
     if gen_error_ax is None or dis_error_ax is None or acc_ax is None:
         fig = im.plt.figure()
 
@@ -25,11 +27,12 @@ def plot_training_data(generator_losses, generator_errors, discriminator_losses,
     if x is None:
         x = range(len(generator_losses))
 
+    if experiment_id is not None:
+        im.plt.gcf().suptitle("Experiment " + str(experiment_id))
+
     gen_error_ax.plot(x, generator_losses, '-g', label="Generator Loss")
     gen_error_ax.plot(x, generator_errors, '-b', label="Generator MSE")
-
     dis_error_ax.plot(x, discriminator_losses, '-r', label="Discriminator Loss")
-
     acc_ax.plot(x, discriminator_accuracies, '-m', label="Discriminator Accuracy")
 
     for axis in [gen_error_ax, acc_ax, dis_error_ax]:
@@ -46,7 +49,7 @@ def plot_training_data(generator_losses, generator_errors, discriminator_losses,
     return gen_error_ax, dis_error_ax, acc_ax
 
 
-def save_training_graphs(d_loss, g_loss, directory, fold, training_set_ind, animate=False):
+def save_training_graphs(d_loss, g_loss, directory, experiment_id, fold, training_set_ind, animate=False):
     fig = im.plt.figure()
 
     gen_error_ax = fig.add_subplot(3, 1, 1)
@@ -55,18 +58,32 @@ def save_training_graphs(d_loss, g_loss, directory, fold, training_set_ind, anim
 
     x = range(len(g_loss[0]))
 
-    filepath = directory + '/Experiment-' + str(Logger.experiment_id) + '_Fold-' + str(fold) + '_TrainingSet-' + str(
+    filepath = directory + '/Experiment-' + str(experiment_id) + '_Fold-' + str(fold) + '_TrainingSet-' + str(
                 training_set_ind)
 
     if not animate:
-        plot_training_data(g_loss[0], g_loss[1], d_loss[0], d_loss[1], x, gen_error_ax, dis_error_ax, acc_ax)
+        plot_training_data(g_loss[0], g_loss[1], d_loss[0], d_loss[1], x=x, gen_error_ax=gen_error_ax,
+                           dis_error_ax=dis_error_ax, acc_ax=acc_ax)
 
         im.plt.gcf().savefig(filepath + '.pdf')
     else:
-        gen_error_line, = gen_error_ax.plot(x, g_loss[0])
-        gen_mse_line, = gen_error_ax.plot(x, g_loss[1])
-        dis_error_line, = dis_error_ax.plot(x, d_loss[0])
-        accuracy_line, = acc_ax.plot(x, d_loss[1])
+        gen_error_line, = gen_error_ax.plot(x, g_loss[0], '-g', label="Generator Loss", linewidth=1)
+        gen_mse_line, = gen_error_ax.plot(x, g_loss[1], '-b', label="Generator MSE", linewidth=1)
+        dis_error_line, = dis_error_ax.plot(x, d_loss[0], '-r', label="Discriminator Loss", linewidth=1)
+        accuracy_line, = acc_ax.plot(x, d_loss[1], '-m', label="Discriminator Accuracy", linewidth=1)
+
+        im.plt.gcf().suptitle("Experiment " + str(experiment_id))
+
+        for axis in [gen_error_ax, acc_ax, dis_error_ax]:
+            axis.set_xlabel("Epochs")
+
+        for axis in [gen_error_ax, dis_error_ax]:
+            axis.set_ylabel("Error")
+
+        acc_ax.set_ylabel("Accuracy")
+        gen_error_ax.legend(loc="upper right")
+        dis_error_ax.legend(loc="upper right")
+        acc_ax.legend(loc="upper right")
 
         lines = list([gen_error_line, gen_mse_line, dis_error_line, accuracy_line])
 
@@ -83,8 +100,12 @@ def save_training_graphs(d_loss, g_loss, directory, fold, training_set_ind, anim
                 line.set_ydata(data)
             return lines,
 
+        print_notice("Animating training graph... ", end='')
         ani = animation.FuncAnimation(im.plt.gcf(), animate, init_func=init, frames=len(x), interval=1)
+        print("done!")
 
-        ani.save(filepath + '.mp4', fps=24)
+        print_notice("Saving animation... ", end='')
+        ani.save(filepath + '.mp4', fps=24, dpi=300)
+        print("done!")
 
     im.plt.close(im.plt.gcf())
