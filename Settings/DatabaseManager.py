@@ -54,6 +54,22 @@ def get_cores_from_database():
     return cores
 
 
+def get_experiment_information():
+    sql = "SELECT experiments.ID, experiments.Timestamp, COUNT(training.ExperimentID) FROM experiments, training " \
+          "WHERE experiments.ID = training.ExperimentID GROUP BY experiments.ID;"
+
+    db_cursor.execute(sql)
+
+    return db_cursor.fetchall()
+
+
+def get_training_data(experiment_id):
+    sql = "SELECT * FROM training WHERE ExperimentID=" + experiment_id + ';'
+    db_cursor.execute(sql)
+
+    return db_cursor.fetchall()
+
+
 def populate_ct_scan_database():
     db_cursor.execute("CREATE DATABASE IF NOT EXISTS ct_scans;")
     db_cursor.execute("USE ct_scans;")

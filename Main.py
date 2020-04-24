@@ -8,6 +8,7 @@ import numpy as np
 
 # Experiments >>>
 from ExperimentTools import MethodologyLogger, ExperimentRunner
+from ExperimentTools.DataVisualiser import plot_training_data, save_training_graphs
 from ImageTools import VoxelProcessor as vp, ImageManager as im
 from ImageTools.CoreAnalysis import CoreAnalyser as ca, CoreVisualiser as cv
 # Settings >>>
@@ -20,6 +21,7 @@ from Settings import \
     SettingsManager as sm, \
     FileManager as fm, \
     DatabaseManager as dm
+from Settings.MachineLearningManager import get_clean_input
 from Settings.MessageTools import print_notice
 
 # <<< Utilities
@@ -319,6 +321,44 @@ def core_visualisation_menu():
             print_notice("Not a valid option!", mt.MessagePrefix.ERROR)
 
 
+def data_visualisation_menu():
+    valid = False
+
+    while not valid:
+        print("[1] Plot Experiment Training Data")
+
+        user_input = input("Input your choice > ")
+        valid = True
+
+        if user_input == "1":
+            info = dm.get_experiment_information()
+            for experiment in info:
+                print_notice("Experiment ID: %s\tTimestamp: %s\tTraining Records: %s" % experiment)
+
+            experiment_ids = [str(x[0]) for x in info]
+            experiment_id = ''
+
+            while experiment_id not in experiment_ids:
+                experiment_id = input("Enter experiment ID > ")
+
+            train_data = dm.get_training_data(experiment_id)
+            disc_loss = [x[5] for x in train_data]
+            disc_accuracy = [x[6] for x in train_data]
+            gen_loss = [x[7] for x in train_data]
+            gen_mse = [x[8] for x in train_data]
+
+            fold_id = train_data[0][2]
+            training_set_id = train_data[0][4]
+
+            save_training_graphs((disc_loss, disc_accuracy), (gen_loss, gen_mse),
+                                 fm.compile_directory(fm.SpecialFolder.FIGURES) + 'Experiment-' + experiment_id,
+                                 fold_id, training_set_id, animate=True)
+
+        else:
+            valid = False
+            print_notice("Not a valid option!", mt.MessagePrefix.ERROR)
+
+
 def main_menu():
     global model_loaded, architecture_loaded
 
@@ -343,6 +383,7 @@ def main_menu():
     print("[5] Run Model")
     print("[6] Core Analysis Tools")
     print("[7] Core Visualisation Tools")
+    print("[8] Data Visualisation Tools")
 
     print("")
     print("[EXIT] End program")
@@ -377,6 +418,8 @@ def main_menu():
         core_analysis_menu()
     elif user_input == "7":
         core_visualisation_menu()
+    elif user_input == "8":
+        data_visualisation_menu()
 
     print("")
     return user_input

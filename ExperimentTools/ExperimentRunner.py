@@ -4,6 +4,7 @@ from itertools import repeat
 import numpy as np
 from tqdm import tqdm
 
+from ExperimentTools.DataVisualiser import save_training_graphs
 from GAN.DCGAN import gan_to_voxels
 from ImageTools.VoxelProcessor import voxels_to_core
 from Settings import MessageTools as mt
@@ -12,7 +13,6 @@ from GAN import DCGAN
 from Settings import FileManager as fm, SettingsManager as sm, MachineLearningManager as mlm
 from ImageTools import VoxelProcessor as vp, ImageManager as im
 from ExperimentTools.MethodologyLogger import Logger
-from ExperimentTools import DataVisualiser as dv
 from Settings.MessageTools import print_notice
 from ImageTools.CoreAnalysis import CoreVisualiser as cv
 
@@ -150,24 +150,6 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
                 database_logged = True
 
         test_network(testing_sets, fold, DCGAN.Network.generator, multiprocessing_pool)
-
-
-def save_training_graphs(d_loss, g_loss, directory, fold, ind):
-    fig = im.plt.figure()
-
-    gen_error_ax = fig.add_subplot(3, 1, 1)
-    dis_error_ax = fig.add_subplot(3, 1, 2)
-    acc_ax = fig.add_subplot(3, 1, 3)
-
-    x = range(len(g_loss[0]))
-
-    dv.plot_training_data(gen_error_ax, dis_error_ax, acc_ax,
-                          x, g_loss[0], g_loss[1], d_loss[0], d_loss[1])
-
-    im.plt.gcf().savefig(
-        directory + '/Experiment-' + str(Logger.experiment_id) + '_Fold-' + str(fold) + '_TrainingSet-' + str(
-            ind) + '.pdf')
-    im.plt.close(im.plt.gcf())
 
 
 def test_network(testing_sets, fold, test_generator, multiprocessing_pool=None):
