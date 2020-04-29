@@ -85,6 +85,51 @@ class Network(AbstractGAN.Network):
                                 optimizer=optimizer)
 
     @classmethod
+    def train_network_tfdata(cls, epochs, batch_size, dataset_iterator, core_animation_data=None):
+        print_notice("GPU devices available: %s" % str(len(mlm.get_available_gpus())), mt.MessagePrefix.DEBUG)
+
+        for epoch in range(epochs):
+            batch_no = 1
+            d_loss = None
+            g_loss = None
+            for features, labels in dataset_iterator:
+                valid = np.full((batch_size, 1), 0.9)
+                fake = np.zeros((batch_size, 1))
+
+                # This is the binder generated for a given aggregate arrangement
+                if mlm.get_available_gpus() == 2:
+                    with tf.device('gpu:1'):
+                        gen_missing = cls.generator.predict(features)
+                else:
+                    gen_missing = cls.generator.predict(features)
+
+                if mlm.get_available_gpus() == 2:
+                    with tf.device('gpu:0'):
+                        # This trains the discriminator on real samples
+                        d_loss_real = cls.discriminator.train_on_batch(labels, valid)
+                        # This trains the discriminator on fake samples
+                        d_loss_fake = cls.discriminator.train_on_batch(gen_missing, fake)
+                else:
+                    d_loss_real = cls.discriminator.train_on_batch(labels, valid)
+                    d_loss_fake = cls.discriminator.train_on_batch(gen_missing, fake)
+                d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
+
+                if mlm.get_available_gpus() == 2:
+                    with tf.device('gpu:1'):
+                        g_loss = cls.adversarial.train_on_batch(features, [labels, valid])
+                else:
+                    g_loss = cls.adversarial.train_on_batch(features, [labels, valid])
+
+                print("\rEpoch %d (Batch %d) [DIS loss: %f, acc: %.2f%%] [GEN loss: %f, mse: %f]"
+                             % (epoch, batch_no, d_loss[0], 100 * d_loss[1], g_loss[0], g_loss[1]), end='')
+
+                batch_no += 1
+
+            Logger.print("Epoch %d [DIS loss: %f, acc: %.2f%%] [GEN loss: %f, mse: %f]"
+                         % (epoch, d_loss[0], 100 * d_loss[1], g_loss[0], g_loss[1]))
+
+
+    @classmethod
     def train_network(cls, epochs, batch_size, features, labels, core_animation_data=None):
         print_notice("Preparing feature/label matrices...", mt.MessagePrefix.INFORMATION)
         if isinstance(features, list):

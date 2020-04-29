@@ -26,7 +26,6 @@ from Settings.MessageTools import print_notice
 
 # <<< Utilities
 # Image Processing >>>
-# import pymesh
 # <<< Image Processing
 # Data Visualisation >>>
 # <<< Data Visualisation

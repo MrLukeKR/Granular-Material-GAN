@@ -35,7 +35,7 @@ def dataset_to_k_cross_fold(dataset, k):
     test_files = groups
 
     for group in groups:
-        train_files.append(list(g for g in groups if g is not group))
+        train_files.extend(list(g for g in groups if g is not group))
 
     return train_files, test_files
 

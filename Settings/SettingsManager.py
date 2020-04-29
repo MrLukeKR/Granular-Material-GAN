@@ -1,7 +1,7 @@
 import numpy as np
 import os
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 settings_file = []
 configuration = dict()
@@ -23,7 +23,7 @@ USE_BW = True
 
 
 def load_settings():
-    for line in open("Settings/ConfigFiles/Phase1_Remote.conf", "r"):
+    for line in open("Settings/ConfigFiles/Phase1.conf", "r"):
         line = line.strip()
         if not len(line) == 0 and not line.startswith('#'):
             sanitised = line.replace('"', '')

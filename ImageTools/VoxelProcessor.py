@@ -3,6 +3,7 @@ import numpy as np
 from matplotlib import cm
 import matplotlib.pyplot as plt
 import h5py
+import tensorflow as tf
 
 from ImageTools import ImageManager as im
 from Settings import MessageTools as mt, SettingsManager as sm, FileManager as fm
@@ -83,7 +84,7 @@ def volume_to_voxels(volume_data, cubic_dimension):
 
             pass
 
-    dimensions = (voxel_count_x, voxel_count_y, voxel_count_z)
+    dimensions = (int(voxel_count_x), int(voxel_count_y), int(voxel_count_z))
     pretext = "Separating data volume into " + str(int(voxel_count_x * voxel_count_y * voxel_count_z)) + " voxels..."
 
     print(pretext, end='\r', flush=True)
@@ -111,7 +112,9 @@ def volume_to_voxels(volume_data, cubic_dimension):
                     resolver = str(sm.configuration.get("VOXEL_RESOLVE_METHOD")).upper()
 
                     print_notice("Found non-perfect voxel at (%d:%d, %d:%d, %d:%d), resolving with [%s]..."
-                                 % (x_start, x_end, y_start, y_end, z_start, z_end, resolver), mt.MessagePrefix.WARNING)
+                                 % (x_start, x_start + voxel.shape[0],
+                                    y_start, y_start + voxel.shape[1],
+                                    z_start, z_start + voxel.shape[2], resolver), mt.MessagePrefix.WARNING)
 
                     if resolver == "PADDING":
                         xPad = cubic_dimension - len(voxel)
@@ -252,18 +255,55 @@ def generate_voxels():
         fm.current_directory = data_directory.replace(fm.compile_directory(fm.SpecialFolder.SEGMENTED_SCANS), '')
 
         voxel_directory = fm.compile_directory(fm.SpecialFolder.VOXEL_DATA) + fm.current_directory[0:-1] + '/'
+        dataset_directory = fm.compile_directory(fm.SpecialFolder.DATASET_DATA) + fm.current_directory[0:-1] + '/'
 
         filename = 'segment_' + sm.configuration.get("VOXEL_RESOLUTION")
 
-        if fm.file_exists(voxel_directory + filename + ".h5"):
-            continue
+        if not fm.file_exists(voxel_directory + filename + ".h5") or \
+                not fm.file_exists(dataset_directory + filename + ".tfrecord"):
+            print_notice("Converting segments in '" + data_directory + "' to voxels...", mt.MessagePrefix.INFORMATION)
 
-        print_notice("Converting segments in '" + data_directory + "' to voxels...", mt.MessagePrefix.INFORMATION)
+            print_notice("\tLoading segment data...", mt.MessagePrefix.INFORMATION)
+            images = im.load_images_from_directory(data_directory, "segment")
+            voxels, core_dimensions = process_voxels(images)
 
-        print_notice("\tLoading segment data...", mt.MessagePrefix.INFORMATION)
-        images = im.load_images_from_directory(data_directory, "segment")
-        voxels, dimensions = process_voxels(images)
+            if not fm.file_exists(voxel_directory + filename + ".h5"):
+                print_notice("\tSaving segment voxels to HDF5...", mt.MessagePrefix.INFORMATION)
+                save_voxels(voxels, core_dimensions, voxel_directory, filename)
 
-        print_notice("\tSaving segment voxels...", mt.MessagePrefix.INFORMATION)
-        save_voxels(voxels, dimensions, voxel_directory, filename)
+            if not fm.file_exists(voxel_directory + filename + ".tfrecord"):
+                print_notice("\tSaving serialised segment voxels to TFRecord...", mt.MessagePrefix.INFORMATION)
+                vox_res = int(sm.configuration.get("VOXEL_RESOLUTION"))
+                array_dimensions = (np.product(core_dimensions), vox_res, vox_res, vox_res)
+                aggregates = np.array([x == 255 for x in voxels], dtype=bool)
+                binders = np.array([(x != 255) & (x != 0) for x in voxels], dtype=bool)
+                del voxels
+                save_voxel_tfrecord(aggregates, binders, array_dimensions, core_dimensions,
+                                    dataset_directory, filename)
         # im.save_voxel_image_collection(voxels, fm.SpecialFolder.VOXEL_DATA, "figures/" + segment)
+
+
+def save_voxel_tfrecord(aggregates, binders, array_dimensions, core_dimensions, directory, filename):
+    fm.create_if_not_exists(directory)
+
+    with open(directory + "record_settings.conf", "w") as f:
+        f.write("core_dimensions=%s\r\nvoxel_array_dimensions=%s" % (str(core_dimensions), str(array_dimensions)))
+
+    def voxel_example(feature, label):
+        return tf.train.Example(features=tf.train.Features(feature={
+            'aggregate': _bytes_feature(feature),
+            'binder': _bytes_feature(label)
+        }))
+
+    with tf.io.TFRecordWriter(directory + filename + ".tfrecord") as writer:
+        for aggregate, binder in zip(aggregates, binders):
+            tf_example = voxel_example(aggregate.tostring(), binder.tostring())
+            writer.write(tf_example.SerializeToString())
+
+
+def _bytes_feature(value):
+    return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
+
+
+def _int64_feature(value):
+    return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
