@@ -49,6 +49,8 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
     # animation_dimensions, animation_aggregates, _ = vp.load_materials(core)
     # animation_aggregates = np.expand_dims(animation_aggregates, 4)
 
+    print_notice("GPU devices available: %s" % str(len(mlm.get_available_gpus())), mt.MessagePrefix.DEBUG)
+
     for fold in range(k):
         Logger.print("Running Cross Validation Fold " + str(fold + 1) + "/" + str(k))
         Logger.current_fold = fold
@@ -72,23 +74,17 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
         discriminator_loc = filepath + "discriminator"
         generator_loc = filepath + "generator"
 
-        discriminator = mlm.create_discriminator(gen_settings)
-        generator = mlm.create_generator(disc_settings)
+        # Machine Learning >>>
 
-        DCGAN.Network.discriminator = discriminator.model
-        DCGAN.Network.generator = generator.model
-
-        DCGAN.Network.create_network()
         filenames = [fm.compile_directory(fm.SpecialFolder.DATASET_DATA) + x + "/segment_64.tfrecord" for x in training_sets[fold]]
+        voxel_res = [64, 64, 64]
 
         train_ds = tf.data.TFRecordDataset(filenames=filenames, num_parallel_reads=len(filenames))
 
         example = {
-            'aggregate': tf.io.FixedLenFeature([], tf.string),
-            'binder': tf.io.FixedLenFeature([], tf.string)
+            'aggregate': tf.io.FixedLenFeature([], dtype=tf.string),
+            'binder': tf.io.FixedLenFeature([], dtype=tf.string)
         }
-
-        voxel_res = (64, 64, 64)
 
         def _parse_voxel_function(example_proto):
             return tf.io.parse_single_example(example_proto, example)
@@ -100,26 +96,41 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
             segments = [aggregate, binder]
 
             for ind in range(2):
-                segments[ind] = tf.cast(segments[ind], dtype=tf.float32)
+                segments[ind] = tf.cast(segments[ind], dtype=tf.bfloat16)
 
                 segments[ind] = tf.reshape(segments[ind], voxel_res)
-
-                segments[ind] = tf.math.multiply(segments[ind], 2)
-                segments[ind] = tf.math.subtract(segments[ind], 1)
 
                 segments[ind] = tf.expand_dims(segments[ind], -1)
 
             return segments
 
+        def _rescale_voxel_values(features, labels):
+            segments = [features, labels]
+
+            for ind in range(2):
+                segments[ind] = tf.math.multiply(segments[ind], 2.0)
+                segments[ind] = tf.math.subtract(segments[ind], 1.0)
+
+            return features, labels
+
         train_ds = train_ds.map(_parse_voxel_function)
         train_ds = train_ds.map(_decode_voxel_function)
+        train_ds = train_ds.map(_rescale_voxel_values)
 
         train_ds = train_ds.shuffle(buffer_size=len(filenames))
         train_ds = train_ds.repeat(epochs)
         train_ds = train_ds.batch(batch_size=batch_size)
-        train_ds = train_ds.prefetch(2)
+        train_ds = train_ds.prefetch(batch_size)
 
-        ds_iter = train_ds.as_numpy_iterator()
+        ds_iter = iter(train_ds)
+
+        discriminator = mlm.create_discriminator(gen_settings)
+        generator = mlm.create_generator(disc_settings)
+
+        DCGAN.Network.discriminator = discriminator.model
+        DCGAN.Network.generator = generator.model
+
+        DCGAN.Network.create_network()
 
 #            directory = fm.compile_directory(fm.SpecialFolder.FIGURES) + experiment_id + "/Outputs/CoreAnimation/"
 #            fm.create_if_not_exists(directory)

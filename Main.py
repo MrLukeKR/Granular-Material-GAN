@@ -39,7 +39,8 @@ multiprocessing_pool = None
 
 def print_introduction():
     print("   Optimal Material Generator using Generative Adversarial Networks   ")
-    print("                    Developed by ***REMOVED*** (BSc)                    ")
+    print("                    "
+          "Developed by ***REMOVED*** (BSc)                    ")
     print("In fulfilment of Doctor of Engineering at the University of Nottingham")
     print("----------------------------------------------------------------------")
     print()
@@ -115,21 +116,22 @@ def core_analysis_menu():
 
     core_id = core_selection_menu()
     core = ca.get_core_by_id(core_id)
-    core = ca.crop_to_core(core, multiprocessing_pool)
+    core = ca.crop_to_core(core)
+    pores = np.array([x == 0 for x in core], dtype=np.bool)
+
+    pore_network = ca.get_pore_network(pores)
 
     if user_input == "1":
         ca.calculate_all(core)
     elif user_input == "2":
         ca.calculate_composition(core)
     elif user_input == "3":
-        skeleton = ca.get_skeleton(core)
-        cv.plot_core(skeleton)
-        ca.calculate_tortuosity(skeleton)
+        ca.calculate_tortuosity(pores)
     elif user_input == "4":
         # skeleton = ca.get_skeleton(core)
         ca.calculate_euler_number(core, False)
     elif user_input == "5":
-        ca.calculate_average_void_diameter(core)
+        ca.calculate_average_void_diameter(pores)
 
 
 def core_selection_menu():
@@ -298,10 +300,9 @@ def core_visualisation_menu():
 
         if user_input == "1":
             core_mesh = cv.voxels_to_mesh(core)
-            core_mesh = cv.simplify_mesh(core_mesh)
+
             model_dir = fm.compile_directory(fm.SpecialFolder.REAL_ASPHALT_3D_MODELS) + str(core_id) + '.stl'
-            core_mesh.export(model_dir)
-            # pymesh.save_mesh(model_dir, core_mesh)  # TODO: Make 3D model directories
+            core_mesh.export(model_dir)  # TODO: Make 3D model directories
 
         elif user_input == "2":
             # TODO: Export core to slice fly-through animation

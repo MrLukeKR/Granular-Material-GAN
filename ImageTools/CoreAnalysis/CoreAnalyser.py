@@ -1,16 +1,16 @@
 import os
-
 import numpy as np
+import cv2
+import kimimaro
+import pytrax as pt
+import porespy.networks as psn
 
 from skimage.morphology import skeletonize_3d
 from tqdm import tqdm
 from Settings import MessageTools as mt, FileManager as fm, DatabaseManager as dm
 from Settings.MessageTools import print_notice
 from ImageTools import ImageManager as im
-import cv2
 from mpl_toolkits import mplot3d
-
-import kimimaro
 
 
 def get_core_by_id(core_id):
@@ -63,16 +63,14 @@ def crop_to_core(core):
 
 
 def calculate_all(core):
-    results = list()
+    void_network = np.squeeze(np.array([core == 0], dtype=np.bool))
+    pore_network = get_pore_network(void_network)
 
+    results = list()
     results.append(calculate_composition(core))
     results.append(calculate_average_void_diameter(core))
-
-    void_network = np.squeeze(np.array([core == 0], dtype=np.bool))
-    skeleton = get_skeleton(void_network)
-
-    results.append(calculate_euler_number(skeleton))
-    results.append(calculate_tortuosity(skeleton))
+    results.append(calculate_euler_number(pore_network))
+    results.append(calculate_tortuosity(pore_network))
 
     return results
 
@@ -115,27 +113,7 @@ def calculate_composition(core):
 def calculate_average_void_diameter(void_network):
     print_notice("Calculating Core Average Void Diameter...", mt.MessagePrefix.INFORMATION)
 
-    volume_total_diameter = 0
-
-    for i in range(len(void_network)):
-        image = np.array(void_network[i], dtype=np.uint8) * 255
-        image_total_diameter = 0
-        contours, hierarchy = cv2.findContours(image, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
-        # Get contours
-        for con in contours:
-            (_, _), radius = cv2.minEnclosingCircle(con)
-            diam = radius * 2
-            image_total_diameter += diam
-
-        img_avd = image_total_diameter / len(contours)
-        print_notice("\tAverage Void Diameter (Image %d) = %f Pixels" % (i + 1, img_avd), mt.MessagePrefix.DEBUG)  # TODO: Convert pixels to mm
-
-        volume_total_diameter += img_avd
-
-    avd = volume_total_diameter / len(void_network)
-
-    print("")
+    avd = np.average(void_network.pore.diameter)
 
     print_notice("\tAverage Void Diameter (Volume) = %f Pixels" % avd)  # TODO: Convert pixels to mm
 
@@ -154,11 +132,19 @@ def get_skeleton(core, suppress_messages=False):
                                 #)
 
 
-def calculate_tortuosity(core, core_is_skeleton=True):
+def get_pore_network(core):
+    pore_network = psn.snow(core, marching_cubes_area=True)
+
+    print(pore_network)
+
+    return pore_network
+
+
+def calculate_tortuosity(core, core_is_pore_network=True):
     print_notice("Calculating Core Tortuosity...", mt.MessagePrefix.INFORMATION)
 
-    if not core_is_skeleton:
-        core = skeletonize_3d(core)
+    if not core_is_pore_network:
+        core = get_pore_network(core)
 
     # TODO: Calculate tortuosity
     raise NotImplementedError

@@ -13,7 +13,10 @@ from ImageTools.VoxelProcessor import voxels_to_core
 from Settings.MessageTools import print_notice
 from Settings import SettingsManager as sm, MessageTools as mt, MachineLearningManager as mlm, DatabaseManager as dm
 
-ENABLE_NORMALISATION = False
+#strategy = \
+#    tf.distribute.experimental.MultiWorkerMirroredStrategy(tf.distribute.experimental.CollectiveCommunication.AUTO)
+strategy = tf.distribute.experimental.CentralStorageStrategy()
+#strategy = tf.distribute.MirroredStrategy()
 
 
 class Network(AbstractGAN.Network):
@@ -48,28 +51,17 @@ class Network(AbstractGAN.Network):
     def create_network(cls, data=None):
         if data is None:
             data = mlm.data_template
-        Logger.print("Initialising Generative Adversarial Network...")
+        print_notice("Initialising Generative Adversarial Network...")
 
         vox_res = int(sm.configuration.get("VOXEL_RESOLUTION"))
 
         data_shape = (vox_res, vox_res, vox_res, 1)
 
-        optimizer = optimizers.Adam(0.0002, 0.5)
+        optimizer = optimizers.Adam(1e-4)
 
         masked_vol = Input(shape=data_shape)
 
-        if mlm.get_available_gpus() == 2:
-            with tf.device('gpu:0'):
-                cls.discriminator.compile(loss='binary_crossentropy',
-                                          optimizer=optimizer,
-                                          metrics=['accuracy'])
-
-            with tf.device('gpu:1'):
-                gen_missing = cls.generator(masked_vol)
-
-            with tf.device('gpu:0'):
-                cls.discriminator.trainable = False
-        else:
+        with strategy.scope():
             cls.discriminator.compile(loss='binary_crossentropy',
                                       optimizer=optimizer,
                                       metrics=['accuracy'])
@@ -77,57 +69,47 @@ class Network(AbstractGAN.Network):
             gen_missing = cls.generator(masked_vol)
             cls.discriminator.trainable = False
 
-        valid = cls.discriminator(gen_missing)
+            valid = cls.discriminator(gen_missing)
 
-        cls.adversarial = Model(masked_vol, [gen_missing, valid])
-        cls.adversarial.compile(loss=['mse', 'binary_crossentropy'],
-                                loss_weights=[0.999, 0.001],
-                                optimizer=optimizer)
+            cls.adversarial = Model(masked_vol, [gen_missing, valid])
+            cls.adversarial.compile(loss=['mse', 'binary_crossentropy'],
+                                    loss_weights=[0.999, 0.001],
+                                    optimizer=optimizer)
+
+    @classmethod
+    def train_step(cls, features, labels, valid, fake):
+        # This is the binder generated for a given aggregate arrangement
+        gen_missing = cls.generator.predict(features)
+        d_loss_real = cls.discriminator.train_on_batch(labels, valid)
+        d_loss_fake = cls.discriminator.train_on_batch(gen_missing, fake)
+
+        g_loss = cls.adversarial.train_on_batch(features, [labels, valid])
+
+        d_loss = 0.5 * tf.add(d_loss_real, d_loss_fake)
+
+        return d_loss, g_loss
 
     @classmethod
     def train_network_tfdata(cls, epochs, batch_size, dataset_iterator, core_animation_data=None):
-        print_notice("GPU devices available: %s" % str(len(mlm.get_available_gpus())), mt.MessagePrefix.DEBUG)
+        valid = tf.fill((batch_size, 1), 0.9)
+        fake = tf.zeros((batch_size, 1))
 
         for epoch in range(epochs):
             batch_no = 1
-            d_loss = None
-            g_loss = None
+            d_loss = []
+            g_loss = []
+
             for features, labels in dataset_iterator:
-                valid = np.full((batch_size, 1), 0.9)
-                fake = np.zeros((batch_size, 1))
+                with strategy.scope():
+                    d_loss, g_loss = cls.train_step(features, labels, valid, fake)
 
-                # This is the binder generated for a given aggregate arrangement
-                if mlm.get_available_gpus() == 2:
-                    with tf.device('gpu:1'):
-                        gen_missing = cls.generator.predict(features)
-                else:
-                    gen_missing = cls.generator.predict(features)
-
-                if mlm.get_available_gpus() == 2:
-                    with tf.device('gpu:0'):
-                        # This trains the discriminator on real samples
-                        d_loss_real = cls.discriminator.train_on_batch(labels, valid)
-                        # This trains the discriminator on fake samples
-                        d_loss_fake = cls.discriminator.train_on_batch(gen_missing, fake)
-                else:
-                    d_loss_real = cls.discriminator.train_on_batch(labels, valid)
-                    d_loss_fake = cls.discriminator.train_on_batch(gen_missing, fake)
-                d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
-
-                if mlm.get_available_gpus() == 2:
-                    with tf.device('gpu:1'):
-                        g_loss = cls.adversarial.train_on_batch(features, [labels, valid])
-                else:
-                    g_loss = cls.adversarial.train_on_batch(features, [labels, valid])
-
-                print("\rEpoch %d (Batch %d) [DIS loss: %f, acc: %.2f%%] [GEN loss: %f, mse: %f]"
+                print_notice("\rEpoch %d (Batch %d) [DIS loss: %f, acc: %.2f%%] [GEN loss: %f, mse: %f]"
                              % (epoch, batch_no, d_loss[0], 100 * d_loss[1], g_loss[0], g_loss[1]), end='')
 
                 batch_no += 1
 
-            Logger.print("Epoch %d [DIS loss: %f, acc: %.2f%%] [GEN loss: %f, mse: %f]"
+            print_notice("\rEpoch %d [DIS loss: %f, acc: %.2f%%] [GEN loss: %f, mse: %f]"
                          % (epoch, d_loss[0], 100 * d_loss[1], g_loss[0], g_loss[1]))
-
 
     @classmethod
     def train_network(cls, epochs, batch_size, features, labels, core_animation_data=None):
@@ -190,7 +172,7 @@ class Network(AbstractGAN.Network):
             else:
                 d_loss_real = cls.discriminator.train_on_batch(labels[idx] * 2.0 - 1.0, valid)
                 d_loss_fake = cls.discriminator.train_on_batch(gen_missing, fake)
-            d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
+            d_loss = 0.5 * tf.add(d_loss_real, d_loss_fake)
 
             if mlm.get_available_gpus() == 2:
                 with tf.device('gpu:1'):
@@ -252,7 +234,7 @@ class DCGANDiscriminator:
     def __init__(self, voxels, strides, kernel_size,
                  initial_filters, activation_alpha, normalisation_momentum, encoder_levels):
         print_notice("\tInitialising Deep Convolutional Generative Adversarial Network (Discriminator)",
-                     mt.MessagePrefix.INFORMATION)
+                         mt.MessagePrefix.INFORMATION)
 
         x = len(voxels[0])
         y = len(voxels[0][0])
@@ -267,29 +249,29 @@ class DCGANDiscriminator:
         voxel_shape = (x, y, z, channels)
 
         # START MODEL BUILDING
+        with strategy.scope():
+            model = Sequential()
 
-        model = Sequential()
+            for level in range(0, encoder_levels):
+                if level == 0:
+                    model.add(Conv3D(initial_filters * (pow(2, level)), kernel_size=kernel_size, strides=strides,
+                                     input_shape=voxel_shape, padding="same"))
+                else:
+                    model.add(
+                        Conv3D(initial_filters * (pow(2, level)), kernel_size=kernel_size, strides=strides, padding="same"))
+                model.add(LeakyReLU(alpha=activation_alpha))
+                if sm.configuration.get("TRAINING_USE_BATCH_NORMALISATION") == "True":
+                    model.add(BatchNormalization(momentum=normalisation_momentum))
 
-        for level in range(0, encoder_levels):
-            if level == 0:
-                model.add(Conv3D(initial_filters * (pow(2, level)), kernel_size=kernel_size, strides=strides,
-                                 input_shape=voxel_shape, padding="same"))
-            else:
-                model.add(
-                    Conv3D(initial_filters * (pow(2, level)), kernel_size=kernel_size, strides=strides, padding="same"))
-            model.add(LeakyReLU(alpha=activation_alpha))
-            if ENABLE_NORMALISATION:
-                model.add(BatchNormalization(momentum=normalisation_momentum))
+            model.add(Flatten())
+            model.add(Dense(1, activation="sigmoid"))
 
-        model.add(Flatten())
-        model.add(Dense(1, activation="sigmoid"))
+            input_voxel = Input(shape=voxel_shape)
+            verdict = model(input_voxel)
+
+            self._model = Model(input_voxel, verdict)
 
         model.summary()
-
-        input_voxel = Input(shape=voxel_shape)
-        verdict = model(input_voxel)
-
-        self._model = Model(input_voxel, verdict)
 
 
 class DCGANGenerator:
@@ -321,36 +303,36 @@ class DCGANGenerator:
         voxel_shape = (x, y, z, channels)
 
         # START MODEL BUILDING
+        with strategy.scope():
+            model = Sequential()
 
-        model = Sequential()
+            for level in range(0, encoder_levels):
+                if level == 0:
+                   model.add(Conv3D(initial_filters * (pow(2, level)),
+                                     kernel_size=kernel_size, strides=strides, input_shape=voxel_shape, padding="same"))
+                else:
+                   model.add(Conv3D(initial_filters * (pow(2, level)),
+                                    kernel_size=kernel_size, strides=strides, padding="same"))
+                model.add(LeakyReLU(alpha=activation_alpha))
+                if sm.configuration.get("TRAINING_USE_BATCH_NORMALISATION") == "True":
+                    model.add(BatchNormalization(momentum=normalisation_momentum))
 
-        for level in range(0, encoder_levels):
-            if level == 0:
-                model.add(Conv3D(initial_filters * (pow(2, level)),
-                                 kernel_size=kernel_size, strides=strides, input_shape=voxel_shape, padding="same"))
-            else:
-                model.add(Conv3D(initial_filters * (pow(2, level)),
-                                 kernel_size=kernel_size, strides=strides, padding="same"))
-            model.add(LeakyReLU(alpha=activation_alpha))
-            if ENABLE_NORMALISATION:
-                model.add(BatchNormalization(momentum=normalisation_momentum))
+            for level in range(encoder_levels - 1, 0, -1):
+                model.add(Deconv3D(initial_filters * pow(2, level - 1),
+                                   kernel_size=kernel_size, strides=strides, padding="same"))
+                model.add(Activation("relu"))
+                if sm.configuration.get("TRAINING_USE_BATCH_NORMALISATION") == "True":
+                    model.add(BatchNormalization(momentum=normalisation_momentum))
 
-        for level in range(encoder_levels - 1, 0, -1):
-            model.add(Deconv3D(initial_filters * pow(2, level - 1),
-                               kernel_size=kernel_size, strides=strides, padding="same"))
-            model.add(Activation("relu"))
-            if ENABLE_NORMALISATION:
-                model.add(BatchNormalization(momentum=normalisation_momentum))
+            model.add(Deconv3D(channels, kernel_size=kernel_size, strides=strides, padding="same"))
+            model.add(Activation("tanh"))
 
-        model.add(Deconv3D(channels, kernel_size=kernel_size, strides=strides, padding="same"))
-        model.add(Activation("tanh"))
+            input_voxel = Input(shape=voxel_shape)
+            gen_missing = model(input_voxel)
+
+            self._model = Model(input_voxel, gen_missing)
 
         model.summary()
-
-        input_voxel = Input(shape=voxel_shape)
-        gen_missing = model(input_voxel)
-
-        self._model = Model(input_voxel, gen_missing)
 
 
 def gan_to_core(network, aggregates, aggregate_dimensions):

@@ -1,7 +1,9 @@
 import numpy as np
 import os
+import tensorflow as tf
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+tf.compat.v1.logging.set_verbosity(3)
 
 settings_file = []
 configuration = dict()
@@ -23,7 +25,7 @@ USE_BW = True
 
 
 def load_settings():
-    for line in open("Settings/ConfigFiles/Phase1.conf", "r"):
+    for line in open("Settings/ConfigFiles/Phase1_Remote.conf", "r"):
         line = line.strip()
         if not len(line) == 0 and not line.startswith('#'):
             sanitised = line.replace('"', '')
