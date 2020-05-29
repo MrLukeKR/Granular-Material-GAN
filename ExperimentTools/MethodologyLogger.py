@@ -5,6 +5,7 @@ from psutil import virtual_memory
 from Settings import DatabaseManager as dm, MessageTools as mt
 from Settings.MessageTools import print_notice
 
+
 def get_system_info():
     print("Gathering system information... ", end='')
 

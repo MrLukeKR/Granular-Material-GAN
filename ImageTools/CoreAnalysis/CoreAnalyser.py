@@ -4,6 +4,8 @@ import cv2
 import kimimaro
 import pytrax as pt
 import porespy.networks as psn
+from openpnm.algorithms.FickianDiffusion import FickianDiffusion as fd
+from openpnm.network import GenericNetwork
 
 from skimage.morphology import skeletonize_3d
 from tqdm import tqdm
@@ -13,8 +15,9 @@ from ImageTools import ImageManager as im
 from mpl_toolkits import mplot3d
 
 
-def get_core_by_id(core_id):
-    core_directory = fm.compile_directory(fm.SpecialFolder.SEGMENTED_SCANS) + core_id
+def get_core_by_id(core_id, use_rois=True):
+    core_directory = fm.compile_directory(fm.SpecialFolder.SEGMENTED_ROI_SCANS if use_rois
+                                          else fm.SpecialFolder.SEGMENTED_CORE_SCANS) + core_id
 
     if core_directory[-1] != '/':
         core_directory += '/'
@@ -68,9 +71,9 @@ def calculate_all(core):
 
     results = list()
     results.append(calculate_composition(core))
-    results.append(calculate_average_void_diameter(core))
-    results.append(calculate_euler_number(pore_network))
-    results.append(calculate_tortuosity(pore_network))
+    results.append(calculate_average_void_diameter(pore_network, True))
+    results.append(calculate_tortuosity(pore_network, True))
+    results.append(calculate_euler_number(pore_network, True))
 
     return results
 
@@ -110,10 +113,13 @@ def calculate_composition(core):
     return counts, percentages
 
 
-def calculate_average_void_diameter(void_network):
+def calculate_average_void_diameter(void_network, core_is_pore_network):
     print_notice("Calculating Core Average Void Diameter...", mt.MessagePrefix.INFORMATION)
 
-    avd = np.average(void_network.pore.diameter)
+    if not core_is_pore_network:
+        core = get_pore_network(void_network)
+
+    avd = np.average(void_network["pore.diameter"])
 
     print_notice("\tAverage Void Diameter (Volume) = %f Pixels" % avd)  # TODO: Convert pixels to mm
 
@@ -127,15 +133,11 @@ def get_skeleton(core, suppress_messages=False):
     if isinstance(core, list):
         core = np.array(core, dtype=np.uint8)
 
-    return kimimaro.skeletonize(core, progress=True, parallel=0, parallel_chunk_size=64)#,
-                                #teasar_params={'max_paths': 100}
-                                #)
+    return kimimaro.skeletonize(core, progress=True, parallel=0, parallel_chunk_size=64)
 
 
 def get_pore_network(core):
-    pore_network = psn.snow(core, marching_cubes_area=True)
-
-    print(pore_network)
+    pore_network = psn.snow(core, marching_cubes_area=False)
 
     return pore_network
 
@@ -145,6 +147,13 @@ def calculate_tortuosity(core, core_is_pore_network=True):
 
     if not core_is_pore_network:
         core = get_pore_network(core)
+
+    pore_net = GenericNetwork()
+    pore_net.update(core)
+    alg = fd(network=pore_net, name='alg')
+    alg.setup()
+    alg.run()
+    d_eff = alg.calc_effective_diffusivity()
 
     # TODO: Calculate tortuosity
     raise NotImplementedError

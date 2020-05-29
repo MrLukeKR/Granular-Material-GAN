@@ -2,6 +2,8 @@ import itertools
 
 import numpy as np
 import matplotlib.pyplot as plt
+from PIL.Image import Image
+
 import ImageTools.VoxelProcessor as vp
 import ImageTools.Postprocessor as pop
 import ImageTools.Preprocessor as prp
@@ -13,7 +15,7 @@ from os import walk
 from matplotlib import cm
 from tqdm import tqdm
 from Settings import SettingsManager as sm, FileManager as fm, MessageTools as mt
-from Settings.MessageTools import print_notice
+from Settings.MessageTools import print_notice, get_notice
 
 global_voxels = None
 global_comparison_voxels = None
@@ -29,8 +31,9 @@ supported_image_formats = ('.png', '.jpg', '.jpeg', '.tiff', '.tif', '.bmp', '.g
 
 def segment_images(multiprocessing_pool, use_rois=True):
     print_notice("Starting Segmentation Phase...", mt.MessagePrefix.INFORMATION)
+    segment_dir = fm.SpecialFolder.SEGMENTED_ROI_SCANS if use_rois else fm.SpecialFolder.SEGMENTED_CORE_SCANS
 
-    existing_scans = set(fm.prepare_directories(fm.SpecialFolder.SEGMENTED_SCANS))
+    existing_scans = set(fm.prepare_directories(segment_dir))
     existing_scans = list(map(lambda x: x.split('/')[-2], existing_scans))
 
     fm.data_directories = list(d for d in fm.prepare_directories(
@@ -42,69 +45,55 @@ def segment_images(multiprocessing_pool, use_rois=True):
         return
 
     for data_directory in fm.data_directories:
-        images = load_images_from_directory(data_directory)
+        segments = load_images_from_directory(data_directory, multiprocessing_pool=multiprocessing_pool)
         fm.current_directory = data_directory.replace(fm.compile_directory(
             fm.SpecialFolder.ROI_SCANS if use_rois else fm.SpecialFolder.PROCESSED_SCANS), '')
 
         if not fm.current_directory.endswith('/'):
             fm.current_directory += '/'
-        sm.images = images
+        # sm.images = images # TODO: Does this need to be here?
 
         # \-- | 2D DATA SEGMENTATION SUB-MODULE
-        segments = list()
-
-        print_notice("Segmenting images... ", mt.MessagePrefix.INFORMATION, end="")
-
-        for ind, res in enumerate(multiprocessing_pool.map(segmentor2D.segment_image, images)):
-            segments.insert(ind, res)
-
-        print("done!")
+        segments = tqdm(multiprocessing_pool.map(segmentor2D.segment_image, segments),
+                        desc=get_notice("Segmenting images", mt.MessagePrefix.INFORMATION),
+                        total=len(segments))
 
         if sm.configuration.get("ENABLE_POSTPROCESSING") == "True":
             print_notice("Post-processing Segment Collection...", mt.MessagePrefix.INFORMATION)
-            clean_binders = list()
-            aggregates = list()
 
-            clean_segments = list()
+            max_contour_area = int(sm.configuration.get("MAXIMUM_BLOB_AREA"))
 
-            print_notice("\tRemoving Blobs... ", mt.MessagePrefix.INFORMATION, end="")
-            # for ind, res in enumerate(multiprocessing_pool.map(pop.remove_particles, segments)):
-            #     clean_segments.insert(ind, res)
-            for i in range(len(segments)):
-                clean_segments.insert(i, pop.remove_particles(segments[i]))
+            segments = tqdm(multiprocessing_pool.map(pop.remove_particles, (segments, itertools.repeat(max_contour_area))),
+                            desc=get_notice("\tRemoving Small Particles", mt.MessagePrefix.INFORMATION),
+                            total=len(segments))
 
-            print("done!")
+            print_notice("\tCleaning Aggregates... ", mt.MessagePrefix.INFORMATION)
 
-            print_notice("\tCleaning Aggregates... ", mt.MessagePrefix.INFORMATION, end="")
-            # for ind, res in enumerate(multiprocessing_pool.map(pop.fill_holes, [x == 2 for x in segments])):
-            #     clean_aggregates.insert(ind, res)
+            aggregates = tqdm(multiprocessing_pool.map(pop.fill_holes, [x == 2 for x in segments]),
+                              desc=get_notice("\t\tFilling Holes", mt.MessagePrefix.INFORMATION),
+                              total=len(segments))
 
-            for ind, res in enumerate(multiprocessing_pool.map(pop.open_close_segment, [x == 2 for x in clean_segments])):
-                aggregates.insert(ind, res)
+            aggregates = tqdm(multiprocessing_pool.map(pop.open_close_segment, aggregates),
+                              desc=get_notice("\t\tOpen/Closing Segment", mt.MessagePrefix.INFORMATION),
+                              total=len(aggregates))
 
-            print("done!")
+            print_notice("\tCleaning Binders... ", mt.MessagePrefix.INFORMATION)
+            binders = tqdm(multiprocessing_pool.map(pop.open_close_segment, [x == 1 for x in segments]),
+                           desc=get_notice("\t\tOpen/Closing Segment", mt.MessagePrefix.INFORMATION),
+                           total=len(segments))
 
-            print_notice("\tCleaning Binders... ", mt.MessagePrefix.INFORMATION, end="")
-            for ind, res in enumerate(multiprocessing_pool.map(pop.open_close_segment, [x == 1 for x in clean_segments])):
-                clean_binders.insert(ind, res)
+            binders = np.logical_and(binders, np.logical_not(aggregates))
 
-            binders = np.logical_and(clean_binders, np.logical_not(aggregates))
-            print("done!")
+            segments = tqdm(multiprocessing_pool.starmap(lambda x, y: (x * 255) + (y * 127), (aggregates, binders)),
+                            desc=get_notice("\tRecombining Segments", mt.MessagePrefix.INFORMATION),
+                            total=len(segments))
 
-            segments = list()
-            print_notice("\tRecombining Segments...", mt.MessagePrefix.INFORMATION, end="")
-            for i in range(len(aggregates)):
-                clean_segment = aggregates[i] * 255 + (binders[i] * 127)
-                segments.insert(i, clean_segment)
-
-            print("done!")
-
-        print_notice("Saving segmented images... ", mt.MessagePrefix.INFORMATION, end='')
+        print_notice("Saving segmented images... ", mt.MessagePrefix.INFORMATION)
         #save_images(binders, "binder", fm.SpecialFolder.SEGMENTED_SCANS, multiprocessing_pool)
         #save_images(aggregates, "aggregate", fm.SpecialFolder.SEGMENTED_SCANS, multiprocessing_pool)
         #save_images(voids, "void", fm.SpecialFolder.SEGMENTED_SCANS, multiprocessing_pool)
-        save_images(segments, "segment", fm.SpecialFolder.SEGMENTED_SCANS, multiprocessing_pool)
-        print("done!")
+
+        save_images(segments, "segment", segment_dir, multiprocessing_pool)
 
 
 def apply_preprocessing_pipeline(images, multiprocessing_pool):
@@ -122,30 +111,23 @@ def apply_preprocessing_pipeline(images, multiprocessing_pool):
     return processed_images
 
 
-def extract_rois(multiprocessing_pool, use_segmented=False):
+def extract_rois(multiprocessing_pool):
     print_notice("Beginning Region of Interest Extraction Phase...", mt.MessagePrefix.INFORMATION)
 
     existing_scans = set(fm.prepare_directories(fm.SpecialFolder.ROI_SCANS))
     existing_scans = [x.split('/')[-2] for x in existing_scans]
 
-    if use_segmented:
-        fm.data_directories = list(d for d in fm.prepare_directories(fm.SpecialFolder.SEGMENTED_SCANS)
-                                   if d.split('/')[-2] not in existing_scans)
-    else:
-        fm.data_directories = list(d for d in fm.prepare_directories(fm.SpecialFolder.PROCESSED_SCANS)
-                                   if d.split('/')[-2] not in existing_scans)
+    fm.data_directories = list(d for d in fm.prepare_directories(fm.SpecialFolder.PROCESSED_SCANS)
+                               if d.split('/')[-2] not in existing_scans)
 
     if len(fm.data_directories) == 0:
         print_notice("\tNothing to extract!", mt.MessagePrefix.INFORMATION)
         return
 
     for data_directory in fm.data_directories:
-        if use_segmented:
-            fm.current_directory = data_directory.replace(fm.compile_directory(fm.SpecialFolder.SEGMENTED_SCANS), '')
-        else:
-            fm.current_directory = data_directory.replace(fm.compile_directory(fm.SpecialFolder.PROCESSED_SCANS), '')
+        fm.current_directory = data_directory.replace(fm.compile_directory(fm.SpecialFolder.PROCESSED_SCANS), '')
 
-        images = load_images_from_directory(data_directory)
+        images = load_images_from_directory(data_directory, multiprocessing_pool=multiprocessing_pool)
         images = extract_roi(np.array(images))
 
         print_notice("Saving Region of Interest (ROI) images... ", mt.MessagePrefix.INFORMATION, end='')
@@ -192,6 +174,9 @@ def extract_roi(core):
 
     roi = core[start_pos[0]:end_pos[0], start_pos[1]:end_pos[1], start_pos[2]:end_pos[2]]
 
+    for i in range(len(roi)):
+        cv2.resize(src=roi[i], dsize=(1024, 1024), dst=roi[i])  # TODO: Make this variable
+
     return roi
 
 
@@ -211,7 +196,7 @@ def preprocess_images(multiprocessing_pool):
     for data_directory in fm.data_directories:
         fm.current_directory = data_directory.replace(fm.compile_directory(fm.SpecialFolder.UNPROCESSED_SCANS), '')
 
-        images = load_images_from_directory(data_directory)
+        images = load_images_from_directory(data_directory, multiprocessing_pool=multiprocessing_pool)
         images = apply_preprocessing_pipeline(images, multiprocessing_pool)
 
         print_notice("Saving processed images... ", mt.MessagePrefix.INFORMATION, end='')
@@ -396,39 +381,39 @@ def display_voxel(voxel):
     plt.show()
 
 
-def load_images_from_list(file_list):
-    print_notice("Loading " + str(len(file_list)) + " images", mt.MessagePrefix.INFORMATION)
-    file_list.sort()
-    ims = list()
-    t = tqdm(range(len(file_list)))
-    for i in t:  # tqdm is a progress bar tool
-        if not file_list[i].lower().endswith(supported_image_formats):
-            continue
+def load_image(filepath):
+    if not filepath.lower().endswith(supported_image_formats):
+        return
 
-        t.set_description("Loading: " + file_list[i])
-        t.refresh()  # to show immediately the update
-        # Number of images, channels, height, width
-
-        img = cv2.imread(file_list[i])
-
-        #if img.size != (sm.image_resolution, sm.image_resolution):
-#            img = cv2.resize(img, (sm.image_resolution, sm.image_resolution))
-
+    try:
+        img = cv2.imread(filepath)
         img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
 
-        ims.append(img)
+        return img
+    except cv2.error:
+        print_notice("Error reading image!", mt.MessagePrefix.ERROR)
 
-    print()  # Print a new line after the process bar is finished
+        return
 
-    if len(ims) > 0:
-        print_notice("Loaded " + str(len(ims)) + " images successfully!", mt.MessagePrefix.INFORMATION)
-    else:
+
+def load_images_from_list(file_list, multiprocessing_pool=None):
+    if multiprocessing_pool is None:
+        print_notice("Image loading is not parallel!", mt.MessagePrefix.WARNING)
+
+    file_list.sort()
+
+    ims = tqdm(map(load_image, file_list) if multiprocessing_pool is None
+                         else multiprocessing_pool.map(load_image, file_list),
+               desc=get_notice("Loading images", mt.MessagePrefix.INFORMATION),
+               total=len(file_list))
+
+    if len(ims) == 0:
         print_notice("No images were loaded!", mt.MessagePrefix.ERROR)
 
     return ims
 
 
-def load_images_from_directory(image_directory, containing_keyword=None):
+def load_images_from_directory(image_directory, containing_keyword=None, multiprocessing_pool=None):
     files = []
 
     if not image_directory.endswith('/'):
@@ -440,7 +425,7 @@ def load_images_from_directory(image_directory, containing_keyword=None):
     if containing_keyword is not None:
         files = list(f for f in files if containing_keyword in f)
 
-    return load_images_from_list(files)
+    return load_images_from_list(files, multiprocessing_pool)
 
 
 def segment_vox(data):

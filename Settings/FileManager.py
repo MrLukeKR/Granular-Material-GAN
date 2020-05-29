@@ -26,6 +26,12 @@ class SpecialFolder(Enum):
     THREE_DIMENSIONAL_MODELS = 15
     REAL_ASPHALT_3D_MODELS = 16
     GENERATED_ASPHALT_3D_MODELS = 17
+    SEGMENTED_ROI_SCANS = 18
+    SEGMENTED_CORE_SCANS = 19
+    ROI_VOXEL_DATA = 20
+    ROI_DATASET_DATA = 21
+    CORE_VOXEL_DATA = 22
+    CORE_DATASET_DATA = 23
 
 
 data_directories = []
@@ -41,13 +47,21 @@ directory_ids = {
 
     SpecialFolder.PROCESSED_SCANS: "IO_PROCESSED_SCAN_ROOT_DIR",
     SpecialFolder.UNPROCESSED_SCANS: "IO_UNPROCESSED_SCAN_ROOT_DIR",
-    SpecialFolder.SEGMENTED_SCANS: "IO_SEGMENTED_SCAN_ROOT_DIR",
     SpecialFolder.ROI_SCANS: "IO_ROI_SCAN_ROOT_DIR",
 
+    SpecialFolder.SEGMENTED_SCANS: "IO_SEGMENTED_SCAN_ROOT_DIR",
+    SpecialFolder.SEGMENTED_ROI_SCANS: "IO_SEGMENTED_ROI_SCAN_DIR",
+    SpecialFolder.SEGMENTED_CORE_SCANS: "IO_SEGMENTED_CORE_SCAN_DIR",
+
     SpecialFolder.VOXEL_DATA: "IO_VOXEL_DATA_ROOT_DIR",
+    SpecialFolder.ROI_VOXEL_DATA: "IO_ROI_VOXEL_DATA_DIR",
+    SpecialFolder.CORE_VOXEL_DATA: "IO_CORE_VOXEL_DATA_DIR",
+
     SpecialFolder.THREE_DIMENSIONAL_MODELS: "IO_3D_MODEL_ROOT_DIR",
     SpecialFolder.MODEL_DATA: "IO_MODEL_ROOT_DIR",
     SpecialFolder.DATASET_DATA: "IO_DATASET_ROOT_DIR",
+    SpecialFolder.ROI_DATASET_DATA: "IO_ROI_DATASET_DIR",
+    SpecialFolder.CORE_DATASET_DATA: "IO_CORE_DATASET_DIR",
     SpecialFolder.LOGS: "IO_LOG_ROOT_DIR",
 
     SpecialFolder.GENERATED_VOXEL_DATA: "IO_GENERATED_VOXEL_ROOT_DIR",
@@ -64,18 +78,18 @@ def initialise_directory_tree():
 
     experiments = Node(SpecialFolder.EXPERIMENTS, parent=directory_tree)
     scans = Node(SpecialFolder.SCAN_DATA, parent=directory_tree)
+    datasets = Node(SpecialFolder.DATASET_DATA, parent=experiments)
+    voxels = Node(SpecialFolder.VOXEL_DATA, parent=experiments)
     results = Node(SpecialFolder.RESULTS, parent=experiments)
     models_3d = Node(SpecialFolder.THREE_DIMENSIONAL_MODELS, parent=results)
+    segments = Node(SpecialFolder.SEGMENTED_SCANS, parent=scans)
 
     for folder in [SpecialFolder.PROCESSED_SCANS,
                    SpecialFolder.UNPROCESSED_SCANS,
-                   SpecialFolder.SEGMENTED_SCANS,
                    SpecialFolder.ROI_SCANS]:
         Node(folder, parent=scans)
 
-    for folder in [SpecialFolder.VOXEL_DATA,
-                   SpecialFolder.MODEL_DATA,
-                   SpecialFolder.DATASET_DATA,
+    for folder in [SpecialFolder.MODEL_DATA,
                    SpecialFolder.LOGS]:
         Node(folder, parent=experiments)
 
@@ -87,6 +101,18 @@ def initialise_directory_tree():
     for folder in [SpecialFolder.REAL_ASPHALT_3D_MODELS,
                    SpecialFolder.GENERATED_ASPHALT_3D_MODELS]:
         Node(folder, parent=models_3d)
+
+    for folder in [SpecialFolder.ROI_DATASET_DATA,
+                   SpecialFolder.CORE_DATASET_DATA]:
+        Node(folder, parent=datasets)
+
+    for folder in [SpecialFolder.ROI_VOXEL_DATA,
+                   SpecialFolder.CORE_VOXEL_DATA]:
+        Node(folder, parent=voxels)
+
+    for folder in [SpecialFolder.SEGMENTED_ROI_SCANS,
+                   SpecialFolder.SEGMENTED_CORE_SCANS]:
+        Node(folder, parent=segments)
 
     for pre, fill, node in RenderTree(directory_tree):
         print_notice("%s%s" % (pre, node.name), mt.MessagePrefix.DEBUG)

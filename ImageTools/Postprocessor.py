@@ -7,14 +7,13 @@ from ExperimentTools.MethodologyLogger import Logger
 import ImageTools.ImageManager as im
 
 
-def get_contours(image):
-    max_contour_area = int(sm.configuration.get("MAXIMUM_BLOB_AREA"))
-
+def get_contours(image, max_contour_area=175):
     contours, hierarchy = cv2.findContours(image, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
     # Get contours
     contours_area = []
-    for con in contours:
+    for _ in range(len(contours)):
+        con = contours.pop()
         area = cv2.contourArea(con)
         if area <= max_contour_area:
             contours_area.append(con)
@@ -28,32 +27,18 @@ def remove_particles(image, iterations=1):
     for iteration in range(iterations):
         fixed_image = np.zeros(image.shape, dtype=np.uint8)
 
-        for i in {2, 1, 0}:
+        for i in {0, 1, 2}:
             segment = np.array([x == i for x in image], dtype=np.uint8) * 255
-            # segment -= np.array((fixed_image != 0), dtype=np.uint8) * 255
 
             # Remove white contours
-            contours_area = get_contours(segment)
-
-            #debug_image = cv2.cvtColor(segment, cv2.COLOR_GRAY2BGR)
-            #cv2.drawContours(debug_image, contours_area, -1, (0, 0, 255), 1)
-            #cv2.imshow("Blobs Before", debug_image)
-
-            cv2.drawContours(segment, contours_area, -1, (0, 0, 0), -1)
+            cv2.drawContours(segment, get_contours(segment), -1, (0, 0, 0), -1)
 
             # Remove black contours
-            contours_area = get_contours(np.array([x == 0 for x in segment], np.uint8) * 255)
-            cv2.drawContours(segment, contours_area, -1, (255, 255, 255), -1)
-            fixed_image += np.array([x == 255 for x in segment], dtype=np.uint8) * i
+            cv2.drawContours(segment,
+                             get_contours(np.array([x == 0 for x in segment], np.uint8) * 255), -1, (255, 255, 255), -1)
 
-            #debug_image = cv2.cvtColor(segment, cv2.COLOR_GRAY2BGR)
-            #cv2.drawContours(debug_image, contours_area, -1, (0, 0, 255), 1)
-            #cv2.imshow("Blobs After", debug_image)
+            fixed_image[segment.nonzero()] = i
 
-            #cv2.waitKey(0)
-
-        #cv2.imshow("Fixed image", fixed_image * 127)
-        #cv2.waitKey(0)
         if iterations > 1:
             image = fixed_image
 

@@ -14,6 +14,7 @@ from ImageTools.CoreAnalysis import CoreAnalyser as ca, CoreVisualiser as cv
 # Settings >>>
 from ImageTools.CoreAnalysis.CoreAnalyser import update_database_core_analyses
 from ImageTools.CoreAnalysis.CoreVisualiser import model_all_cores
+from ImageTools import Postprocessor as postproc
 from ImageTools.VoxelProcessor import generate_voxels
 from Settings import \
     MachineLearningManager as mlm, \
@@ -25,12 +26,6 @@ from Settings.MachineLearningManager import get_clean_input
 from Settings.MessageTools import print_notice
 
 # <<< Utilities
-# Image Processing >>>
-# <<< Image Processing
-# Data Visualisation >>>
-# <<< Data Visualisation
-# <<< Experiments
-# <<< Settings
 
 model_loaded = None
 architecture_loaded = None
@@ -39,8 +34,7 @@ multiprocessing_pool = None
 
 def print_introduction():
     print("   Optimal Material Generator using Generative Adversarial Networks   ")
-    print("                    "
-          "Developed by ***REMOVED*** (BSc)                    ")
+    print("                    Developed by ***REMOVED*** (BSc)                    ")
     print("In fulfilment of Doctor of Engineering at the University of Nottingham")
     print("----------------------------------------------------------------------")
     print()
@@ -119,14 +113,13 @@ def core_analysis_menu():
     core = ca.crop_to_core(core)
     pores = np.array([x == 0 for x in core], dtype=np.bool)
 
-    pore_network = ca.get_pore_network(pores)
-
     if user_input == "1":
         ca.calculate_all(core)
     elif user_input == "2":
         ca.calculate_composition(core)
     elif user_input == "3":
-        ca.calculate_tortuosity(pores)
+        pores = ca.get_pore_network(core)
+        ca.calculate_tortuosity(pores, True)
     elif user_input == "4":
         # skeleton = ca.get_skeleton(core)
         ca.calculate_euler_number(core, False)
@@ -147,7 +140,7 @@ def core_selection_menu():
                      "\tEuler Number: %s"
                      "\tAverage Void Diameter: %s"
                      "\tNotes: %s"
-                     % (core[0], core[3], core[4], core[5], core[6], core[7], core[8]), mt.MessagePrefix.INFORMATION)
+                     % (core[0], str(float(core[3]) * 100) + "%", str(float(core[4]) * 100) + "%", core[5], core[6], core[7], core[8]), mt.MessagePrefix.INFORMATION)
 
     choice = ""
 
@@ -441,9 +434,11 @@ def main():
 
     # \-- | DATA LOADING SUB-MODULE
     if sm.configuration.get("ENABLE_SEGMENTATION") == "True":
-        im.segment_images(multiprocessing_pool)
+        im.segment_images(multiprocessing_pool, True)
+        im.segment_images(multiprocessing_pool, False)
 
-    generate_voxels()
+    generate_voxels(True, multiprocessing_pool)
+    generate_voxels(False, multiprocessing_pool)
     # \-- | SEGMENT-TO-VOXEL CONVERSION SUB-MODULE
 
     update_database_core_analyses()

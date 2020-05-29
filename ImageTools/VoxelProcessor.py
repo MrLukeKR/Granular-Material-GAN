@@ -248,14 +248,18 @@ def process_voxels(images):
     return voxels, dimensions
 
 
-def generate_voxels():
-    fm.data_directories = fm.prepare_directories(fm.SpecialFolder.SEGMENTED_SCANS)
+def generate_voxels(use_rois, multiprocessing_pool=None):
+    input_dir = fm.SpecialFolder.SEGMENTED_ROI_SCANS if use_rois else fm.SpecialFolder.SEGMENTED_CORE_SCANS
+    voxel_dir = fm.SpecialFolder.ROI_VOXEL_DATA if use_rois else fm.SpecialFolder.CORE_VOXEL_DATA
+    dataset_dir = fm.SpecialFolder.ROI_DATASET_DATA if use_rois else fm.SpecialFolder.CORE_DATASET_DATA
+
+    fm.data_directories = fm.prepare_directories(input_dir)
 
     for data_directory in fm.data_directories:
-        fm.current_directory = data_directory.replace(fm.compile_directory(fm.SpecialFolder.SEGMENTED_SCANS), '')
+        fm.current_directory = data_directory.replace(fm.compile_directory(input_dir), '')
 
-        voxel_directory = fm.compile_directory(fm.SpecialFolder.VOXEL_DATA) + fm.current_directory[0:-1] + '/'
-        dataset_directory = fm.compile_directory(fm.SpecialFolder.DATASET_DATA) + fm.current_directory[0:-1] + '/'
+        voxel_directory = fm.compile_directory(voxel_dir) + fm.current_directory[0:-1] + '/'
+        dataset_directory = fm.compile_directory(dataset_dir) + fm.current_directory[0:-1] + '/'
 
         filename = 'segment_' + sm.configuration.get("VOXEL_RESOLUTION")
 
@@ -264,7 +268,7 @@ def generate_voxels():
             print_notice("Converting segments in '" + data_directory + "' to voxels...", mt.MessagePrefix.INFORMATION)
 
             print_notice("\tLoading segment data...", mt.MessagePrefix.INFORMATION)
-            images = im.load_images_from_directory(data_directory, "segment")
+            images = im.load_images_from_directory(data_directory, "segment", multiprocessing_pool)
             voxels, core_dimensions = process_voxels(images)
 
             if not fm.file_exists(voxel_directory + filename + ".h5"):

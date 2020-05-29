@@ -46,8 +46,8 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
     architecture_id, gen_settings, disc_settings = architecture
 
     core = str.split(testing_sets[0][0], '/')[-1]
-    # animation_dimensions, animation_aggregates, _ = vp.load_materials(core)
-    # animation_aggregates = np.expand_dims(animation_aggregates, 4)
+    animation_dimensions, animation_aggregates, _ = vp.load_materials(core)
+    animation_aggregates = np.expand_dims(animation_aggregates, 4)
 
     print_notice("GPU devices available: %s" % str(len(mlm.get_available_gpus())), mt.MessagePrefix.DEBUG)
 
@@ -132,17 +132,12 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
 
         DCGAN.Network.create_network()
 
-#            directory = fm.compile_directory(fm.SpecialFolder.FIGURES) + experiment_id + "/Outputs/CoreAnimation/"
-#            fm.create_if_not_exists(directory)
+        directory = fm.compile_directory(fm.SpecialFolder.FIGURES) + experiment_id + "/Outputs/CoreAnimation/"
+        fm.create_if_not_exists(directory)
 
-#            animation_data = (animation_aggregates, animation_dimensions, directory)
+        animation_data = (animation_aggregates, animation_dimensions, directory)
 
-        #    d_loss, g_loss, images = DCGAN.Network.\
-        #        train_network(epochs, batch_size,
-        #                      np.squeeze(np.array([voxels == 255], dtype=bool)),
-        #                      np.squeeze(np.array([(voxels != 0) & (voxels != 255)], dtype=bool)))
-
-        d_loss, g_loss, images = DCGAN.Network.train_network_tfdata(epochs, batch_size, ds_iter)
+        d_loss, g_loss, images = DCGAN.Network.train_network_tfdata(epochs, batch_size, ds_iter, animation_data)
 
         filename = "Experiment-" + str(Logger.experiment_id)
         directory = fm.compile_directory(fm.SpecialFolder.FIGURES) + filename + '/Training'
