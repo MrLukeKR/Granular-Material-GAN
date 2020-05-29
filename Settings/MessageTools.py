@@ -18,7 +18,7 @@ def get_notice(message, message_type=MessagePrefix.INFORMATION):
     return message_type[0] + " " + message
 
 
-def print_notice(message, message_type=MessagePrefix.INFORMATION, end="\r\n", flush=False):
+def print_notice(message, message_type=MessagePrefix.INFORMATION, end="\r\n", flush=True):
     global init_complete, using_pycharm
 
     if not init_complete:

@@ -63,12 +63,11 @@ def segment_images(multiprocessing_pool, use_rois=True):
 
             max_contour_area = int(sm.configuration.get("MAXIMUM_BLOB_AREA"))
 
-            segments = tqdm(multiprocessing_pool.map(pop.remove_particles, (segments, itertools.repeat(max_contour_area))),
+            segments = tqdm(map(pop.remove_particles, segments, itertools.repeat(max_contour_area)),
                             desc=get_notice("\tRemoving Small Particles", mt.MessagePrefix.INFORMATION),
                             total=len(segments))
 
             print_notice("\tCleaning Aggregates... ", mt.MessagePrefix.INFORMATION)
-
             aggregates = tqdm(multiprocessing_pool.map(pop.fill_holes, [x == 2 for x in segments]),
                               desc=get_notice("\t\tFilling Holes", mt.MessagePrefix.INFORMATION),
                               total=len(segments))
