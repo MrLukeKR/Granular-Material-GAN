@@ -54,38 +54,38 @@ def segment_images(multiprocessing_pool, use_rois=True):
         # sm.images = images # TODO: Does this need to be here?
 
         # \-- | 2D DATA SEGMENTATION SUB-MODULE
-        segments = tqdm(multiprocessing_pool.map(segmentor2D.segment_image, segments),
-                        desc=get_notice("Segmenting images", mt.MessagePrefix.INFORMATION),
-                        total=len(segments))
+        segments = list(tqdm(multiprocessing_pool.map(segmentor2D.segment_image, segments),
+                        desc=get_notice("  Segmenting images", mt.MessagePrefix.INFORMATION),
+                        total=len(segments)))
 
-        if sm.configuration.get("ENABLE_POSTPROCESSING") == "True":
+        if sm.get_setting("ENABLE_POSTPROCESSING") == "True":
             print_notice("Post-processing Segment Collection...", mt.MessagePrefix.INFORMATION)
 
-            max_contour_area = int(sm.configuration.get("MAXIMUM_BLOB_AREA"))
+            max_contour_area = int(sm.get_setting("MAXIMUM_BLOB_AREA"))
 
-            segments = tqdm(map(pop.remove_particles, segments, itertools.repeat(max_contour_area)),
-                            desc=get_notice("\tRemoving Small Particles", mt.MessagePrefix.INFORMATION),
-                            total=len(segments))
+            segments = list(tqdm(map(pop.remove_particles, segments, itertools.repeat(max_contour_area, len(segments))),
+                            desc=get_notice("  Removing Small Particles", mt.MessagePrefix.INFORMATION),
+                            total=len(segments)))
 
             print_notice("\tCleaning Aggregates... ", mt.MessagePrefix.INFORMATION)
-            aggregates = tqdm(multiprocessing_pool.map(pop.fill_holes, [x == 2 for x in segments]),
-                              desc=get_notice("\t\tFilling Holes", mt.MessagePrefix.INFORMATION),
-                              total=len(segments))
+            aggregates = list(tqdm(multiprocessing_pool.map(pop.fill_holes, [x == 2 for x in segments]),
+                              desc=get_notice("    Filling Holes", mt.MessagePrefix.INFORMATION),
+                              total=len(segments)))
 
-            aggregates = tqdm(multiprocessing_pool.map(pop.open_close_segment, aggregates),
-                              desc=get_notice("\t\tOpen/Closing Segment", mt.MessagePrefix.INFORMATION),
-                              total=len(aggregates))
+            aggregates = list(tqdm(multiprocessing_pool.map(pop.open_close_segment, aggregates),
+                              desc=get_notice("    Open/Closing Segment", mt.MessagePrefix.INFORMATION),
+                              total=len(aggregates)))
 
             print_notice("\tCleaning Binders... ", mt.MessagePrefix.INFORMATION)
-            binders = tqdm(multiprocessing_pool.map(pop.open_close_segment, [x == 1 for x in segments]),
-                           desc=get_notice("\t\tOpen/Closing Segment", mt.MessagePrefix.INFORMATION),
-                           total=len(segments))
+            binders = list(tqdm(multiprocessing_pool.map(pop.open_close_segment, [x == 1 for x in segments]),
+                           desc=get_notice("    Open/Closing Segment", mt.MessagePrefix.INFORMATION),
+                           total=len(segments)))
 
             binders = np.logical_and(binders, np.logical_not(aggregates))
 
-            segments = tqdm(multiprocessing_pool.starmap(lambda x, y: (x * 255) + (y * 127), (aggregates, binders)),
-                            desc=get_notice("\tRecombining Segments", mt.MessagePrefix.INFORMATION),
-                            total=len(segments))
+            segments = list(tqdm(map(lambda x, y: (x * 255) + (y * 127), aggregates, binders),
+                            desc=get_notice("  Recombining Segments", mt.MessagePrefix.INFORMATION),
+                            total=len(segments)))
 
         print_notice("Saving segmented images... ", mt.MessagePrefix.INFORMATION)
         #save_images(binders, "binder", fm.SpecialFolder.SEGMENTED_SCANS, multiprocessing_pool)
@@ -231,7 +231,7 @@ def save_images(images, filename_pretext, root_directory, multiprocessing_pool, 
                     range(image_count), itertools.repeat(use_current_directory, image_count))
     list_arg = list(arguments)
 
-    tqdm(multiprocessing_pool.starmap(save_image, list_arg), "Saving images...")
+    tqdm(multiprocessing_pool.starmap(save_image, list_arg), desc="Saving images", total=image_count)
 
 
 def save_segmentation_plots(images, segments, voids, binders, aggregates):

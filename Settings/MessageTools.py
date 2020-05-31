@@ -14,15 +14,21 @@ class MessagePrefix:
     DEBUG = "[" + Fore.MAGENTA + "DEBUG" + Fore.RESET + "]",
 
 
-def get_notice(message, message_type=MessagePrefix.INFORMATION):
-    return message_type[0] + " " + message
-
-
-def print_notice(message, message_type=MessagePrefix.INFORMATION, end="\r\n", flush=True):
+def check_and_init():
     global init_complete, using_pycharm
 
     if not init_complete:
         init(convert=using_pycharm, strip=using_pycharm)
         init_complete = True
+
+
+def get_notice(message, message_type=MessagePrefix.INFORMATION):
+    check_and_init()
+
+    return message_type[0] + " " + message
+
+
+def print_notice(message, message_type=MessagePrefix.INFORMATION, end="\r\n", flush=True):
+    check_and_init()
 
     print(message_type[0] + " " + message, end=end, flush=flush)

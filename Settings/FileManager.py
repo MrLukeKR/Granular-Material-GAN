@@ -25,7 +25,7 @@ class SpecialFolder(Enum):
     FIGURES = 14
     THREE_DIMENSIONAL_MODELS = 15
     REAL_ASPHALT_3D_MODELS = 16
-    GENERATED_ASPHALT_3D_MODELS = 17
+    GENERATED_ASPHALT_MODELS = 17
     SEGMENTED_ROI_SCANS = 18
     SEGMENTED_CORE_SCANS = 19
     ROI_VOXEL_DATA = 20
@@ -68,7 +68,7 @@ directory_ids = {
     SpecialFolder.GENERATED_CORE_DATA: "IO_GENERATED_CORE_ROOT_DIR",
     SpecialFolder.FIGURES: "IO_FIGURES_ROOT_DIR",
 
-    SpecialFolder.GENERATED_ASPHALT_3D_MODELS: "IO_GENERATED_ASPHALT_3D_MODEL_DIR",
+    SpecialFolder.GENERATED_ASPHALT_MODELS: "IO_GENERATED_ASPHALT_MODEL_DIR",
     SpecialFolder.REAL_ASPHALT_3D_MODELS: "IO_ASPHALT_3D_MODEL_DIR"
 }
 
@@ -99,7 +99,7 @@ def initialise_directory_tree():
         Node(folder, parent=results)
 
     for folder in [SpecialFolder.REAL_ASPHALT_3D_MODELS,
-                   SpecialFolder.GENERATED_ASPHALT_3D_MODELS]:
+                   SpecialFolder.GENERATED_ASPHALT_MODELS]:
         Node(folder, parent=models_3d)
 
     for folder in [SpecialFolder.ROI_DATASET_DATA,
@@ -138,7 +138,7 @@ def compile_directory(child_directory, force_add_scan_type=False, add_scan_type_
         compiled_directory += '/'
 
     if force_add_scan_type or (add_scan_type_if_leaf and node.is_leaf):
-        compiled_directory += sm.configuration.get("IO_SCAN_TYPE") + '/'
+        compiled_directory += sm.get_setting("IO_SCAN_TYPE") + '/'
 
     return compiled_directory
 
@@ -161,12 +161,12 @@ def assign_special_folders():
     missing_key = False
 
     for folder in SpecialFolder:
-        if sm.configuration.get(get_settings_id(folder)) is None:
+        if sm.get_setting(get_settings_id(folder)) is None:
             print(str(folder) + " is not in the configuration file!")
             missing_key = True
             continue
 
-        directory = sm.configuration.get(get_settings_id(folder))
+        directory = sm.get_setting(get_settings_id(folder))
 
         if len(directory) > 0:
             create_if_not_exists(compile_directory(folder, False))
@@ -181,7 +181,9 @@ def assign_special_folders():
 def get_directory(special_folder):
     check_folder_type(special_folder)
 
-    return sm.configuration.get(directory_ids.get(special_folder))
+    directory = sm.get_setting(directory_ids.get(special_folder))
+
+    return directory
 
 
 def compile_directories(special_folder):

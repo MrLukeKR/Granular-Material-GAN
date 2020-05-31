@@ -29,10 +29,10 @@ def connect_to_database():
 
     try:
         db = mysql.connector.connect(
-            host=sm.configuration.get("DB_HOST"),
-            port=sm.configuration.get("DB_PORT"),
-            user=sm.configuration.get("DB_USER"),
-            passwd=sm.configuration.get("DB_PASS")
+            host=sm.auth.get("DB_HOST"),
+            port=sm.auth.get("DB_PORT"),
+            user=sm.auth.get("DB_USER"),
+            passwd=sm.auth.get("DB_PASS")
         )
 
         db_cursor = db.cursor()
@@ -112,6 +112,91 @@ def populate_ct_scan_database():
         values = (ct_id, directory, directory)
 
         db_cursor.execute(sql, values)
+
+
+def initialise_settings():
+    db_cursor.execute("USE ***REMOVED***_Phase1;")
+
+    db_cursor.execute("CREATE TABLE IF NOT EXISTS settings"
+                      "(Name VARCHAR(32) NOT NULL,"
+                      "Value VARCHAR(64) NULL,"
+                      "PRIMARY KEY(Name));")
+
+    db_cursor.execute("INSERT IGNORE INTO settings VALUES "
+                      "('IO_ROOT_DIR', NULL),"
+                      "('IO_SCAN_ROOT_DIR', NULL),"
+                      "('IO_EXPERIMENT_ROOT_DIR', NULL),"
+                      "('IO_SCAN_TYPE', NULL),"
+                      
+                      "('IO_UNPROCESSED_SCAN_ROOT_DIR', 'Unprocessed'),"
+                      "('IO_PROCESSED_SCAN_ROOT_DIR', 'Processed'),"
+                      "('IO_ROI_SCAN_ROOT_DIR', 'Regions-Of-Interest'),"
+                      
+                      "('IO_SEGMENTED_SCAN_ROOT_DIR', 'Segmented'),"
+                      "('IO_SEGMENTED_ROI_SCAN_DIR', 'Regions-Of-Interest'),"
+                      "('IO_SEGMENTED_CORE_SCAN_DIR', 'Cores'),"
+                      
+                      "('IO_RESULTS_ROOT_DIR', 'Results'),"
+                      "('IO_FIGURES_ROOT_DIR', 'Figures'),"
+                      "('IO_VOXEL_DATA_ROOT_DIR', 'Voxels'),"
+                      "('IO_ROI_VOXEL_DATA_DIR', 'Regions-Of-Interest'),"
+                      "('IO_CORE_VOXEL_DATA_DIR', 'Cores'),"
+                      "('IO_3D_MODEL_ROOT_DIR', '3D-Models'),"
+                      "('IO_GENERATED_VOXEL_ROOT_DIR', 'Generated-Voxels'),"
+                      "('IO_GENERATED_CORE_ROOT_DIR', 'Generated-Cores'),"
+                      "('IO_ASPHALT_3D_MODEL_DIR', 'Real-Asphalt'),"
+                      "('IO_GENERATED_ASPHALT_3D_MODEL_DIR', 'Generated-Asphalt'),"
+                      "('IO_MODEL_ROOT_DIR', 'Models'),"
+                      "('IO_DATASET_ROOT_DIR', 'Datasets'),"
+                      "('IO_ROI_DATASET_DIR', 'Regions-Of-Interest'),"
+                      "('IO_CORE_DATASET_DIR', 'Cores'),"
+                      "('IO_LOG_ROOT_DIR', 'Logs'),"
+                      "('IO_IMAGE_FILETYPE', 'pdf'),"
+                      "('IO_OUTPUT_DPI', '500'),"
+
+                      "('ROI_IMAGE_METRIC', 'PIXELS'),"
+                      "('ROI_IMAGE_DIMENSIONS', '800,800'),"
+                      "('ROI_DEPTH_METRIC', 'PERCENTAGE'),"
+                      "('ROI_DEPTH_DIMENSION', '80'),"
+
+                      "('USE_REGIONS_OF_INTEREST', 'True'),"
+
+                      "('VOXEL_MESH_STEP_SIZE', '6'),"
+                      "('VOXEL_RESOLUTION', '64'),"
+                      "('VOXEL_RESOLVE_METHOD', 'PADDING'),"
+                      
+                      "('IMAGE_CHANNELS', '1'),"
+                      "('LABEL_SEGMENTS', '3'),"
+
+                      "('PIXELS_TO_MM', '10'),"
+                      "('SCAN_STACK_STRIP_PERCENT', '5'),"
+                      "('MAXIMUM_BLOB_AREA', '150'),"
+
+                      "('TRAINING_BATCH_SIZE', '32'),"
+                      "('TRAINING_EPOCHS', '1000'),"
+                      "('TRAINING_EPOCH_STEPS', '500'),"
+                      "('TRAINING_USE_BATCH_NORMALISATION', 'False'),"
+
+                      "('ENABLE_IMAGE_SAVING', 'False'),"
+                      "('ENABLE_VOXEL_INPUT_SAVING', 'False'),"
+                      "('ENABLE_VOXEL_OUTPUT_SAVING', 'False'),"
+                      "('ENABLE_IMAGE_DISPLAY', 'False'),"
+                      "('ENABLE_VOXEL_SEPARATION', 'True'),"
+                      "('ENABLE_SEGMENTATION', 'True'),"
+                      "('ENABLE_PREPROCESSING', 'True'),"
+                      "('ENABLE_POSTPROCESSING', 'True'),"
+                      "('ENABLE_GAN_TRAINING', 'False'),"
+                      "('ENABLE_GAN_GENERATION', 'False');")
+
+    db_cursor.execute("SELECT Name FROM settings WHERE Value IS NULL;")
+    uninitialised_settings = db_cursor.fetchall()
+
+    if len(uninitialised_settings) > 0:
+        print_notice("There are uninitialised settings in the database!", mt.MessagePrefix.ERROR)
+        print_notice("\tPlease assign values to the following settings:")
+        for setting in uninitialised_settings:
+            print("\t\t%s" % setting)
+        exit(-1)
 
 
 def initialise_machine_learning_database():
@@ -200,12 +285,10 @@ def initialise_database():
         print_notice("Database is not connected!", mt.MessagePrefix.ERROR)
         exit(-1)
 
-    print_notice("Initialising database... ", mt.MessagePrefix.INFORMATION,  end='')
+    print_notice("Initialising database... ", mt.MessagePrefix.INFORMATION)
     try:
+        initialise_settings()
         initialise_machine_learning_database()
-        populate_ct_scan_database()
     except Exception as exc:
         print_notice(str(exc), mt.MessagePrefix.ERROR)
         exit(-1)
-
-    print("done!")

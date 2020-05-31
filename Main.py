@@ -14,7 +14,6 @@ from ImageTools.CoreAnalysis import CoreAnalyser as ca, CoreVisualiser as cv
 # Settings >>>
 from ImageTools.CoreAnalysis.CoreAnalyser import update_database_core_analyses
 from ImageTools.CoreAnalysis.CoreVisualiser import model_all_cores
-from ImageTools import Postprocessor as postproc
 from ImageTools.VoxelProcessor import generate_voxels
 from Settings import \
     MachineLearningManager as mlm, \
@@ -22,7 +21,6 @@ from Settings import \
     SettingsManager as sm, \
     FileManager as fm, \
     DatabaseManager as dm
-from Settings.MachineLearningManager import get_clean_input
 from Settings.MessageTools import print_notice
 
 # <<< Utilities
@@ -43,12 +41,14 @@ def print_introduction():
 def setup():
     print_introduction()
 
-    sm.load_settings()
+    sm.load_auth()
+    dm.connect_to_database()
+    dm.initialise_database()
+
     fm.initialise_directory_tree()
     fm.assign_special_folders()
 
-    dm.connect_to_database()
-    dm.initialise_database()
+    dm.populate_ct_scan_database()
 
     mlm.initialise()
 
@@ -427,13 +427,13 @@ def main():
     print_notice("Please wait while data collections are processed...", mt.MessagePrefix.INFORMATION)
 
     # | DATA PREPARATION MODULE
-    if sm.configuration.get("ENABLE_PREPROCESSING") == "True":
+    if sm.get_setting("ENABLE_PREPROCESSING") == "True":
         im.preprocess_images(multiprocessing_pool)
 
     im.extract_rois(multiprocessing_pool)
 
     # \-- | DATA LOADING SUB-MODULE
-    if sm.configuration.get("ENABLE_SEGMENTATION") == "True":
+    if sm.get_setting("ENABLE_SEGMENTATION") == "True":
         im.segment_images(multiprocessing_pool, True)
         im.segment_images(multiprocessing_pool, False)
 

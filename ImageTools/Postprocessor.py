@@ -14,19 +14,17 @@ def get_contours(image, max_contour_area=175):
     contours_area = []
     for _ in range(len(contours)):
         con = contours.pop()
-        area = cv2.contourArea(con)
-        if area <= max_contour_area:
+
+        if cv2.contourArea(con) <= max_contour_area:
             contours_area.append(con)
 
     return contours_area
 
 
 def remove_particles(image, iterations=1):
-    fixed_image = None
+    fixed_image = np.zeros(image.shape, dtype=np.uint8)
 
-    for iteration in range(iterations):
-        fixed_image = np.zeros(image.shape, dtype=np.uint8)
-
+    for _ in range(iterations):
         for i in {0, 1, 2}:
             segment = np.array([x == i for x in image], dtype=np.uint8) * 255
 
@@ -34,10 +32,10 @@ def remove_particles(image, iterations=1):
             cv2.drawContours(segment, get_contours(segment), -1, (0, 0, 0), -1)
 
             # Remove black contours
-            cv2.drawContours(segment,
-                             get_contours(np.array([x == 0 for x in segment], np.uint8) * 255), -1, (255, 255, 255), -1)
+            cv2.drawContours(segment, get_contours(np.array([x == 0 for x in segment], np.uint8) * 255),
+                             -1, (255, 255, 255), -1)
 
-            fixed_image[segment.nonzero()] = i
+            fixed_image[segment == 255] = i
 
         if iterations > 1:
             image = fixed_image

@@ -15,7 +15,7 @@ data_template = None
 
 def initialise():
     global vox_res, data_template
-    vox_res = int(sm.configuration.get("VOXEL_RESOLUTION"))
+    vox_res = int(sm.get_setting("VOXEL_RESOLUTION"))
     data_template = np.zeros(shape=(1, vox_res, vox_res, vox_res, sm.image_channels))
 
 
