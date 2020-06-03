@@ -45,8 +45,9 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
 
     architecture_id, gen_settings, disc_settings = architecture
 
-    core = str.split(testing_sets[0][0], '/')[-1]
-    animation_dimensions, animation_aggregates, _ = vp.load_materials(core, use_rois=False)
+    # Use 15-3007 as this is the largest core
+    animation_dimensions, animation_aggregates, _ = vp.load_materials("15-3007", use_rois=False)
+
     animation_aggregates = np.expand_dims(animation_aggregates, 4)
 
     print_notice("GPU devices available: %s" % str(len(mlm.get_available_gpus())), mt.MessagePrefix.DEBUG)
@@ -135,7 +136,7 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
 
         DCGAN.Network.create_network()
 
-        directory = fm.compile_directory(fm.SpecialFolder.FIGURES) + experiment_id + "/Outputs/CoreAnimation/"
+        directory = fm.compile_directory(fm.SpecialFolder.GENERATED_ASPHALT_MODELS) + experiment_id + "/CoreAnimation/"
         fm.create_if_not_exists(directory)
 
         animation_data = (animation_aggregates, animation_dimensions, directory)

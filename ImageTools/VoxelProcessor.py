@@ -49,14 +49,14 @@ def volume_to_voxels(volume_data, cubic_dimension):
     voxel_count_y = len(volume[0]) / cubic_dimension
     voxel_count_z = len(volume[0][0]) / cubic_dimension
 
+    resolve_method = str(sm.get_setting("VOXEL_RESOLVE_METHOD")).upper()
+
     if \
             voxel_count_x != int(voxel_count_x) or \
             voxel_count_y != int(voxel_count_y) or \
             voxel_count_z != int(voxel_count_z):
         print_notice("Voxel division resulted in a floating-point number: (%s, %s, %s)..." %
                      (str(voxel_count_x), str(voxel_count_y), str(voxel_count_z)), mt.MessagePrefix.INFORMATION)
-
-        resolve_method = str(sm.get_setting("VOXEL_RESOLVE_METHOD")).upper()
 
         if resolve_method == "LOSSY":
             print_notice("\tUsing LOSSY solution", mt.MessagePrefix.INFORMATION)
@@ -117,22 +117,23 @@ def volume_to_voxels(volume_data, cubic_dimension):
                     print_notice("Found non-perfect voxel at (%d:%d, %d:%d, %d:%d), resolving with [%s]..."
                                  % (x_start, x_start + voxel.shape[0],
                                     y_start, y_start + voxel.shape[1],
-                                    z_start, z_start + voxel.shape[2], resolve_method), mt.MessagePrefix.WARNING)
+                                    z_start, z_start + voxel.shape[2],
+                                    resolve_method), mt.MessagePrefix.WARNING)
 
                     if resolve_method == "PADDING":
-                        xPad = cubic_dimension - len(voxel)
-                        if xPad == cubic_dimension:
+                        x_pad = cubic_dimension - len(voxel)
+                        if x_pad == cubic_dimension:
                             continue
 
-                        yPad = cubic_dimension - len(voxel[0])
-                        if yPad == cubic_dimension:
+                        y_pad = cubic_dimension - len(voxel[0])
+                        if y_pad == cubic_dimension:
                             continue
 
-                        zPad = cubic_dimension - len(voxel[0][0])
-                        if zPad == cubic_dimension:
+                        z_pad = cubic_dimension - len(voxel[0][0])
+                        if z_pad == cubic_dimension:
                             continue
 
-                        voxel = np.pad(voxel, ((0, xPad), (0, yPad), (0, zPad)), 'constant', constant_values=0)
+                        voxel = np.pad(voxel, ((0, x_pad), (0, y_pad), (0, z_pad)), 'constant', constant_values=0)
 
                 if voxel.shape == (cubic_dimension, cubic_dimension, cubic_dimension):
                     voxels.append(voxel)
@@ -251,7 +252,7 @@ def process_voxels(images):
     return voxels, dimensions
 
 
-def generate_voxels(use_rois, multiprocessing_pool=None):
+def generate_voxels(use_rois=True, multiprocessing_pool=None):
     input_dir = fm.SpecialFolder.SEGMENTED_ROI_SCANS if use_rois else fm.SpecialFolder.SEGMENTED_CORE_SCANS
     voxel_dir = fm.SpecialFolder.ROI_VOXEL_DATA if use_rois else fm.SpecialFolder.CORE_VOXEL_DATA
     dataset_dir = fm.SpecialFolder.ROI_DATASET_DATA if use_rois else fm.SpecialFolder.CORE_DATASET_DATA
