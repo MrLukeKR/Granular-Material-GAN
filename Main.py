@@ -445,6 +445,7 @@ def main():
     update_database_core_analyses()
 
     model_all_cores(multiprocessing_pool, use_rois=False)
+    model_all_cores(multiprocessing_pool, use_rois=True)
 
     while main_menu() != "EXIT":
         continue

@@ -32,6 +32,10 @@ class SpecialFolder(Enum):
     ROI_DATASET_DATA = 21
     CORE_VOXEL_DATA = 22
     CORE_DATASET_DATA = 23
+    REAL_ASPHALT_3D_CORE_MODELS = 24
+    REAL_ASPHALT_3D_ROI_MODELS = 25
+    GENERATED_ASPHALT_3D_CORE_MODELS = 26
+    GENERATED_ASPHALT_3D_ROI_MODELS = 27
 
 
 data_directories = []
@@ -69,7 +73,11 @@ directory_ids = {
     SpecialFolder.FIGURES: "IO_FIGURES_ROOT_DIR",
 
     SpecialFolder.GENERATED_ASPHALT_MODELS: "IO_GENERATED_ASPHALT_MODEL_DIR",
-    SpecialFolder.REAL_ASPHALT_3D_MODELS: "IO_ASPHALT_3D_MODEL_DIR"
+    SpecialFolder.REAL_ASPHALT_3D_MODELS: "IO_ASPHALT_3D_MODEL_DIR",
+    SpecialFolder.REAL_ASPHALT_3D_CORE_MODELS: "IO_ASPHALT_CORE_MODELS",
+    SpecialFolder.REAL_ASPHALT_3D_ROI_MODELS: "IO_ASPHALT_ROI_MODELS",
+    SpecialFolder.GENERATED_ASPHALT_3D_CORE_MODELS: "IO_GENERATED_ASPHALT_CORE_MODELS",
+    SpecialFolder.GENERATED_ASPHALT_3D_ROI_MODELS: "IO_GENERATED_ASPHALT_ROI_MODELS"
 }
 
 
@@ -81,7 +89,11 @@ def initialise_directory_tree():
     datasets = Node(SpecialFolder.DATASET_DATA, parent=experiments)
     voxels = Node(SpecialFolder.VOXEL_DATA, parent=experiments)
     results = Node(SpecialFolder.RESULTS, parent=experiments)
+
     models_3d = Node(SpecialFolder.THREE_DIMENSIONAL_MODELS, parent=results)
+    real_models_3d = Node(SpecialFolder.REAL_ASPHALT_3D_MODELS, parent=models_3d)
+    generated_models_3d = Node(SpecialFolder.GENERATED_ASPHALT_MODELS, parent=models_3d)
+
     segments = Node(SpecialFolder.SEGMENTED_SCANS, parent=scans)
 
     for folder in [SpecialFolder.PROCESSED_SCANS,
@@ -98,9 +110,13 @@ def initialise_directory_tree():
                    SpecialFolder.FIGURES]:
         Node(folder, parent=results)
 
-    for folder in [SpecialFolder.REAL_ASPHALT_3D_MODELS,
-                   SpecialFolder.GENERATED_ASPHALT_MODELS]:
-        Node(folder, parent=models_3d)
+    for folder in [SpecialFolder.REAL_ASPHALT_3D_CORE_MODELS,
+                   SpecialFolder.REAL_ASPHALT_3D_ROI_MODELS]:
+        Node(folder, parent=real_models_3d)
+
+    for folder in [SpecialFolder.GENERATED_ASPHALT_3D_ROI_MODELS,
+                   SpecialFolder.GENERATED_ASPHALT_3D_CORE_MODELS]:
+        Node(folder, parent=generated_models_3d)
 
     for folder in [SpecialFolder.ROI_DATASET_DATA,
                    SpecialFolder.CORE_DATASET_DATA]:
