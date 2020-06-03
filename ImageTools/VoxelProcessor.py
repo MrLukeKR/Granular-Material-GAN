@@ -19,7 +19,7 @@ from ExperimentTools.MethodologyLogger import Logger
 def load_materials(core, use_rois=True):
     print_notice("Loading voxels for core " + core + "... ", mt.MessagePrefix.INFORMATION, end='')
 
-    voxel_directory = fm.compile_directory(fm.SpecialFolder.CORE_VOXEL_DATA if use_rois else fm.SpecialFolder.ROI_VOXEL_DATA)
+    voxel_directory = fm.compile_directory(fm.SpecialFolder.ROI_VOXEL_DATA if use_rois else fm.SpecialFolder.CORE_VOXEL_DATA)
     if voxel_directory[-1] != '/':
         voxel_directory += '/'
     voxel_directory += core + '/'

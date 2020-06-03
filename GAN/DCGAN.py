@@ -94,8 +94,10 @@ class Network(AbstractGAN.Network):
         valid = tf.fill((batch_size, 1), 0.9)
         fake = tf.zeros((batch_size, 1))
 
+        animation_step = int(sm.get_setting("TRAINING_ANIMATION_BATCH_STEP"))
+
         for epoch in range(epochs):
-            batch_no = 1
+            batch_no = 0
             d_loss = []
             g_loss = []
 
@@ -103,12 +105,15 @@ class Network(AbstractGAN.Network):
                 with strategy.scope():
                     d_loss, g_loss = cls.train_step(features, labels, valid, fake)
 
-                    if core_animation_data is not None and len(core_animation_data) == 3:
-                        core = gan_to_core(cls.adversarial, core_animation_data[0], core_animation_data[1])
-                        mesh = voxels_to_mesh(core)
-                        save_mesh(mesh, core_animation_data[2] +
-                                  'Epoch_' + str(epoch) +
-                                  '-Batch_' + str(batch_no) + '.stl')
+                if core_animation_data is not None and len(core_animation_data) == 3 and batch_no % animation_step == 0:
+                    core = gan_to_core(cls.adversarial, core_animation_data[0], core_animation_data[1])
+                    mesh = voxels_to_mesh(core)
+                    save_mesh(mesh, core_animation_data[2] +
+                              'Epoch_' + str(epoch) +
+                              '-Batch_' + str(batch_no) + '.stl')
+                    # TODO: These may not do anything useful...
+                    del core
+                    del mesh
 
                 print_notice("\rEpoch %d (Batch %d) [DIS loss: %f, acc: %.2f%%] [GEN loss: %f, mse: %f]"
                              % (epoch, batch_no, d_loss[0], 100 * d_loss[1], g_loss[0], g_loss[1]), end='')

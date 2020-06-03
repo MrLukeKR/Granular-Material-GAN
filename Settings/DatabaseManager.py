@@ -175,7 +175,8 @@ def initialise_settings():
                       "('TRAINING_BATCH_SIZE', '32'),"
                       "('TRAINING_EPOCHS', '1000'),"
                       "('TRAINING_EPOCH_STEPS', '500'),"
-                      "('TRAINING_USE_BATCH_NORMALISATION', 'False'),"
+                      "('TRAINING_USE_BATCH_NORMALISATION', 'False'),"  
+                      "('TRAINING_ANIMATION_BATCH_STEP', '10'),"
 
                       "('ENABLE_IMAGE_SAVING', 'False'),"
                       "('ENABLE_VOXEL_INPUT_SAVING', 'False'),"
@@ -186,6 +187,7 @@ def initialise_settings():
                       "('ENABLE_PREPROCESSING', 'True'),"
                       "('ENABLE_POSTPROCESSING', 'True'),"
                       "('ENABLE_GAN_TRAINING', 'False'),"
+                      "('ENABLE_TRAINING_ANIMATION', 'True'),"
                       "('ENABLE_GAN_GENERATION', 'False');")
 
     db_cursor.execute("SELECT Name FROM settings WHERE Value IS NULL;")
