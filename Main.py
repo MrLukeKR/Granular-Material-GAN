@@ -80,7 +80,8 @@ def experiment_menu():
         # Do train phase
         training_core_ids = core_ids[0:int(split[0])]
         ExperimentRunner.run_k_fold_cross_validation_experiment(training_core_ids, fold_count,
-                                                                architecture_loaded, multiprocessing_pool)
+                                                                architecture_loaded, multiprocessing_pool,
+                                                                train_with_rois=True)
 
         # TODO: Do test phase
         testing_core_ids = core_ids[int(split[0]):int(split[1])]
@@ -443,7 +444,7 @@ def main():
 
     update_database_core_analyses()
 
-    model_all_cores()
+    model_all_cores(multiprocessing_pool)
 
     while main_menu() != "EXIT":
         continue

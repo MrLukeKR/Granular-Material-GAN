@@ -138,8 +138,8 @@ def extract_roi(core):
     if isinstance(core, list):
         core = np.array(core)
 
-    roi_image_metric = sm.configuration.get("ROI_IMAGE_METRIC")
-    roi_depth_metric = sm.configuration.get("ROI_DEPTH_METRIC")
+    roi_image_metric = sm.get_setting("ROI_IMAGE_METRIC")
+    roi_depth_metric = sm.get_setting("ROI_DEPTH_METRIC")
 
     if roi_image_metric == "PERCENTAGE":
         roi_percentages = [float(x) / 100 for x in sm.configuration.get("ROI_IMAGE_DIMENSIONS").split(',')]
@@ -401,10 +401,10 @@ def load_images_from_list(file_list, multiprocessing_pool=None):
 
     file_list.sort()
 
-    ims = tqdm(map(load_image, file_list) if multiprocessing_pool is None
-                         else multiprocessing_pool.map(load_image, file_list),
+    ims = list(tqdm(map(load_image, file_list) if multiprocessing_pool is None
+               else multiprocessing_pool.map(load_image, file_list),
                desc=get_notice("Loading images", mt.MessagePrefix.INFORMATION),
-               total=len(file_list))
+               total=len(file_list)).iterable)
 
     if len(ims) == 0:
         print_notice("No images were loaded!", mt.MessagePrefix.ERROR)

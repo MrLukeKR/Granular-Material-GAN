@@ -53,7 +53,7 @@ class Network(AbstractGAN.Network):
             data = mlm.data_template
         print_notice("Initialising Generative Adversarial Network...")
 
-        vox_res = int(sm.configuration.get("VOXEL_RESOLUTION"))
+        vox_res = int(sm.get_setting("VOXEL_RESOLUTION"))
 
         data_shape = (vox_res, vox_res, vox_res, 1)
 
@@ -102,6 +102,13 @@ class Network(AbstractGAN.Network):
             for features, labels in dataset_iterator:
                 with strategy.scope():
                     d_loss, g_loss = cls.train_step(features, labels, valid, fake)
+
+                    if core_animation_data is not None and len(core_animation_data) == 3:
+                        core = gan_to_core(cls.adversarial, core_animation_data[0], core_animation_data[1])
+                        mesh = voxels_to_mesh(core)
+                        save_mesh(mesh, core_animation_data[2] +
+                                  'Epoch_' + str(epoch) +
+                                  '-Batch_' + str(batch_no) + '.stl')
 
                 print_notice("\rEpoch %d (Batch %d) [DIS loss: %f, acc: %.2f%%] [GEN loss: %f, mse: %f]"
                              % (epoch, batch_no, d_loss[0], 100 * d_loss[1], g_loss[0], g_loss[1]), end='')
@@ -260,7 +267,7 @@ class DCGANDiscriminator:
                     model.add(
                         Conv3D(initial_filters * (pow(2, level)), kernel_size=kernel_size, strides=strides, padding="same"))
                 model.add(LeakyReLU(alpha=activation_alpha))
-                if sm.configuration.get("TRAINING_USE_BATCH_NORMALISATION") == "True":
+                if sm.get_setting("TRAINING_USE_BATCH_NORMALISATION") == "True":
                     model.add(BatchNormalization(momentum=normalisation_momentum))
 
             model.add(Flatten())
@@ -314,14 +321,14 @@ class DCGANGenerator:
                    model.add(Conv3D(initial_filters * (pow(2, level)),
                                     kernel_size=kernel_size, strides=strides, padding="same"))
                 model.add(LeakyReLU(alpha=activation_alpha))
-                if sm.configuration.get("TRAINING_USE_BATCH_NORMALISATION") == "True":
+                if sm.get_setting("TRAINING_USE_BATCH_NORMALISATION") == "True":
                     model.add(BatchNormalization(momentum=normalisation_momentum))
 
             for level in range(encoder_levels - 1, 0, -1):
                 model.add(Deconv3D(initial_filters * pow(2, level - 1),
                                    kernel_size=kernel_size, strides=strides, padding="same"))
                 model.add(Activation("relu"))
-                if sm.configuration.get("TRAINING_USE_BATCH_NORMALISATION") == "True":
+                if sm.get_setting("TRAINING_USE_BATCH_NORMALISATION") == "True":
                     model.add(BatchNormalization(momentum=normalisation_momentum))
 
             model.add(Deconv3D(channels, kernel_size=kernel_size, strides=strides, padding="same"))

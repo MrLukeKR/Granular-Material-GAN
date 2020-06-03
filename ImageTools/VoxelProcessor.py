@@ -16,15 +16,15 @@ from Settings import FileManager as fm, SettingsManager as sm
 from ExperimentTools.MethodologyLogger import Logger
 
 
-def load_materials(core):
+def load_materials(core, use_rois=True):
     print_notice("Loading voxels for core " + core + "... ", mt.MessagePrefix.INFORMATION, end='')
 
-    voxel_directory = fm.compile_directory(fm.SpecialFolder.VOXEL_DATA)
+    voxel_directory = fm.compile_directory(fm.SpecialFolder.CORE_VOXEL_DATA if use_rois else fm.SpecialFolder.ROI_VOXEL_DATA)
     if voxel_directory[-1] != '/':
         voxel_directory += '/'
     voxel_directory += core + '/'
 
-    temp_voxels, dimensions = load_voxels(voxel_directory, "segment_" + sm.configuration.get("VOXEL_RESOLUTION"))
+    temp_voxels, dimensions = load_voxels(voxel_directory, "segment_" + sm.get_setting("VOXEL_RESOLUTION"))
 
     aggregates = np.array([x == 255 for x in temp_voxels]) * 255
     binders = np.array([(x != 255) & (x != 0) for x in temp_voxels]) * 255
@@ -53,45 +53,50 @@ def volume_to_voxels(volume_data, cubic_dimension):
             voxel_count_x != int(voxel_count_x) or \
             voxel_count_y != int(voxel_count_y) or \
             voxel_count_z != int(voxel_count_z):
-        print_notice("Voxel division resulted in a floating-point number:", mt.MessagePrefix.INFORMATION)
+        print_notice("Voxel division resulted in a floating-point number: (%s, %s, %s)..." %
+                     (str(voxel_count_x), str(voxel_count_y), str(voxel_count_z)), mt.MessagePrefix.INFORMATION)
 
-        if str(sm.configuration.get("VOXEL_RESOLVE_METHOD")).upper() == "LOSSY":
+        resolve_method = str(sm.get_setting("VOXEL_RESOLVE_METHOD")).upper()
+
+        if resolve_method == "LOSSY":
             print_notice("\tUsing LOSSY solution", mt.MessagePrefix.INFORMATION)
 
             voxel_count_x = math.floor(voxel_count_x)
             voxel_count_y = math.floor(voxel_count_y)
-        elif str(sm.configuration.get("VOXEL_RESOLVE_METHOD")).upper() == "PADDING":
+            voxel_count_z = math.floor(voxel_count_z)
+        elif resolve_method == "PADDING":
             print_notice("\tUsing PADDING solution", mt.MessagePrefix.INFORMATION)
 
             voxel_count_x = math.ceil(voxel_count_x)
             voxel_count_y = math.ceil(voxel_count_y)
-        elif str(sm.configuration.get("VOXEL_RESOLVE_METHOD")).upper() == "EXTRAPOLATE":
+            voxel_count_z = math.ceil(voxel_count_z)
+        elif resolve_method == "EXTRAPOLATE":
             print_notice("\tEXTRAPOLATE method has not been implemented yet!", mt.MessagePrefix.ERROR)
             raise NotImplementedError
             # TODO: Write the extrapolating method of voxel segmentation
 
             pass
-        elif str(sm.configuration.get("VOXEL_RESOLVE_METHOD")).upper() == "SHRINK":
+        elif resolve_method == "SHRINK":
             print_notice("\tSHRINK method has not been implemented yet!", mt.MessagePrefix.ERROR)
             raise NotImplementedError
             # TODO: Write the shrinking method of voxel segmentation
 
             pass
-        elif str(sm.configuration.get("VOXEL_RESOLVE_METHOD")).upper() == "STRETCH":
+        elif resolve_method == "STRETCH":
             print_notice("\tSTRETCH method has not been implemented yet!", mt.MessagePrefix.ERROR)
             raise NotImplementedError
             # TODO: Write the stretching method of voxel segmentation
 
             pass
 
-    dimensions = (int(voxel_count_x), int(voxel_count_y), int(voxel_count_z))
-    pretext = "Separating data volume into " + str(int(voxel_count_x * voxel_count_y * voxel_count_z)) + " voxels..."
-
-    print(pretext, end='\r', flush=True)
-
     voxel_count_x = int(voxel_count_x)
     voxel_count_y = int(voxel_count_y)
     voxel_count_z = int(voxel_count_z)
+
+    dimensions = (voxel_count_x, voxel_count_y, voxel_count_z)
+    pretext = "Separating data volume into " + str(voxel_count_x * voxel_count_y * voxel_count_z) + " voxels..."
+
+    print(pretext, end='\r', flush=True)
 
     for x in range(voxel_count_x):
         x_start = cubic_dimension * x
@@ -109,14 +114,12 @@ def volume_to_voxels(volume_data, cubic_dimension):
                 voxel = volume[x_start:x_end, y_start:y_end, z_start:z_end]
 
                 if voxel.shape != (cubic_dimension, cubic_dimension, cubic_dimension):
-                    resolver = str(sm.configuration.get("VOXEL_RESOLVE_METHOD")).upper()
-
                     print_notice("Found non-perfect voxel at (%d:%d, %d:%d, %d:%d), resolving with [%s]..."
                                  % (x_start, x_start + voxel.shape[0],
                                     y_start, y_start + voxel.shape[1],
-                                    z_start, z_start + voxel.shape[2], resolver), mt.MessagePrefix.WARNING)
+                                    z_start, z_start + voxel.shape[2], resolve_method), mt.MessagePrefix.WARNING)
 
-                    if resolver == "PADDING":
+                    if resolve_method == "PADDING":
                         xPad = cubic_dimension - len(voxel)
                         if xPad == cubic_dimension:
                             continue
@@ -212,7 +215,7 @@ def plot_voxel(voxel):
 def voxels_to_core(voxels, dimensions):
     voxels = np.squeeze(voxels)
     print_notice("Building (%s) core from voxels... " % (str(dimensions)), end='')
-    vox_res = int(sm.configuration.get("VOXEL_RESOLUTION"))
+    vox_res = int(sm.get_setting("VOXEL_RESOLUTION"))
 
     core = np.zeros((dimensions[0] * vox_res,
                      dimensions[1] * vox_res,
@@ -240,10 +243,10 @@ def process_voxels(images):
     voxels = list()
     dimensions = None
 
-    if sm.configuration.get("ENABLE_VOXEL_SEPARATION") == "True":
-        voxels, dimensions = volume_to_voxels(images, int(sm.configuration.get("VOXEL_RESOLUTION")))
+    if sm.get_setting("ENABLE_VOXEL_SEPARATION") == "True":
+        voxels, dimensions = volume_to_voxels(images, int(sm.get_setting("VOXEL_RESOLUTION")))
 
-        if sm.configuration.get("ENABLE_VOXEL_INPUT_SAVING") == "True":
+        if sm.get_setting("ENABLE_VOXEL_INPUT_SAVING") == "True":
             im.save_voxel_images(voxels, "Unsegmented")
     return voxels, dimensions
 
@@ -261,7 +264,7 @@ def generate_voxels(use_rois, multiprocessing_pool=None):
         voxel_directory = fm.compile_directory(voxel_dir) + fm.current_directory[0:-1] + '/'
         dataset_directory = fm.compile_directory(dataset_dir) + fm.current_directory[0:-1] + '/'
 
-        filename = 'segment_' + sm.configuration.get("VOXEL_RESOLUTION")
+        filename = 'segment_' + sm.get_setting("VOXEL_RESOLUTION")
 
         if not fm.file_exists(voxel_directory + filename + ".h5") or \
                 not fm.file_exists(dataset_directory + filename + ".tfrecord"):
@@ -277,7 +280,7 @@ def generate_voxels(use_rois, multiprocessing_pool=None):
 
             if not fm.file_exists(voxel_directory + filename + ".tfrecord"):
                 print_notice("\tSaving serialised segment voxels to TFRecord...", mt.MessagePrefix.INFORMATION)
-                vox_res = int(sm.configuration.get("VOXEL_RESOLUTION"))
+                vox_res = int(sm.get_setting("VOXEL_RESOLUTION"))
                 array_dimensions = (np.product(core_dimensions), vox_res, vox_res, vox_res)
                 aggregates = np.array([x == 255 for x in voxels], dtype=bool)
                 binders = np.array([(x != 255) & (x != 0) for x in voxels], dtype=bool)

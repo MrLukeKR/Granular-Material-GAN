@@ -26,7 +26,7 @@ def run_train_test_split_experiment(aggregates, binders, split_percentage):
     pass
 
 
-def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture, multiprocessing_pool=None):
+def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture, multiprocessing_pool=None, train_with_rois=True):
     if not isinstance(architecture, tuple):
         raise TypeError
 
@@ -40,13 +40,13 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
 
     training_sets, testing_sets = DatasetProcessor.dataset_to_k_cross_fold(dataset_directories, k)
 
-    epochs = int(sm.configuration.get("TRAINING_EPOCHS"))
-    batch_size = int(sm.configuration.get("TRAINING_BATCH_SIZE"))
+    epochs = int(sm.get_setting("TRAINING_EPOCHS"))
+    batch_size = int(sm.get_setting("TRAINING_BATCH_SIZE"))
 
     architecture_id, gen_settings, disc_settings = architecture
 
     core = str.split(testing_sets[0][0], '/')[-1]
-    animation_dimensions, animation_aggregates, _ = vp.load_materials(core)
+    animation_dimensions, animation_aggregates, _ = vp.load_materials(core, use_rois=False)
     animation_aggregates = np.expand_dims(animation_aggregates, 4)
 
     print_notice("GPU devices available: %s" % str(len(mlm.get_available_gpus())), mt.MessagePrefix.DEBUG)
@@ -76,8 +76,11 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
 
         # Machine Learning >>>
 
-        filenames = [fm.compile_directory(fm.SpecialFolder.DATASET_DATA) + x + "/segment_64.tfrecord" for x in training_sets[fold]]
-        voxel_res = [64, 64, 64]
+        filenames = [fm.compile_directory(fm.SpecialFolder.ROI_DATASET_DATA
+                                          if train_with_rois else fm.SpecialFolder.CORE_DATASET_DATA) + x
+                     + "/segment_64.tfrecord" for x in training_sets[fold]]
+        voxel_res = int(sm.get_setting("VOXEL_RESOLUTION"))
+        voxel_dims = [voxel_res, voxel_res, voxel_res]
 
         train_ds = tf.data.TFRecordDataset(filenames=filenames, num_parallel_reads=len(filenames))
 
@@ -98,7 +101,7 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
             for ind in range(2):
                 segments[ind] = tf.cast(segments[ind], dtype=tf.bfloat16)
 
-                segments[ind] = tf.reshape(segments[ind], voxel_res)
+                segments[ind] = tf.reshape(segments[ind], voxel_dims)
 
                 segments[ind] = tf.expand_dims(segments[ind], -1)
 
@@ -173,7 +176,7 @@ def test_network(testing_sets, fold, test_generator, multiprocessing_pool=None):
 
         for directory in testing_set:
             core = str.split(directory, '/')[-1]
-            dimensions, test_aggregate, test_binder = vp.load_materials(core)
+            dimensions, test_aggregate, test_binder = vp.load_materials(core, use_rois=False)
 
             test_aggregate = np.expand_dims(test_aggregate, 4)
 

@@ -18,7 +18,7 @@ def voxels_to_mesh(core, suppress_messages=False):
 
     core = np.array(core, dtype=np.uint8)
 
-    stepsize = int(sm.configuration.get("VOXEL_MESH_STEP_SIZE"))
+    stepsize = int(sm.get_setting("VOXEL_MESH_STEP_SIZE"))
 
     core = np.pad(core, stepsize, 'constant', constant_values=0)
 
@@ -29,7 +29,7 @@ def voxels_to_mesh(core, suppress_messages=False):
     return core_mesh
 
 
-def model_all_cores():
+def model_all_cores(multiprocessing_pool=None):
     print_notice("Converting cores to 3D objects...")
     cores = dm.get_cores_from_database()
 
@@ -39,19 +39,19 @@ def model_all_cores():
         if not fm.file_exists(fm.compile_directory(fm.SpecialFolder.REAL_ASPHALT_3D_MODELS) +
                           str(core) + '_aggregate.stl'):
             if core_stack is None:
-                core_stack = ca.get_core_by_id(core)
+                core_stack = ca.get_core_by_id(core, multiprocessing_pool=multiprocessing_pool)
             model_core("aggregate", np.array([x == 255 for x in core_stack], np.bool), core)
 
         if not fm.file_exists(fm.compile_directory(fm.SpecialFolder.REAL_ASPHALT_3D_MODELS) +
                               str(core) + '_binder.stl'):
             if core_stack is None:
-                core_stack = ca.get_core_by_id(core)
+                core_stack = ca.get_core_by_id(core, multiprocessing_pool=multiprocessing_pool)
             model_core("binder", np.array([x == 127 for x in core_stack], np.bool), core)
 
         if not fm.file_exists(fm.compile_directory(fm.SpecialFolder.REAL_ASPHALT_3D_MODELS) +
                           str(core) + '_void.stl'):
             if core_stack is None:
-                core_stack = ca.get_core_by_id(core)
+                core_stack = ca.get_core_by_id(core, multiprocessing_pool=multiprocessing_pool)
             model_core("void", np.array([x == 0 for x in core_stack], np.bool), core)
 
 

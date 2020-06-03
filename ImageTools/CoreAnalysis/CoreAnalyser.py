@@ -15,18 +15,18 @@ from ImageTools import ImageManager as im
 from mpl_toolkits import mplot3d
 
 
-def get_core_by_id(core_id, use_rois=True):
+def get_core_by_id(core_id, use_rois=True, multiprocessing_pool=None):
     core_directory = fm.compile_directory(fm.SpecialFolder.SEGMENTED_ROI_SCANS if use_rois
                                           else fm.SpecialFolder.SEGMENTED_CORE_SCANS) + core_id
 
     if core_directory[-1] != '/':
         core_directory += '/'
 
-    return get_core_image_stack(core_directory)
+    return get_core_image_stack(core_directory, multiprocessing_pool)
 
 
-def get_core_image_stack(directory):
-    return im.load_images_from_directory(directory, "segment")
+def get_core_image_stack(directory, multiprocessing_pool=None):
+    return im.load_images_from_directory(directory, "segment", multiprocessing_pool)
 
 
 def crop_to_core(core):
