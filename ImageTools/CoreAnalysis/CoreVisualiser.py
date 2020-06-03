@@ -1,3 +1,5 @@
+import gc
+
 import numpy as np
 import trimesh
 from numpy.linalg import norm
@@ -35,29 +37,33 @@ def model_all_cores(multiprocessing_pool=None, use_rois=True):
 
     for core in [x[0] for x in cores]:
         core_stack = None
-
         base_dir = fm.compile_directory(fm.SpecialFolder.REAL_ASPHALT_3D_ROI_MODELS if use_rois
                                         else fm.SpecialFolder.REAL_ASPHALT_3D_CORE_MODELS) + str(core) + '/' + str(core)
 
-        if not fm.file_exists(base_dir + '_aggregate.stl'):
-            if core_stack is None:
-                core_stack = ca.get_core_by_id(core, use_rois=use_rois, multiprocessing_pool=multiprocessing_pool)
+        aggregate_exists = fm.file_exists(base_dir + '_aggregate.stl')
+        binder_exists = fm.file_exists(base_dir + '_binder.stl')
+        void_exists = fm.file_exists(base_dir + '_void.stl')
+
+        if not (aggregate_exists and binder_exists and void_exists):
+            core_stack = ca.get_core_by_id(core, use_rois=use_rois, multiprocessing_pool=multiprocessing_pool)
+
+        if not aggregate_exists:
             model_core("aggregate", np.array([x == 255 for x in core_stack], np.bool), core, use_rois=use_rois)
 
-        if not fm.file_exists(base_dir + '_binder.stl'):
-            if core_stack is None:
-                core_stack = ca.get_core_by_id(core, use_rois=use_rois, multiprocessing_pool=multiprocessing_pool)
+        if not binder_exists:
             model_core("binder", np.array([x == 127 for x in core_stack], np.bool), core, use_rois=use_rois)
 
-        if not fm.file_exists(base_dir + '_void.stl'):
-            if core_stack is None:
-                core_stack = ca.get_core_by_id(core, use_rois=use_rois, multiprocessing_pool=multiprocessing_pool)
+        if not void_exists:
             model_core("void", np.array([x == 0 for x in core_stack], np.bool), core, use_rois=use_rois)
 
+        gc.collect()  # TODO: Trimesh appears to have some form of memory leak/cache issue
 
-def model_core(name, datapoints, core_id, use_rois=True):
+
+def model_core(name, data_points, core_id, use_rois=True):
     print_notice("\tConverting " + name)
-    core_mesh = voxels_to_mesh(datapoints)
+
+    core_mesh = voxels_to_mesh(data_points)
+
     base_dir = fm.compile_directory(fm.SpecialFolder.REAL_ASPHALT_3D_ROI_MODELS if use_rois
                                     else fm.SpecialFolder.REAL_ASPHALT_3D_CORE_MODELS) + str(core_id) + '/'
 
