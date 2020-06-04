@@ -81,7 +81,7 @@ def experiment_menu():
         training_core_ids = core_ids[0:int(split[0])]
         ExperimentRunner.run_k_fold_cross_validation_experiment(training_core_ids, fold_count,
                                                                 architecture_loaded, multiprocessing_pool,
-                                                                use_rois=False)
+                                                                train_with_rois=True, animate_with_rois=False)
 
         # TODO: Do test phase
         testing_core_ids = core_ids[int(split[0]):int(split[1])]

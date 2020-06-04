@@ -26,7 +26,8 @@ def run_train_test_split_experiment(aggregates, binders, split_percentage):
     pass
 
 
-def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture, multiprocessing_pool=None, use_rois=True):
+def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture, multiprocessing_pool=None,
+                                           train_with_rois=True, animate_with_rois=False):
     if not isinstance(architecture, tuple):
         raise TypeError
 
@@ -73,7 +74,7 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
         # Machine Learning >>>
 
         filenames = [fm.compile_directory(fm.SpecialFolder.ROI_DATASET_DATA
-                                          if use_rois else fm.SpecialFolder.CORE_DATASET_DATA) + x
+                                          if train_with_rois else fm.SpecialFolder.CORE_DATASET_DATA) + x
                      + "/segment_64.tfrecord" for x in training_sets[fold]]
         voxel_res = int(sm.get_setting("VOXEL_RESOLUTION"))
         voxel_dims = [voxel_res, voxel_res, voxel_res]
@@ -131,14 +132,17 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
 
         DCGAN.Network.create_network()
 
-        directory = fm.compile_directory(fm.SpecialFolder.GENERATED_ASPHALT_MODELS) + experiment_id + "/CoreAnimation/"
+        base_dir = fm.compile_directory(fm.SpecialFolder.GENERATED_ASPHALT_3D_ROI_MODELS if animate_with_rois
+                                        else fm.SpecialFolder.GENERATED_ASPHALT_3D_CORE_MODELS)
+        directory = base_dir + experiment_id + "/CoreAnimation/"
         fm.create_if_not_exists(directory)
 
         animation_data = None
 
         # Use 15-3007 as this is the largest core
         if sm.get_setting("ENABLE_TRAINING_ANIMATION") == "True":
-            animation_dimensions, animation_aggregates, _ = vp.load_materials("15-3007", use_rois=use_rois)
+            animation_dimensions, animation_aggregates = vp.load_materials("15-3007", use_rois=animate_with_rois,
+                                                                           return_binder=False)
 
             animation_aggregates = np.expand_dims(animation_aggregates, 4)
 

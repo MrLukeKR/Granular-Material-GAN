@@ -56,8 +56,6 @@ def model_all_cores(multiprocessing_pool=None, use_rois=True):
         if not void_exists:
             model_core("void", np.array([x == 0 for x in core_stack], np.bool), core, use_rois=use_rois)
 
-        gc.collect()  # TODO: Trimesh appears to have some form of memory leak/cache issue
-
 
 def model_core(name, data_points, core_id, use_rois=True):
     print_notice("\tConverting " + name)
@@ -71,3 +69,5 @@ def model_core(name, data_points, core_id, use_rois=True):
 
     model_dir = base_dir + str(core_id) + '_' + name + '.stl'
     save_mesh(core_mesh, model_dir)
+
+    gc.collect()  # TODO: Trimesh appears to have some form of memory leak/cache issue

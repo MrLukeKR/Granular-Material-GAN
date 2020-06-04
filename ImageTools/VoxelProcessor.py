@@ -16,7 +16,7 @@ from Settings import FileManager as fm, SettingsManager as sm
 from ExperimentTools.MethodologyLogger import Logger
 
 
-def load_materials(core, use_rois=True):
+def load_materials(core, use_rois=True, return_binder=True):
     print_notice("Loading voxels for core " + core + "... ", mt.MessagePrefix.INFORMATION, end='')
 
     voxel_directory = fm.compile_directory(fm.SpecialFolder.ROI_VOXEL_DATA if use_rois else fm.SpecialFolder.CORE_VOXEL_DATA)
@@ -26,12 +26,15 @@ def load_materials(core, use_rois=True):
 
     temp_voxels, dimensions = load_voxels(voxel_directory, "segment_" + sm.get_setting("VOXEL_RESOLUTION"))
 
-    aggregates = np.array([x == 255 for x in temp_voxels]) * 255
-    binders = np.array([(x != 255) & (x != 0) for x in temp_voxels]) * 255
+    aggregates = np.array([x == 255 for x in temp_voxels], dtype=np.uint8) * 255
+    binders = np.array([(x != 255) & (x != 0) for x in temp_voxels], dtype=np.uint8) * 255
 
     print("done")
 
-    return dimensions, aggregates, binders
+    if return_binder:
+        return dimensions, aggregates, binders
+    else:
+        return dimensions, aggregates
 
 
 def voxels_to_volume(voxels, dimensions):
@@ -94,22 +97,23 @@ def volume_to_voxels(volume_data, cubic_dimension):
     voxel_count_z = int(voxel_count_z)
 
     dimensions = (voxel_count_x, voxel_count_y, voxel_count_z)
-    pretext = "Separating data volume into " + str(voxel_count_x * voxel_count_y * voxel_count_z) + " voxels..."
+    pretext = "Separating %s data volume into %s voxels..." % \
+              (str(dimensions), str(voxel_count_x * voxel_count_y * voxel_count_z))
 
-    print(pretext, end='\r', flush=True)
+    print_notice(pretext, end='\r', flush=True)
 
     for x in range(voxel_count_x):
         x_start = cubic_dimension * x
         x_end = x_start + cubic_dimension
-        for z in range(voxel_count_z):
-            z_start = cubic_dimension * z
-            z_end = z_start + cubic_dimension
-            for y in range(voxel_count_y):
+        for y in range(voxel_count_y):
+            y_start = cubic_dimension * y
+            y_end = y_start + cubic_dimension
+            for z in range(voxel_count_z):
                 print_notice(pretext + " Voxel [DEPTH " + str(z) + "][ROW " + str(y) + "][COL " + str(x) + "]",
                              mt.MessagePrefix.INFORMATION, end='\r')
 
-                y_start = cubic_dimension * y
-                y_end = y_start + cubic_dimension
+                z_start = cubic_dimension * z
+                z_end = z_start + cubic_dimension
 
                 voxel = volume[x_start:x_end, y_start:y_end, z_start:z_end]
 
@@ -118,7 +122,7 @@ def volume_to_voxels(volume_data, cubic_dimension):
                                  % (x_start, x_start + voxel.shape[0],
                                     y_start, y_start + voxel.shape[1],
                                     z_start, z_start + voxel.shape[2],
-                                    resolve_method), mt.MessagePrefix.WARNING)
+                                    resolve_method), mt.MessagePrefix.DEBUG)
 
                     if resolve_method == "PADDING":
                         x_pad = cubic_dimension - len(voxel)
@@ -227,12 +231,12 @@ def voxels_to_core(voxels, dimensions):
     for x in range(dimensions[0]):
         x_min = x * vox_res
         x_max = x_min + vox_res
-        for z in range(dimensions[1]):
-            z_min = z * vox_res
-            z_max = z_min + vox_res
-            for y in range(dimensions[2]):
-                y_min = y * vox_res
-                y_max = y_min + vox_res
+        for y in range(dimensions[1]):
+            y_min = y * vox_res
+            y_max = y_min + vox_res
+            for z in range(dimensions[2]):
+                z_min = z * vox_res
+                z_max = z_min + vox_res
                 core[x_min:x_max, y_min:y_max, z_min:z_max] = voxels[ind]
                 ind += 1
 

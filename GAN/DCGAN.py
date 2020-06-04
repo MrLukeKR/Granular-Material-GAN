@@ -1,6 +1,10 @@
+import gc
+import math
+
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
+from tqdm import tqdm
 
 from GAN import AbstractGAN
 from tensorflow.keras import Sequential, optimizers
@@ -106,14 +110,12 @@ class Network(AbstractGAN.Network):
                     d_loss, g_loss = cls.train_step(features, labels, valid, fake)
 
                 if core_animation_data is not None and len(core_animation_data) == 3 and batch_no % animation_step == 0:
-                    core = gan_to_core(cls.adversarial, core_animation_data[0], core_animation_data[1])
+                    core = gan_to_core(cls.adversarial, core_animation_data[0], core_animation_data[1], batch_size)
                     mesh = voxels_to_mesh(core)
                     save_mesh(mesh, core_animation_data[2] +
                               'Epoch_' + str(epoch) +
                               '-Batch_' + str(batch_no) + '.stl')
-                    # TODO: These may not do anything useful...
-                    del core
-                    del mesh
+                    gc.collect()  # TODO: Trimesh appears to have some form of memory leak/cache issue
 
                 print_notice("\rEpoch %d (Batch %d) [DIS loss: %f, acc: %.2f%%] [GEN loss: %f, mse: %f]"
                              % (epoch, batch_no, d_loss[0], 100 * d_loss[1], g_loss[0], g_loss[1]), end='')
@@ -347,14 +349,23 @@ class DCGANGenerator:
         model.summary()
 
 
-def gan_to_core(network, aggregates, aggregate_dimensions):
-    results = gan_to_voxels(network, aggregates)
+def gan_to_core(network, aggregates, aggregate_dimensions, batch_size):
+    results = gan_to_voxels(network, aggregates, batch_size)
     return voxels_to_core(results, aggregate_dimensions)
 
 
-def gan_to_voxels(network, aggregates):
-    results, _ = network.predict(aggregates)
-    results = results * 127.5 + 127.5
+def gan_to_voxels(network, aggregates, batch_size):
+    results = list()
+    max_size = math.ceil(len(aggregates) / batch_size)
+    for ind in tqdm(range(max_size),
+                    desc=mt.get_notice("Generating synthetic binder voxels from GAN"),
+                    total=max_size):
+        start_ind = ind * batch_size
+        end_ind = min(start_ind + batch_size, len(aggregates))
+
+        result, _ = network.predict(aggregates[start_ind:end_ind])
+        results.extend(result * 127.5 + 127.5)
+
     results = np.array(results, dtype=np.uint8)
     np.put(results, [np.argwhere(results == 128)], 127)
     return np.squeeze(results)
