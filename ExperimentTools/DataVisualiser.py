@@ -1,6 +1,5 @@
 from matplotlib import animation
 
-from ExperimentTools.MethodologyLogger import Logger
 from ImageTools import ImageManager as im
 
 import numpy as np

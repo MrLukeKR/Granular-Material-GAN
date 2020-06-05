@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
+from guppy import hpy
 
 from multiprocessing import Process
 from GAN import AbstractGAN
@@ -116,7 +117,6 @@ class Network(AbstractGAN.Network):
                     save_mesh(mesh, core_animation_data[2] +
                               'Epoch_' + str(epoch) +
                               '-Batch_' + str(batch_no) + '.stl')
-                    gc.collect()  # TODO: Trimesh appears to have some form of memory leak/cache issue
 
                 print_notice("\rEpoch %d (Batch %d) [DIS loss: %f, acc: %.2f%%] [GEN loss: %f, mse: %f]"
                              % (epoch, batch_no, d_loss[0], 100 * d_loss[1], g_loss[0], g_loss[1]), end='')
@@ -221,9 +221,14 @@ class Network(AbstractGAN.Network):
                 dm.db.commit()
 
             if core_animation_data is not None and len(core_animation_data) == 3:
-                p = Process(target=cls.animate_gan, args=(core_animation_data, batch_size, epoch,))
-                p.start()
-                p.join()
+                try:
+                    p = Process(target=cls.animate_gan, args=(core_animation_data, batch_size, epoch,))
+                    p.start()
+                    p.join()
+                except MemoryError:
+                    print_notice("Ran out of memory when creating mesh!", mt.MessagePrefix.ERROR)
+                    h = hpy()
+                    print(h.heap())
 
             # im.save_voxel_image_collection(gen_missing, fm.SpecialFolder.VOXEL_DATA, "figures/postGAN/generated")
             # im.save_voxel_image_collection(labels, fm.SpecialFolder.VOXEL_DATA, "figures/postGAN/expected")
@@ -374,5 +379,5 @@ def gan_to_voxels(network, aggregates, batch_size):
         results.extend(result * 127.5 + 127.5)
 
     results = np.array(results, dtype=np.uint8)
-    np.put(results, [np.argwhere(results == 128)], 127)
+    results[np.where(results == 128)] = 127
     return np.squeeze(results)

@@ -1,4 +1,5 @@
 import gc
+import sys
 
 import numpy as np
 import trimesh
@@ -30,6 +31,8 @@ def voxels_to_mesh(core, suppress_messages=False):
     del core
 
     core_mesh = trimesh.Trimesh(verts, faces)
+    print_notice("Verts size: %s" % str(sys.getsizeof(verts)), mt.MessagePrefix.DEBUG)
+    print_notice("Faces size: %s" % str(sys.getsizeof(faces)), mt.MessagePrefix.DEBUG)
 
     return core_mesh
 
