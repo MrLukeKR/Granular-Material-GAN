@@ -115,8 +115,11 @@ class Network(AbstractGAN.Network):
                     d_loss, g_loss = cls.train_step(features, labels, valid, fake)
 
                 if core_animation_data is not None and len(core_animation_data) == 3 and batch_no % animation_step == 0:
+                    generated_core = gan_to_core(cls.adversarial, core_animation_data[0], core_animation_data[1],
+                                                 batch_size)
+
                     try:
-                        p = Process(target=cls.animate_gan, args=(core_animation_data, batch_size, epoch,))
+                        p = Process(target=cls.animate_gan, args=(core_animation_data, generated_core, epoch, batch_no,))
                         p.start()
                         p.join()
                     except MemoryError:
@@ -227,8 +230,12 @@ class Network(AbstractGAN.Network):
                 dm.db.commit()
 
             if core_animation_data is not None and len(core_animation_data) == 3:
+                generated_core = gan_to_core(cls.adversarial, core_animation_data[0], core_animation_data[1], batch_size)
+
                 try:
-                    cls.animate_gan(core_animation_data, batch_size, epoch)
+                    p = Process(target=cls.animate_gan, args=(core_animation_data, generated_core, epoch, 0, )) #TODO: Make current batch no enterable here
+                    p.start()
+                    p.join()
                 except MemoryError:
                     print_notice("Ran out of memory when creating mesh!", mt.MessagePrefix.ERROR)
                     h = hpy()
@@ -240,11 +247,10 @@ class Network(AbstractGAN.Network):
         return (discriminator_losses, discriminator_accuracies), (generator_losses, generator_MSEs)
 
     @classmethod
-    def animate_gan(cls, core_animation_data, batch_size, epoch):
-        core = gan_to_core(cls.adversarial, core_animation_data[0], core_animation_data[1], batch_size)
-        mesh = voxels_to_mesh(core)
+    def animate_gan(cls, core_animation_data, generated_core, epoch, batch):
+        mesh = voxels_to_mesh(generated_core)
         mesh = fix_mesh(mesh)
-        save_mesh(mesh, core_animation_data[2] + 'Epoch_' + str(epoch) + '.stl')
+        save_mesh(mesh, core_animation_data[2] + 'Epoch_' + str(epoch) + '-Batch_' + str(batch) + '.stl')
         caching.Cache.clear(mesh)
 
     @classmethod
