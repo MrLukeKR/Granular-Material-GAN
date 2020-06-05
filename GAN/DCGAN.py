@@ -115,13 +115,14 @@ class Network(AbstractGAN.Network):
                     d_loss, g_loss = cls.train_step(features, labels, valid, fake)
 
                 if core_animation_data is not None and len(core_animation_data) == 3 and batch_no % animation_step == 0:
-                    core = gan_to_core(cls.adversarial, core_animation_data[0], core_animation_data[1], batch_size)
-                    mesh = voxels_to_mesh(core)
-                    mesh = fix_mesh(mesh)
-                    save_mesh(mesh, core_animation_data[2] +
-                              'Epoch_' + str(epoch) +
-                              '-Batch_' + str(batch_no) + '.stl')
-                    caching.Cache.clear(mesh)
+                    try:
+                        p = Process(target=cls.animate_gan, args=(core_animation_data, batch_size, epoch,))
+                        p.start()
+                        p.join()
+                    except MemoryError:
+                        print_notice("Ran out of memory when creating mesh!", mt.MessagePrefix.ERROR)
+                        h = hpy()
+                        print(h.heap())
 
                 print_notice("\rEpoch %d (Batch %d) [DIS loss: %f, acc: %.2f%%] [GEN loss: %f, mse: %f]"
                              % (epoch, batch_no, d_loss[0], 100 * d_loss[1], g_loss[0], g_loss[1]), end='')
