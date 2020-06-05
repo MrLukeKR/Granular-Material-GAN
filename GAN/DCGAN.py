@@ -7,13 +7,16 @@ import tensorflow as tf
 from tqdm import tqdm
 
 from multiprocessing import Process
+
+from trimesh import caching
+
 from GAN import AbstractGAN
 from tensorflow.keras import Sequential, optimizers
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Flatten, Dense, Activation, Conv3D, Conv3DTranspose as Deconv3D, BatchNormalization, LeakyReLU
 from ExperimentTools import DataVisualiser as dv
 from ExperimentTools.MethodologyLogger import Logger
-from ImageTools.CoreAnalysis.CoreVisualiser import save_mesh, voxels_to_mesh
+from ImageTools.CoreAnalysis.CoreVisualiser import save_mesh, voxels_to_mesh, fix_mesh
 from ImageTools.VoxelProcessor import voxels_to_core
 from Settings.MessageTools import print_notice
 from Settings import SettingsManager as sm, MessageTools as mt, MachineLearningManager as mlm, DatabaseManager as dm
@@ -113,10 +116,11 @@ class Network(AbstractGAN.Network):
                 if core_animation_data is not None and len(core_animation_data) == 3 and batch_no % animation_step == 0:
                     core = gan_to_core(cls.adversarial, core_animation_data[0], core_animation_data[1], batch_size)
                     mesh = voxels_to_mesh(core)
+                    mesh = fix_mesh(mesh)
                     save_mesh(mesh, core_animation_data[2] +
                               'Epoch_' + str(epoch) +
                               '-Batch_' + str(batch_no) + '.stl')
-                    gc.collect()  # TODO: Trimesh appears to have some form of memory leak/cache issue
+                    caching.Cache.clear(mesh)
 
                 print_notice("\rEpoch %d (Batch %d) [DIS loss: %f, acc: %.2f%%] [GEN loss: %f, mse: %f]"
                              % (epoch, batch_no, d_loss[0], 100 * d_loss[1], g_loss[0], g_loss[1]), end='')
@@ -234,7 +238,9 @@ class Network(AbstractGAN.Network):
     def animate_gan(cls, core_animation_data, batch_size, epoch):
         core = gan_to_core(cls.adversarial, core_animation_data[0], core_animation_data[1], batch_size)
         mesh = voxels_to_mesh(core)
+        mesh = fix_mesh(mesh)
         save_mesh(mesh, core_animation_data[2] + 'Epoch_' + str(epoch) + '.stl')
+        caching.Cache.clear(mesh)
 
     @classmethod
     def test_network(cls, testing_set):
