@@ -3,6 +3,7 @@ import gc
 import numpy as np
 import trimesh
 from numpy.linalg import norm
+from multiprocessing import Process
 
 from ImageTools.CoreAnalysis import CoreAnalyser as ca
 from Settings import SettingsManager as sm, MessageTools as mt, DatabaseManager as dm, FileManager as fm
@@ -24,7 +25,9 @@ def voxels_to_mesh(core, suppress_messages=False):
 
     core = np.pad(core, stepsize, 'constant', constant_values=0)
 
-    verts, faces, normals, _ = measure.marching_cubes(core, step_size=stepsize, allow_degenerate=False)
+    verts, faces, _, _ = measure.marching_cubes(core, step_size=stepsize, allow_degenerate=False)
+    del _
+    del core
 
     core_mesh = trimesh.Trimesh(verts, faces)
 
@@ -44,17 +47,29 @@ def model_all_cores(multiprocessing_pool=None, use_rois=True):
         binder_exists = fm.file_exists(base_dir + '_binder.stl')
         void_exists = fm.file_exists(base_dir + '_void.stl')
 
+        processes = list()
+
         if not (aggregate_exists and binder_exists and void_exists):
             core_stack = ca.get_core_by_id(core, use_rois=use_rois, multiprocessing_pool=multiprocessing_pool)
 
         if not aggregate_exists:
-            model_core("aggregate", np.array([x == 255 for x in core_stack], np.bool), core, use_rois=use_rois)
+            processes.append(Process(target=model_core,
+                                     args=("aggregate", np.array([x == 255 for x in core_stack], np.bool),
+                                           core, use_rois,)))
 
         if not binder_exists:
-            model_core("binder", np.array([x == 127 for x in core_stack], np.bool), core, use_rois=use_rois)
+            processes.append(Process(target=model_core,
+                                     args=("binder", np.array([x == 127 for x in core_stack], np.bool), core, use_rois,)
+                                     ))
 
         if not void_exists:
-            model_core("void", np.array([x == 0 for x in core_stack], np.bool), core, use_rois=use_rois)
+            processes.append(Process(target=model_core,
+                                     args=("void", np.array([x == 0 for x in core_stack], np.bool), core, use_rois,)
+                                     ))
+
+        for process in processes:
+            process.start()
+            process.join()
 
 
 def model_core(name, data_points, core_id, use_rois=True):
@@ -69,5 +84,3 @@ def model_core(name, data_points, core_id, use_rois=True):
 
     model_dir = base_dir + str(core_id) + '_' + name + '.stl'
     save_mesh(core_mesh, model_dir)
-
-    gc.collect()  # TODO: Trimesh appears to have some form of memory leak/cache issue

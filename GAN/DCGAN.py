@@ -6,6 +6,7 @@ import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 
+from multiprocessing import Process
 from GAN import AbstractGAN
 from tensorflow.keras import Sequential, optimizers
 from tensorflow.keras.models import Model
@@ -220,14 +221,20 @@ class Network(AbstractGAN.Network):
                 dm.db.commit()
 
             if core_animation_data is not None and len(core_animation_data) == 3:
-                core = gan_to_core(cls.adversarial, core_animation_data[0], core_animation_data[1])
-                mesh = voxels_to_mesh(core)
-                save_mesh(mesh, core_animation_data[2] + 'Epoch_' + str(epoch) + '.stl')
+                p = Process(target=cls.animate_gan, args=(core_animation_data, batch_size, epoch,))
+                p.start()
+                p.join()
 
             # im.save_voxel_image_collection(gen_missing, fm.SpecialFolder.VOXEL_DATA, "figures/postGAN/generated")
             # im.save_voxel_image_collection(labels, fm.SpecialFolder.VOXEL_DATA, "figures/postGAN/expected")
 
         return (discriminator_losses, discriminator_accuracies), (generator_losses, generator_MSEs)
+
+    @classmethod
+    def animate_gan(cls, core_animation_data, batch_size, epoch):
+        core = gan_to_core(cls.adversarial, core_animation_data[0], core_animation_data[1], batch_size)
+        mesh = voxels_to_mesh(core)
+        save_mesh(mesh, core_animation_data[2] + 'Epoch_' + str(epoch) + '.stl')
 
     @classmethod
     def test_network(cls, testing_set):
