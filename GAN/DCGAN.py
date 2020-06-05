@@ -228,9 +228,7 @@ class Network(AbstractGAN.Network):
 
             if core_animation_data is not None and len(core_animation_data) == 3:
                 try:
-                    p = Process(target=cls.animate_gan, args=(core_animation_data, batch_size, epoch,))
-                    p.start()
-                    p.join()
+                    cls.animate_gan(core_animation_data, batch_size, epoch)
                 except MemoryError:
                     print_notice("Ran out of memory when creating mesh!", mt.MessagePrefix.ERROR)
                     h = hpy()
