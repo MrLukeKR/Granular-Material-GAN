@@ -3,6 +3,7 @@ import sys
 
 import numpy as np
 import trimesh
+from trimesh import caching
 from numpy.linalg import norm
 from multiprocessing import Process
 
@@ -75,10 +76,23 @@ def model_all_cores(multiprocessing_pool=None, use_rois=True):
             process.join()
 
 
+def fix_mesh(mesh):
+    print_notice("Fixing mesh...")
+
+    mesh.remove_degenerate_faces()
+    mesh.remove_duplicate_faces()
+    mesh.remove_infinite_values()
+    mesh.remove_unreferenced_vertices()
+    mesh.rezero()
+
+    return mesh
+
+
 def model_core(name, data_points, core_id, use_rois=True):
     print_notice("\tConverting " + name)
 
     core_mesh = voxels_to_mesh(data_points)
+    core_mesh = fix_mesh(core_mesh)
 
     base_dir = fm.compile_directory(fm.SpecialFolder.REAL_ASPHALT_3D_ROI_MODELS if use_rois
                                     else fm.SpecialFolder.REAL_ASPHALT_3D_CORE_MODELS) + str(core_id) + '/'
@@ -87,3 +101,5 @@ def model_core(name, data_points, core_id, use_rois=True):
 
     model_dir = base_dir + str(core_id) + '_' + name + '.stl'
     save_mesh(core_mesh, model_dir)
+    caching.Cache.clear(core_mesh)
+
