@@ -46,7 +46,11 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
 
     architecture_id, gen_settings, disc_settings = architecture
 
-    print_notice("GPU devices available: %s" % str(len(mlm.get_available_gpus())), mt.MessagePrefix.DEBUG)
+    num_gpus = len(mlm.get_available_gpus())
+
+    print_notice("GPU devices available: %s" % str(num_gpus), mt.MessagePrefix.DEBUG)
+
+    batch_size *= num_gpus
 
     for fold in range(k):
         Logger.print("Running Cross Validation Fold " + str(fold + 1) + "/" + str(k))
@@ -113,14 +117,15 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
 
             return features, labels
 
+        # Shuffle filenames, not images, as this is done in memory
+        train_ds = train_ds.shuffle(buffer_size=len(filenames))
+        train_ds = train_ds.repeat(epochs)
         train_ds = train_ds.map(_parse_voxel_function)
         train_ds = train_ds.map(_decode_voxel_function)
         train_ds = train_ds.map(_rescale_voxel_values)
 
-        train_ds = train_ds.shuffle(buffer_size=len(filenames))
-        train_ds = train_ds.repeat(epochs)
         train_ds = train_ds.batch(batch_size=batch_size)
-        train_ds = train_ds.prefetch(batch_size)
+        train_ds = train_ds.prefetch(1)
 
         ds_iter = iter(train_ds)
 
