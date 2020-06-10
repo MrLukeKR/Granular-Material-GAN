@@ -120,9 +120,9 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
         # Shuffle filenames, not images, as this is done in memory
         train_ds = train_ds.shuffle(buffer_size=len(filenames))
         train_ds = train_ds.repeat(epochs)
-        train_ds = train_ds.map(_parse_voxel_function)
-        train_ds = train_ds.map(_decode_voxel_function)
-        train_ds = train_ds.map(_rescale_voxel_values)
+        train_ds = train_ds.map(_parse_voxel_function, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        train_ds = train_ds.map(_decode_voxel_function, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        train_ds = train_ds.map(_rescale_voxel_values, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
         train_ds = train_ds.batch(batch_size=batch_size)
         train_ds = train_ds.prefetch(1)
