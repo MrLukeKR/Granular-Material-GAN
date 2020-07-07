@@ -179,10 +179,10 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
             Logger.log_model_experiment_to_database(Logger.experiment_id, instance_id)
             database_logged = True
 
-        test_network(testing_sets, fold, DCGAN.Network.generator, batch_size, multiprocessing_pool)
+        test_network(testing_sets, fold, DCGAN.Network.generator, batch_size, directory, multiprocessing_pool)
 
 
-def test_network(testing_sets, fold, test_generator, batch_size, multiprocessing_pool=None):
+def test_network(testing_sets, fold, test_generator, batch_size, figure_directory=None, multiprocessing_pool=None):
     Logger.print("Testing GAN on unseen aggregate voxels...")
 
     for testing_set in testing_sets[fold]:
@@ -198,9 +198,15 @@ def test_network(testing_sets, fold, test_generator, batch_size, multiprocessing
             results = gan_to_voxels(test_generator, test_aggregate, batch_size)
 
             if sm.get_setting("ENABLE_GAN_OUTPUT_HISTOGRAM") == "True":
-                plt.hist(results, bins=range(255))
-                plt.title("histogram")
-                plt.show()
+                plt.hist(results.flatten(), bins=range(255))
+                plt.title("Histogram of GAN outputs")
+
+                if figure_directory is not None:
+                    plt.imsave(figure_directory + "/GAN_Output_Histogram.png")
+
+                if sm.get_setting("ENABLE_IMAGE_DISPLAY") == "True":
+                    plt.show()
+                plt.close()
 
             threshold = int(sm.get_setting("IO_GAN_OUTPUT_THRESHOLD"))
             results = np.array([x >= threshold for x in results])

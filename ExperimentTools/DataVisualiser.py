@@ -47,7 +47,6 @@ def plot_training_data(generator_losses, generator_errors, discriminator_losses,
 
     return gen_error_ax, dis_error_ax, acc_ax
 
-
 def save_training_graphs(d_loss, g_loss, directory, experiment_id, fold, training_set_ind, animate=False):
     fig = im.plt.figure()
 
