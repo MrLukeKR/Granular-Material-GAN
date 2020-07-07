@@ -16,6 +16,7 @@ from ImageTools import VoxelProcessor as vp, ImageManager as im
 from ExperimentTools.MethodologyLogger import Logger
 from Settings.MessageTools import print_notice
 from ImageTools.CoreAnalysis import CoreVisualiser as cv
+from matplotlib import pyplot as plt
 
 
 def run_model_on_core(core_id=None):
@@ -196,6 +197,14 @@ def test_network(testing_sets, fold, test_generator, batch_size, multiprocessing
 
             results = gan_to_voxels(test_generator, test_aggregate, batch_size)
 
+            if sm.get_setting("ENABLE_GAN_OUTPUT_HISTOGRAM") == "True":
+                plt.hist(results, bins=range(255))
+                plt.title("histogram")
+                plt.show()
+
+            threshold = int(sm.get_setting("IO_GAN_OUTPUT_THRESHOLD"))
+            results = np.array([x >= threshold for x in results])
+
             experiment_id = "Experiment-" + str(Logger.experiment_id)
             fold_id = "_Fold-" + str(fold)
 
@@ -203,7 +212,7 @@ def test_network(testing_sets, fold, test_generator, batch_size, multiprocessing
             fm.create_if_not_exists(directory)
 
             test_aggregate = np.squeeze(test_aggregate)
-            binder_core = voxels_to_core(np.array([x >= 128 for x in results]), dimensions)
+            binder_core = voxels_to_core(results, dimensions)
             aggregate_core = voxels_to_core(test_aggregate, dimensions)
 
             binder_core = cv.voxels_to_mesh(binder_core)
@@ -231,6 +240,7 @@ def test_network(testing_sets, fold, test_generator, batch_size, multiprocessing
 
 def plot_real_vs_generated_voxels(aggregates, expected, actual, file_location, ind):
     fig = im.plt.figure(figsize=(10, 5))
+
     ax_expected = fig.add_subplot(1, 2, 1, projection='3d')
     ax_expected.title.set_text("Real")
 

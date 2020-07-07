@@ -157,6 +157,7 @@ def initialise_settings():
                       "('IO_LOG_ROOT_DIR', 'Logs'),"
                       "('IO_IMAGE_FILETYPE', 'pdf'),"
                       "('IO_OUTPUT_DPI', '500'),"
+                      "('IO_GAN_OUTPUT_THRESHOLD', '230'),"
 
                       "('ROI_IMAGE_METRIC', 'PIXELS'),"
                       "('ROI_IMAGE_DIMENSIONS', '800,800'),"
@@ -192,6 +193,7 @@ def initialise_settings():
                       "('ENABLE_POSTPROCESSING', 'True'),"
                       "('ENABLE_GAN_TRAINING', 'False'),"
                       "('ENABLE_TRAINING_ANIMATION', 'True'),"
+                      "('ENABLE_GAN_OUTPUT_HISTOGRAM', 'True'),"
                       "('ENABLE_GAN_GENERATION', 'False');")
 
     db_cursor.execute("SELECT Name FROM settings WHERE Value IS NULL;")
