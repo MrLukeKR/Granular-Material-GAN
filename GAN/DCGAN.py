@@ -21,11 +21,15 @@ from ImageTools.CoreAnalysis.CoreVisualiser import save_mesh, voxels_to_mesh, fi
 from ImageTools.VoxelProcessor import voxels_to_core
 from Settings.MessageTools import print_notice
 from Settings import SettingsManager as sm, MessageTools as mt, MachineLearningManager as mlm, DatabaseManager as dm
+from tensorflow.keras.mixed_precision import experimental as mixed_precision
 
-#strategy = \
-#    tf.distribute.experimental.MultiWorkerMirroredStrategy(tf.distribute.experimental.CollectiveCommunication.AUTO)
+#  strategy = tf.distribute.experimental.MultiWorkerMirroredStrategy(tf.distribute.experimental.CollectiveCommunication.AUTO)
+#  strategy = tf.distribute.MirroredStrategy()
 strategy = tf.distribute.experimental.CentralStorageStrategy()
-#strategy = tf.distribute.MirroredStrategy()
+# tf.config.optimizer.set_jit(True)
+
+# policy = mixed_precision.Policy('mixed_float16')
+# mixed_precision.set_policy(policy)
 
 
 class Network(AbstractGAN.Network):
@@ -96,44 +100,57 @@ class Network(AbstractGAN.Network):
 
         d_loss = 0.5 * tf.add(d_loss_real, d_loss_fake)
 
-        return d_loss, g_loss
+        return list(d_loss.numpy()), g_loss
 
     @classmethod
-    def train_network_tfdata(cls, epochs, batch_size, dataset_iterator, core_animation_data=None):
+    def train_network_tfdata(cls, batch_size, dataset_iterator, core_animation_data=None):
+        print_notice("Training Generative Adversarial Network...")
+
         valid = tf.fill((batch_size, 1), 0.9)
         fake = tf.zeros((batch_size, 1))
 
+        all_d_loss = list()
+        all_g_loss = list()
+
         animation_step = int(sm.get_setting("TRAINING_ANIMATION_BATCH_STEP"))
 
-        for epoch in range(epochs):
-            batch_no = 0
-            d_loss = []
-            g_loss = []
+        batch_no = 0
+        epoch = 0
 
-            for features, labels in dataset_iterator:
+        for features, labels in dataset_iterator:
+            if features.shape[0] != batch_size:
+                last_valid = tf.fill((features.shape[0], 1), 0.9)
+                last_fake = tf.zeros((features.shape[0], 1))
+
+                with strategy.scope():
+                    d_loss, g_loss = cls.train_step(features, labels, last_valid, last_fake)
+            else:
                 with strategy.scope():
                     d_loss, g_loss = cls.train_step(features, labels, valid, fake)
 
-                if core_animation_data is not None and len(core_animation_data) == 3 and batch_no % animation_step == 0:
-                    generated_core = gan_to_core(cls.adversarial, core_animation_data[0], core_animation_data[1],
-                                                 batch_size)
+            print_notice("\rBatch %d [DIS loss: %f, acc: %.2f%%] [GEN loss: %f, mse: %f]"
+                         % (batch_no, d_loss[0], 100 * d_loss[1], g_loss[0], g_loss[1]), end='')
 
-                    try:
-                        p = Process(target=cls.animate_gan, args=(core_animation_data, generated_core, epoch, batch_no,))
-                        p.start()
-                        p.join()
-                    except MemoryError:
-                        print_notice("Ran out of memory when creating mesh!", mt.MessagePrefix.ERROR)
-                        h = hpy()
-                        print(h.heap())
+            all_d_loss.append(d_loss)
+            all_g_loss.append(g_loss)
 
-                print_notice("\rEpoch %d (Batch %d) [DIS loss: %f, acc: %.2f%%] [GEN loss: %f, mse: %f]"
-                             % (epoch, batch_no, d_loss[0], 100 * d_loss[1], g_loss[0], g_loss[1]), end='')
+            if core_animation_data is not None and len(core_animation_data) == 3 and batch_no % animation_step == 0:
+                generated_core = gan_to_core(cls.adversarial, core_animation_data[0], core_animation_data[1],
+                                             batch_size)
 
-                batch_no += 1
+                try:
+                    p = Process(target=cls.animate_gan,
+                                args=(core_animation_data, generated_core, epoch, batch_no,))
+                    p.start()
+                    p.join()
+                except MemoryError:
+                    print_notice("Ran out of memory when creating mesh!", mt.MessagePrefix.ERROR)
+                    h = hpy()
+                    print(h.heap())
 
-            print_notice("\rEpoch %d [DIS loss: %f, acc: %.2f%%] [GEN loss: %f, mse: %f]"
-                         % (epoch, d_loss[0], 100 * d_loss[1], g_loss[0], g_loss[1]))
+            batch_no += 1
+
+        return all_d_loss, all_g_loss
 
     @classmethod
     def train_network(cls, epochs, batch_size, features, labels, core_animation_data=None):

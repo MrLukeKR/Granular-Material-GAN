@@ -61,7 +61,9 @@ def save_training_graphs(d_loss, g_loss, directory, experiment_id, fold, trainin
                 training_set_ind)
 
     if not animate:
-        plot_training_data(g_loss[0], g_loss[1], d_loss[0], d_loss[1], x=x, gen_error_ax=gen_error_ax,
+        plot_training_data([x[0] for x in g_loss], [x[1] for x in g_loss],
+                           [x[0] for x in d_loss], [x[1] for x in d_loss],
+                           gen_error_ax=gen_error_ax,
                            dis_error_ax=dis_error_ax, acc_ax=acc_ax)
 
         im.plt.gcf().savefig(filepath + '.pdf')

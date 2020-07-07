@@ -140,7 +140,8 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
         base_dir = fm.compile_directory(fm.SpecialFolder.GENERATED_ASPHALT_3D_ROI_MODELS if animate_with_rois
                                         else fm.SpecialFolder.GENERATED_ASPHALT_3D_CORE_MODELS)
         directory = base_dir + experiment_id + "/CoreAnimation/"
-        fm.create_if_not_exists(directory)
+        if sm.get_setting("ENABLE_TRAINING_ANIMATION") == "True":
+            fm.create_if_not_exists(directory)
 
         animation_data = None
 
@@ -153,7 +154,7 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
 
             animation_data = (animation_aggregates, animation_dimensions, directory)
 
-        d_loss, g_loss, images = DCGAN.Network.train_network_tfdata(epochs, batch_size, ds_iter, animation_data)
+        d_loss, g_loss = DCGAN.Network.train_network_tfdata(batch_size, ds_iter, animation_data)
 
         filename = "Experiment-" + str(Logger.experiment_id)
         directory = fm.compile_directory(fm.SpecialFolder.FIGURES) + filename + '/Training'
@@ -177,10 +178,10 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
             Logger.log_model_experiment_to_database(Logger.experiment_id, instance_id)
             database_logged = True
 
-        test_network(testing_sets, fold, DCGAN.Network.generator, multiprocessing_pool)
+        test_network(testing_sets, fold, DCGAN.Network.generator, batch_size, multiprocessing_pool)
 
 
-def test_network(testing_sets, fold, test_generator, multiprocessing_pool=None):
+def test_network(testing_sets, fold, test_generator, batch_size, multiprocessing_pool=None):
     Logger.print("Testing GAN on unseen aggregate voxels...")
 
     for testing_set in testing_sets[fold]:
@@ -193,7 +194,7 @@ def test_network(testing_sets, fold, test_generator, multiprocessing_pool=None):
 
             test_aggregate = np.expand_dims(test_aggregate, 4)
 
-            results = gan_to_voxels(test_generator, test_aggregate)
+            results = gan_to_voxels(test_generator, test_aggregate, batch_size)
 
             experiment_id = "Experiment-" + str(Logger.experiment_id)
             fold_id = "_Fold-" + str(fold)
