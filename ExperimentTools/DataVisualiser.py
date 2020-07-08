@@ -60,6 +60,7 @@ def plot_training_data(generator_losses, generator_errors, discriminator_losses,
 
     return gen_error_ax, dis_error_ax, acc_ax
 
+
 def save_training_graphs(d_loss, g_loss, directory, experiment_id, fold, epochs=None, animate=False):
     fig = im.plt.figure()
 
@@ -69,7 +70,7 @@ def save_training_graphs(d_loss, g_loss, directory, experiment_id, fold, epochs=
 
     x = range(len(g_loss[0]))
 
-    filepath = directory + '/Experiment-' + str(experiment_id) + '_Fold-' + str(fold)
+    filepath = directory + '/' + experiment_id + '_Fold-' + str(fold)
 
     if not animate:
         plot_training_data([x[0] for x in g_loss], [x[1] for x in g_loss],

@@ -416,6 +416,15 @@ def gan_to_core(network, aggregates, aggregate_dimensions, batch_size):
     return voxels_to_core(results, aggregate_dimensions)
 
 
+def gan_to_voxels_tfdata(network, aggregate_iterator):
+    results = list()
+
+    for aggregate, _ in aggregate_iterator:
+        results.extend(network.predict(aggregate))
+
+    return results
+
+
 def gan_to_voxels(network, aggregates, batch_size):
     results = list()
     max_size = math.ceil(len(aggregates) / batch_size)
@@ -429,5 +438,5 @@ def gan_to_voxels(network, aggregates, batch_size):
 
         results.extend(result)
 
-    results = np.array(results, dtype=np.uint8)
+    results = np.array(results, dtype="float32")
     return np.squeeze(results)

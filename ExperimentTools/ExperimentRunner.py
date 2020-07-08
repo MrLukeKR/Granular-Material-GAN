@@ -83,13 +83,18 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
 
         # Machine Learning >>>
 
-        filenames = [fm.compile_directory(fm.SpecialFolder.ROI_DATASET_DATA
+        training_filenames = [fm.compile_directory(fm.SpecialFolder.ROI_DATASET_DATA
                                           if train_with_rois else fm.SpecialFolder.CORE_DATASET_DATA) + x
                      + "/segment_64.tfrecord" for x in training_sets[fold]]
+
+        testing_filenames = [fm.compile_directory(fm.SpecialFolder.ROI_DATASET_DATA
+                                                   if train_with_rois else fm.SpecialFolder.CORE_DATASET_DATA) + x
+                              + "/segment_64.tfrecord" for x in testing_sets[fold]]
+
         voxel_res = int(sm.get_setting("VOXEL_RESOLUTION"))
         voxel_dims = [voxel_res, voxel_res, voxel_res]
 
-        train_ds = tf.data.TFRecordDataset(filenames=filenames, num_parallel_reads=len(filenames))
+        train_ds = tf.data.TFRecordDataset(filenames=training_filenames, num_parallel_reads=len(training_filenames))
 
         example = {
             'aggregate': tf.io.FixedLenFeature([], dtype=tf.string),
@@ -118,13 +123,14 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
             segments = [features, labels]
             # Data must be between [-1, 1] for GAN (voxels are stored between [0, 1])
             for ind in range(2):
-                segments[ind] = tf.math.multiply(segments[ind], 2.0)
-                segments[ind] = tf.math.subtract(segments[ind], 1.0)
+                segments[ind] = segments[ind] * 2.0
+                segments[ind] = segments[ind] - 1.0
 
-            return features, labels
+            return segments[0], segments[1]
 
+        # Training dataset(s)
         # Shuffle filenames, not images, as this is done in memory
-        train_ds = train_ds.shuffle(buffer_size=len(filenames))
+        train_ds = train_ds.shuffle(buffer_size=len(training_filenames))
         train_ds = train_ds.repeat(epochs)
 
         train_ds = train_ds.map(_parse_voxel_function, num_parallel_calls=tf.data.experimental.AUTOTUNE)
@@ -200,13 +206,15 @@ def test_network(testing_sets, fold, test_generator, batch_size, figure_director
             dimensions, test_aggregate, test_binder = vp.load_materials(core, use_rois=False)
             test_aggregate = np.expand_dims(test_aggregate, 4)
 
-            # Data must be in the range of [-1, 1] for the GAN (voxels are stored as [0, 1])
-            test_aggregate = ((test_aggregate / 255) * 2) - 1
+            # TODO: Make testing use TFData rather than numpy loading (faster)
 
-            results = gan_to_voxels(test_generator, test_aggregate, batch_size)
+            # Data must be in the range of [-1, 1] for the GAN (voxels are stored as [0, 1])
+            results = gan_to_voxels(test_generator, ((test_aggregate / 255) * 2) - 1, batch_size)
+
+            results = np.array((results + 1) / 2, dtype=np.uint8)
 
             if sm.get_setting("ENABLE_GAN_OUTPUT_HISTOGRAM") == "True":
-                plt.hist((((results * 2) - 1) * 255).flatten(), bins=range(256))
+                plt.hist((results * 255).flatten(), bins=range(256))
                 plt.title("Histogram of GAN outputs")
 
                 if figure_directory is not None:
@@ -214,9 +222,9 @@ def test_network(testing_sets, fold, test_generator, batch_size, figure_director
 
                 if sm.get_setting("ENABLE_IMAGE_DISPLAY") == "True":
                     plt.show()
-                plt.close()
+
             # Rescale outputs into [0, 1], which can then be thresholded and scaled into [0, 255]
-            results = (results + 1) / 2
+
             results = results >= float(sm.get_setting("IO_GAN_OUTPUT_THRESHOLD"))
 
             experiment_id = "Experiment-" + str(Logger.experiment_id)
