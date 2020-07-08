@@ -156,11 +156,11 @@ class Network(AbstractGAN.Network):
                     h = hpy()
                     print(h.heap())
 
-            batch_no += 1
-
-            if batch_no % datasets_per_epoch == 0:
+            if batch_no == datasets_per_epoch:
                 epoch_no += 1
                 batch_no = 1
+            else:
+                batch_no += 1
 
         progress.close()
         return all_d_loss, all_g_loss
