@@ -157,7 +157,7 @@ def initialise_settings():
                       "('IO_LOG_ROOT_DIR', 'Logs'),"
                       "('IO_IMAGE_FILETYPE', 'pdf'),"
                       "('IO_OUTPUT_DPI', '500'),"
-                      "('IO_GAN_OUTPUT_THRESHOLD', '230'),"
+                      "('IO_GAN_OUTPUT_THRESHOLD', '254'),"
 
                       "('ROI_IMAGE_METRIC', 'PIXELS'),"
                       "('ROI_IMAGE_DIMENSIONS', '800,800'),"

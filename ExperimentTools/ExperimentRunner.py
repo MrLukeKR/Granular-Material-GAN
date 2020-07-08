@@ -1,6 +1,7 @@
 import os
 import tensorflow as tf
 import numpy as np
+import matplotlib as mpl
 
 from tqdm import tqdm
 from itertools import repeat
@@ -17,6 +18,8 @@ from ExperimentTools.MethodologyLogger import Logger
 from Settings.MessageTools import print_notice
 from ImageTools.CoreAnalysis import CoreVisualiser as cv
 from matplotlib import pyplot as plt
+
+mpl.rc('image', cmap='gray')
 
 
 def run_model_on_core(core_id=None):
@@ -198,11 +201,11 @@ def test_network(testing_sets, fold, test_generator, batch_size, figure_director
             results = gan_to_voxels(test_generator, test_aggregate, batch_size)
 
             if sm.get_setting("ENABLE_GAN_OUTPUT_HISTOGRAM") == "True":
-                plt.hist(results.flatten(), bins=range(255))
+                plt.hist(results.flatten(), bins=range(256))
                 plt.title("Histogram of GAN outputs")
 
                 if figure_directory is not None:
-                    plt.imsave(figure_directory + "/GAN_Output_Histogram.png")
+                    plt.savefig(figure_directory + "/GAN_Output_Histogram.pdf",)
 
                 if sm.get_setting("ENABLE_IMAGE_DISPLAY") == "True":
                     plt.show()
