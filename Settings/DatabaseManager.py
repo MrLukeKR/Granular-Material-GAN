@@ -55,7 +55,8 @@ def get_cores_from_database():
 
 
 def get_experiment_information():
-    sql = "SELECT experiments.ID, experiments.Timestamp, COUNT(training.ExperimentID) FROM experiments, training " \
+    sql = "SELECT experiments.ID, experiments.Timestamp, experiments.Folds, experiments.Epochs, experiments.BatchSize," \
+          "COUNT(training.ExperimentID) FROM experiments, training " \
           "WHERE experiments.ID = training.ExperimentID GROUP BY experiments.ID;"
 
     db_cursor.execute(sql)
@@ -244,7 +245,7 @@ def initialise_machine_learning_database():
 
     db_cursor.execute("CREATE TABLE IF NOT EXISTS experiments "
                       "(ID INT AUTO_INCREMENT,"
-                      "Timestamp TIMESTAMP NOT NULL,"
+                      "Timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,"
                       "Epochs INT NULL,"
                       "Folds INT NULL,"
                       "BatchSize INT NULL,"
@@ -264,6 +265,7 @@ def initialise_machine_learning_database():
 
     db_cursor.execute("CREATE TABLE IF NOT EXISTS results "
                       "(ID INT AUTO_INCREMENT,"
+                      "Timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,"
                       "ExperimentID INT NOT NULL,"
                       "FinalDiscriminatorLoss DOUBLE NOT NULL,"
                       "FinalDiscriminatorAccuracy DOUBLE NOT NULL,"
@@ -274,10 +276,11 @@ def initialise_machine_learning_database():
 
     db_cursor.execute("CREATE TABLE IF NOT EXISTS training "
                       "(ID INT AUTO_INCREMENT,"
+                      "Timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,"
                       "ExperimentID INT NOT NULL,"
                       "Fold INT NOT NULL,"
                       "Epoch INT NOT NULL,"
-                      "TrainingSet INT NOT NULL,"
+                      "Batch INT NOT NULL,"
                       "DiscriminatorLoss DOUBLE NOT NULL,"
                       "DiscriminatorAccuracy DOUBLE NOT NULL,"
                       "GeneratorLoss DOUBLE NOT NULL,"

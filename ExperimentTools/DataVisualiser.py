@@ -7,7 +7,7 @@ import numpy as np
 from Settings.MessageTools import print_notice
 
 
-def plot_training_data(generator_losses, generator_errors, discriminator_losses, discriminator_accuracies,
+def plot_training_data(generator_losses, generator_errors, discriminator_losses, discriminator_accuracies, epochs=None,
                        experiment_id=None, x=None, gen_error_ax=None, dis_error_ax=None, acc_ax=None):
     if gen_error_ax is None or dis_error_ax is None or acc_ax is None:
         fig = im.plt.figure()
@@ -34,6 +34,19 @@ def plot_training_data(generator_losses, generator_errors, discriminator_losses,
     dis_error_ax.plot(x, discriminator_losses, '-r', label="Discriminator Loss")
     acc_ax.plot(x, discriminator_accuracies, '-m', label="Discriminator Accuracy")
 
+    if epochs is not None:
+        interval = len(x) // epochs
+        gen_error_ylim = gen_error_ax.get_ylim()
+        dis_error_ylim = dis_error_ax.get_ylim()
+        acc_ylim = acc_ax.get_ylim()
+
+        for epoch in range(epochs):
+            loc = interval * epoch
+
+            gen_error_ax.plot((loc, loc), gen_error_ylim, "--", color="k", linewidth=0.1)
+            dis_error_ax.plot((loc, loc), dis_error_ylim, "--", color="k", linewidth=0.1)
+            acc_ax.plot((loc, loc), acc_ylim, "--", color="k", linewidth=0.1)
+
     for axis in [gen_error_ax, acc_ax, dis_error_ax]:
         axis.set_xlabel("Epochs")
 
@@ -47,7 +60,7 @@ def plot_training_data(generator_losses, generator_errors, discriminator_losses,
 
     return gen_error_ax, dis_error_ax, acc_ax
 
-def save_training_graphs(d_loss, g_loss, directory, experiment_id, fold, training_set_ind, animate=False):
+def save_training_graphs(d_loss, g_loss, directory, experiment_id, fold, epochs=None, animate=False):
     fig = im.plt.figure()
 
     gen_error_ax = fig.add_subplot(3, 1, 1)
@@ -56,12 +69,12 @@ def save_training_graphs(d_loss, g_loss, directory, experiment_id, fold, trainin
 
     x = range(len(g_loss[0]))
 
-    filepath = directory + '/Experiment-' + str(experiment_id) + '_Fold-' + str(fold) + '_TrainingSet-' + str(
-                training_set_ind)
+    filepath = directory + '/Experiment-' + str(experiment_id) + '_Fold-' + str(fold)
 
     if not animate:
         plot_training_data([x[0] for x in g_loss], [x[1] for x in g_loss],
                            [x[0] for x in d_loss], [x[1] for x in d_loss],
+                           epochs=epochs,
                            gen_error_ax=gen_error_ax,
                            dis_error_ax=dis_error_ax, acc_ax=acc_ax)
 
@@ -73,6 +86,19 @@ def save_training_graphs(d_loss, g_loss, directory, experiment_id, fold, trainin
         accuracy_line, = acc_ax.plot(x, d_loss[1], '-m', label="Discriminator Accuracy", linewidth=1)
 
         im.plt.gcf().suptitle("Experiment " + str(experiment_id))
+
+        if epochs is not None:
+            interval = len(x) // epochs
+            gen_error_ylim = gen_error_ax.get_ylim()
+            dis_error_ylim = dis_error_ax.get_ylim()
+            acc_ylim = acc_ax.get_ylim()
+
+            for epoch in range(epochs):
+                loc = interval * epoch
+
+                gen_error_ax.plot((loc, loc), gen_error_ylim, '--', color="k", linewidth=0.1)
+                dis_error_ax.plot((loc, loc), dis_error_ylim, '--', color="k", linewidth=0.1)
+                acc_ax.plot((loc, loc), acc_ylim, '--', color="k", linewidth=0.1)
 
         for axis in [gen_error_ax, acc_ax, dis_error_ax]:
             axis.set_xlabel("Epochs")

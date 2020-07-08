@@ -2,12 +2,12 @@ import datetime
 import cpuinfo
 
 from psutil import virtual_memory
-from Settings import DatabaseManager as dm, MessageTools as mt
+from Settings import DatabaseManager as dm, MessageTools as mt, SettingsManager as sm
 from Settings.MessageTools import print_notice
 
 
 def get_system_info():
-    print("Gathering system information... ", end='')
+    print_notice("Gathering system information... ", end='')
 
     cpu_info = cpuinfo.get_cpu_info()
     # TODO: Fix gpu information here
@@ -25,13 +25,14 @@ class Logger:
     current_set = None
     log_file = None
 
-    def __init__(self, log_directory, log_file_name=None):
+    def __init__(self, log_directory, folds, epochs, batch_size, log_file_name=None):
         try:
             if not Logger._initialised:
                 if dm.database_connected:
                     sql = "INSERT INTO experiments (Timestamp, CPUCores, CPUSpeed, GPUVRAMSize, "\
-                          "GPUCUDACores, RAMSize) "\
-                          "VALUES (CURRENT_TIMESTAMP, '%s', '%s', '%s', '%s', '%s');" % get_system_info()
+                          "GPUCUDACores, RAMSize, Folds, Epochs, BatchSize) "\
+                          "VALUES (CURRENT_TIMESTAMP, '%s', '%s', '%s', '%s', '%s', " % get_system_info()
+                    sql += "'%s', '%s', '%s');" % (folds, epochs, batch_size)
 
                     dm.db_cursor.execute(sql)
 
@@ -47,7 +48,7 @@ class Logger:
                 filepath = log_directory + log_file_name + '.log'
 
                 Logger.log_file = open(filepath, 'w')
-                Logger.print("Starting experiment logger "
+                print_notice("Starting experiment logger "
                              "(Experiment " + str(Logger.experiment_id) + " @ " + str(Logger.get_timestamp()) + ")")
 
                 Logger.initialised = True
@@ -82,6 +83,18 @@ class Logger:
             dm.db_cursor.execute(sql, val)
         else:
             raise ConnectionError
+
+    @staticmethod
+    def log_batch_training_to_database(fold, epoch, batch, g_loss, d_loss):
+        if dm.database_connected:
+            sql = "INSERT INTO training (ExperimentID, Fold, Epoch, Batch, " \
+                  "DiscriminatorLoss, DiscriminatorAccuracy, GeneratorLoss, GeneratorMSE)" \
+                  "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
+
+            val = (str(Logger.experiment_id), str(fold), str(epoch), str(batch),
+                   str(d_loss[0]), str(d_loss[1]), str(g_loss[0]), str(g_loss[1]))
+
+            dm.db_cursor.execute(sql, val)
 
     @staticmethod
     def log_model_to_database(gen_settings, disc_settings):

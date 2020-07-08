@@ -10,7 +10,7 @@ from ExperimentTools.VoxelGenerator import VoxelGenerator
 from GAN.DCGAN import gan_to_voxels
 from ImageTools.VoxelProcessor import voxels_to_core
 from Settings import MessageTools as mt
-from ExperimentTools import DatasetProcessor
+from ExperimentTools import DatasetProcessor, MethodologyLogger
 from GAN import DCGAN
 from Settings import FileManager as fm, SettingsManager as sm, MachineLearningManager as mlm
 from ImageTools import VoxelProcessor as vp, ImageManager as im
@@ -47,6 +47,8 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
 
     epochs = int(sm.get_setting("TRAINING_EPOCHS"))
     batch_size = int(sm.get_setting("TRAINING_BATCH_SIZE"))
+
+    MethodologyLogger.Logger(fm.compile_directory(fm.SpecialFolder.LOGS), k, epochs, batch_size)
 
     architecture_id, gen_settings, disc_settings = architecture
 
@@ -123,10 +125,11 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
 
         # Shuffle filenames, not images, as this is done in memory
         train_ds = train_ds.shuffle(buffer_size=len(filenames))
-        train_ds = train_ds.repeat(epochs)
         train_ds = train_ds.map(_parse_voxel_function, num_parallel_calls=tf.data.experimental.AUTOTUNE)
         train_ds = train_ds.map(_decode_voxel_function, num_parallel_calls=tf.data.experimental.AUTOTUNE)
         train_ds = train_ds.map(_rescale_voxel_values, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+
+        train_ds = train_ds.repeat(epochs)
 
         train_ds = train_ds.batch(batch_size=batch_size)
         train_ds = train_ds.prefetch(1)
@@ -160,15 +163,13 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
 
             animation_data = (animation_aggregates, animation_dimensions, directory)
 
-        d_loss, g_loss = DCGAN.Network.train_network_tfdata(batch_size, ds_iter, epochs, dataset_size, animation_data)
+        d_loss, g_loss = DCGAN.Network.train_network_tfdata(batch_size, ds_iter, fold + 1, epochs, dataset_size, animation_data)
 
         filename = "Experiment-" + str(Logger.experiment_id)
         directory = fm.compile_directory(fm.SpecialFolder.FIGURES) + filename + '/Training'
         fm.create_if_not_exists(directory)
 
-        buff_ind = '0' * (len(str(k)) - len(str(fold))) + str(fold)
-
-        save_training_graphs(d_loss, g_loss, directory, experiment_id, fold, buff_ind)
+        save_training_graphs(d_loss, g_loss, directory, experiment_id, fold, epochs)
 
         fold_d_losses.append(d_loss[0])
         fold_d_accuracies.append(d_loss[1])

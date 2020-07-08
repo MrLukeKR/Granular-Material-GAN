@@ -69,8 +69,6 @@ def experiment_menu():
 
     user_input = input("Enter your menu choice > ")
 
-    if user_input.isnumeric() and 4 >= int(user_input) > 0:
-        MethodologyLogger.Logger(fm.compile_directory(fm.SpecialFolder.LOGS))
     if user_input == "1":
         core_ids, split = data_selection_menu()
         random.shuffle(core_ids)
@@ -327,7 +325,8 @@ def data_visualisation_menu():
         if user_input == "1":
             info = dm.get_experiment_information()
             for experiment in info:
-                print_notice("Experiment ID: %s\tTimestamp: %s\tTraining Records: %s" % experiment)
+                print_notice("Experiment ID: %s\tTimestamp: %s\tFolds: %s\tEpochs: %s\tBatch Size: %s"
+                             "\tTraining Records: %s" % experiment)
 
             experiment_ids = [str(x[0]) for x in info]
             experiment_id = ''
@@ -336,17 +335,19 @@ def data_visualisation_menu():
                 experiment_id = input("Enter experiment ID > ")
 
             train_data = dm.get_training_data(experiment_id)
-            disc_loss = [x[5] for x in train_data]
-            disc_accuracy = [x[6] for x in train_data]
-            gen_loss = [x[7] for x in train_data]
-            gen_mse = [x[8] for x in train_data]
+            disc_loss = [x[6] for x in train_data]
+            disc_accuracy = [x[7] for x in train_data]
+            gen_loss = [x[8] for x in train_data]
+            gen_mse = [x[9] for x in train_data]
 
+            epochs = max([x[4] for x in train_data])
+
+            # TODO: Get unique fold IDs and save a graph per fold
             fold_id = train_data[0][2]
-            training_set_id = train_data[0][4]
 
             save_training_graphs((disc_loss, disc_accuracy), (gen_loss, gen_mse),
                                  fm.compile_directory(fm.SpecialFolder.FIGURES) + 'Experiment-' + experiment_id,
-                                 experiment_id, fold_id, training_set_id, animate=True)
+                                 experiment_id, fold_id, epochs, animate=True)
 
         else:
             valid = False
