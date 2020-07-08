@@ -426,8 +426,8 @@ def gan_to_voxels(network, aggregates, batch_size):
         end_ind = min(start_ind + batch_size, len(aggregates))
 
         result = network.predict(aggregates[start_ind:end_ind])
-        results.extend(result * 127.5 + 127.5)
+
+        results.extend(result)
 
     results = np.array(results, dtype=np.uint8)
-    results[np.where(results == 128)] = 127
     return np.squeeze(results)

@@ -116,7 +116,7 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
 
         def _rescale_voxel_values(features, labels):
             segments = [features, labels]
-
+            # Data must be between [-1, 1] for GAN (voxels are stored between [0, 1])
             for ind in range(2):
                 segments[ind] = tf.math.multiply(segments[ind], 2.0)
                 segments[ind] = tf.math.subtract(segments[ind], 1.0)
@@ -125,11 +125,11 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
 
         # Shuffle filenames, not images, as this is done in memory
         train_ds = train_ds.shuffle(buffer_size=len(filenames))
+        train_ds = train_ds.repeat(epochs)
+
         train_ds = train_ds.map(_parse_voxel_function, num_parallel_calls=tf.data.experimental.AUTOTUNE)
         train_ds = train_ds.map(_decode_voxel_function, num_parallel_calls=tf.data.experimental.AUTOTUNE)
         train_ds = train_ds.map(_rescale_voxel_values, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-
-        train_ds = train_ds.repeat(epochs)
 
         train_ds = train_ds.batch(batch_size=batch_size)
         train_ds = train_ds.prefetch(1)
@@ -198,13 +198,15 @@ def test_network(testing_sets, fold, test_generator, batch_size, figure_director
         for directory in testing_set:
             core = str.split(directory, '/')[-1]
             dimensions, test_aggregate, test_binder = vp.load_materials(core, use_rois=False)
-
             test_aggregate = np.expand_dims(test_aggregate, 4)
+
+            # Data must be in the range of [-1, 1] for the GAN (voxels are stored as [0, 1])
+            test_aggregate = ((test_aggregate / 255) * 2) - 1
 
             results = gan_to_voxels(test_generator, test_aggregate, batch_size)
 
             if sm.get_setting("ENABLE_GAN_OUTPUT_HISTOGRAM") == "True":
-                plt.hist(results.flatten(), bins=range(256))
+                plt.hist((((results * 2) - 1) * 255).flatten(), bins=range(256))
                 plt.title("Histogram of GAN outputs")
 
                 if figure_directory is not None:
@@ -213,9 +215,9 @@ def test_network(testing_sets, fold, test_generator, batch_size, figure_director
                 if sm.get_setting("ENABLE_IMAGE_DISPLAY") == "True":
                     plt.show()
                 plt.close()
-
-            threshold = int(sm.get_setting("IO_GAN_OUTPUT_THRESHOLD"))
-            results = np.array([x >= threshold for x in results])
+            # Rescale outputs into [0, 1], which can then be thresholded and scaled into [0, 255]
+            results = (results + 1) / 2
+            results = results >= float(sm.get_setting("IO_GAN_OUTPUT_THRESHOLD"))
 
             experiment_id = "Experiment-" + str(Logger.experiment_id)
             fold_id = "_Fold-" + str(fold)
@@ -224,13 +226,18 @@ def test_network(testing_sets, fold, test_generator, batch_size, figure_director
             fm.create_if_not_exists(directory)
 
             test_aggregate = np.squeeze(test_aggregate)
+
+            # Remove overlapping aggregate and binder
+            if sm.get_setting("ENABLE_FIX_GAN_OUTPUT_OVERLAP") == "True":
+                results -= np.logical_and(results, test_aggregate == 255)
+
             binder_core = voxels_to_core(results, dimensions)
             aggregate_core = voxels_to_core(test_aggregate, dimensions)
 
             binder_core = cv.voxels_to_mesh(binder_core)
             aggregate_core = cv.voxels_to_mesh(aggregate_core)
 
-            cv.save_mesh(binder_core, directory + "binder.stl")
+            cv.save_mesh(binder_core, directory + "generated_binder.stl")
             cv.save_mesh(aggregate_core, directory + "aggregate.stl")
 
             results = list(results)

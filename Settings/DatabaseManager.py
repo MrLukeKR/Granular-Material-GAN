@@ -184,6 +184,7 @@ def initialise_settings():
                       "('TRAINING_USE_BATCH_NORMALISATION', 'False'),"  
                       "('TRAINING_ANIMATION_BATCH_STEP', '10'),"
 
+                      "('ENABLE_FIX_GAN_OUTPUT_OVERLAP', 'False'),"
                       "('ENABLE_IMAGE_SAVING', 'False'),"
                       "('ENABLE_VOXEL_INPUT_SAVING', 'False'),"
                       "('ENABLE_VOXEL_OUTPUT_SAVING', 'False'),"
