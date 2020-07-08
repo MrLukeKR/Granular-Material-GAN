@@ -103,7 +103,7 @@ class Network(AbstractGAN.Network):
         return list(d_loss.numpy()), g_loss
 
     @classmethod
-    def train_network_tfdata(cls, batch_size, dataset_iterator, core_animation_data=None):
+    def train_network_tfdata(cls, batch_size, dataset_iterator, epochs, dataset_size, core_animation_data=None):
         print_notice("Training Generative Adversarial Network...")
 
         valid = tf.fill((batch_size, 1), 0.9)
@@ -114,8 +114,12 @@ class Network(AbstractGAN.Network):
 
         animation_step = int(sm.get_setting("TRAINING_ANIMATION_BATCH_STEP"))
 
-        batch_no = 0
-        epoch = 0
+        batch_no = 1
+        epoch_no = 1
+
+        datasets_per_epoch = dataset_size // epochs
+
+        progress = tqdm(total=dataset_size * batch_size, desc=mt.get_notice("Starting GAN Training"))
 
         for features, labels in dataset_iterator:
             if features.shape[0] != batch_size:
@@ -128,8 +132,12 @@ class Network(AbstractGAN.Network):
                 with strategy.scope():
                     d_loss, g_loss = cls.train_step(features, labels, valid, fake)
 
-            print_notice("\rBatch %d [DIS loss: %f, acc: %.2f%%] [GEN loss: %f, mse: %f]"
-                         % (batch_no, d_loss[0], 100 * d_loss[1], g_loss[0], g_loss[1]), end='')
+            progress.update(batch_size)
+            progress.set_description(mt.get_notice("Epoch %d, Batch %d (%d Voxels) "
+                                                   "[DIS loss: %f, acc: %.2f%%] [GEN loss: %f, mse: %f]"
+                                                   % (epoch_no, batch_no, ((epoch_no - 1) * datasets_per_epoch * batch_size)
+                                                      + (batch_no * batch_size),
+                                                      d_loss[0], 100 * d_loss[1], g_loss[0], g_loss[1])))
 
             all_d_loss.append(d_loss)
             all_g_loss.append(g_loss)
@@ -140,7 +148,7 @@ class Network(AbstractGAN.Network):
 
                 try:
                     p = Process(target=cls.animate_gan,
-                                args=(core_animation_data, generated_core, epoch, batch_no,))
+                                args=(core_animation_data, generated_core, batch_no,))
                     p.start()
                     p.join()
                 except MemoryError:
@@ -150,6 +158,11 @@ class Network(AbstractGAN.Network):
 
             batch_no += 1
 
+            if batch_no % datasets_per_epoch == 0:
+                epoch_no += 1
+                batch_no = 1
+
+        progress.close()
         return all_d_loss, all_g_loss
 
     @classmethod
@@ -250,7 +263,7 @@ class Network(AbstractGAN.Network):
                 generated_core = gan_to_core(cls.adversarial, core_animation_data[0], core_animation_data[1], batch_size)
 
                 try:
-                    p = Process(target=cls.animate_gan, args=(core_animation_data, generated_core, epoch, 0, )) #TODO: Make current batch no enterable here
+                    p = Process(target=cls.animate_gan, args=(core_animation_data, generated_core, 0, )) #TODO: Make current batch no enterable here
                     p.start()
                     p.join()
                 except MemoryError:
@@ -264,10 +277,10 @@ class Network(AbstractGAN.Network):
         return (discriminator_losses, discriminator_accuracies), (generator_losses, generator_MSEs)
 
     @classmethod
-    def animate_gan(cls, core_animation_data, generated_core, epoch, batch):
+    def animate_gan(cls, core_animation_data, generated_core, batch):
         mesh = voxels_to_mesh(generated_core)
         mesh = fix_mesh(mesh)
-        save_mesh(mesh, core_animation_data[2] + 'Epoch_' + str(epoch) + '-Batch_' + str(batch) + '.stl')
+        save_mesh(mesh, core_animation_data[2] + '-Batch_' + str(batch) + '.stl')
         caching.Cache.clear(mesh)
 
     @classmethod

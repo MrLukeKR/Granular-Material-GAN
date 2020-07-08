@@ -57,7 +57,7 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
     batch_size *= num_gpus
 
     for fold in range(k):
-        Logger.print("Running Cross Validation Fold " + str(fold + 1) + "/" + str(k))
+        print_notice("Running Cross Validation Fold " + str(fold + 1) + "/" + str(k))
         Logger.current_fold = fold
         database_logged = False
 
@@ -131,6 +131,8 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
         train_ds = train_ds.batch(batch_size=batch_size)
         train_ds = train_ds.prefetch(1)
 
+        dataset_size = sum(1 for _ in train_ds)
+
         ds_iter = iter(train_ds)
 
         discriminator = mlm.create_discriminator(gen_settings)
@@ -158,7 +160,7 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
 
             animation_data = (animation_aggregates, animation_dimensions, directory)
 
-        d_loss, g_loss = DCGAN.Network.train_network_tfdata(batch_size, ds_iter, animation_data)
+        d_loss, g_loss = DCGAN.Network.train_network_tfdata(batch_size, ds_iter, epochs, dataset_size, animation_data)
 
         filename = "Experiment-" + str(Logger.experiment_id)
         directory = fm.compile_directory(fm.SpecialFolder.FIGURES) + filename + '/Training'
@@ -186,7 +188,7 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
 
 
 def test_network(testing_sets, fold, test_generator, batch_size, figure_directory=None, multiprocessing_pool=None):
-    Logger.print("Testing GAN on unseen aggregate voxels...")
+    mt.print_notice("Testing GAN on unseen aggregate voxels...")
 
     for testing_set in testing_sets[fold]:
         if not isinstance(testing_set, list):
