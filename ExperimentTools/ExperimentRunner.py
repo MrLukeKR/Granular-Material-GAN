@@ -211,10 +211,10 @@ def test_network(testing_sets, fold, test_generator, batch_size, figure_director
             # Data must be in the range of [-1, 1] for the GAN (voxels are stored as [0, 1])
             results = gan_to_voxels(test_generator, ((test_aggregate / 255) * 2) - 1, batch_size)
 
-            results = np.array((results + 1) / 2, dtype=np.uint8)
+            results = (results + 1) / 2
 
             if sm.get_setting("ENABLE_GAN_OUTPUT_HISTOGRAM") == "True":
-                plt.hist((results * 255).flatten(), bins=range(256))
+                plt.hist(np.array((results * 255), dtype=np.uint8).flatten(), bins=range(256))
                 plt.title("Histogram of GAN outputs")
 
                 if figure_directory is not None:
