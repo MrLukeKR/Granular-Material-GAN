@@ -117,8 +117,9 @@ def core_analysis_menu():
     elif user_input == "2":
         ca.calculate_composition(core)
     elif user_input == "3":
-        pores = ca.get_pore_network(core)
-        ca.calculate_tortuosity(pores, True)
+        # pores = ca.get_pore_network(core)
+        tortuosity = ca.calculate_tortuosity(pores)
+        print_notice("Tortuosity: " + str(tortuosity), mt.MessagePrefix.SUCCESS)
     elif user_input == "4":
         # skeleton = ca.get_skeleton(core)
         ca.calculate_euler_number(core, False)

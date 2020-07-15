@@ -2,6 +2,7 @@ import os
 import tensorflow as tf
 import numpy as np
 import matplotlib as mpl
+from PIL import Image
 
 from tqdm import tqdm
 from itertools import repeat
@@ -241,6 +242,14 @@ def test_network(testing_sets, fold, test_generator, batch_size, figure_director
 
             binder_core = voxels_to_core(results, dimensions)
             aggregate_core = voxels_to_core(test_aggregate, dimensions)
+
+            slice_directory = directory + "BinderSlices/"
+
+            for ind, slice in enumerate(binder_core):
+                im = Image.fromarray(slice)
+
+                buff_ind = (len(binder_core) - len(str(ind))) * "0" + str(ind)
+                im.save(slice_directory + buff_ind + ".png")
 
             binder_core = cv.voxels_to_mesh(binder_core)
             aggregate_core = cv.voxels_to_mesh(aggregate_core)

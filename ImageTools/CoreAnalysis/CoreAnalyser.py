@@ -1,15 +1,11 @@
 import os
 import numpy as np
-import cv2
 import kimimaro
 import pytrax as pt
 import porespy.networks as psn
-from openpnm.algorithms.FickianDiffusion import FickianDiffusion as fd
-from openpnm.network import GenericNetwork
 
-from skimage.morphology import skeletonize_3d
 from tqdm import tqdm
-from Settings import MessageTools as mt, FileManager as fm, DatabaseManager as dm
+from Settings import MessageTools as mt, FileManager as fm, DatabaseManager as dm, SettingsManager as sm
 from Settings.MessageTools import print_notice
 from ImageTools import ImageManager as im
 from mpl_toolkits import mplot3d
@@ -117,13 +113,17 @@ def calculate_average_void_diameter(void_network, core_is_pore_network):
     print_notice("Calculating Core Average Void Diameter...", mt.MessagePrefix.INFORMATION)
 
     if not core_is_pore_network:
-        core = get_pore_network(void_network)
+        void_network = get_pore_network(void_network)
 
     avd = np.average(void_network["pore.diameter"])
 
-    print_notice("\tAverage Void Diameter (Volume) = %f Pixels" % avd)  # TODO: Convert pixels to mm
+    conversion = float(sm.get_setting("PIXELS_TO_MM"))
 
-    return avd
+    avd_mm = avd * conversion
+
+    print_notice("\tAverage Void Diameter (Volume) = %fmm (%f Pixels)" % (avd_mm, avd))  # TODO: Convert pixels to mm
+
+    return avd_mm
 
 
 def get_skeleton(core, suppress_messages=False):
@@ -142,21 +142,20 @@ def get_pore_network(core):
     return pore_network
 
 
-def calculate_tortuosity(core, core_is_pore_network=True):
+def calculate_tortuosity(core):
     print_notice("Calculating Core Tortuosity...", mt.MessagePrefix.INFORMATION)
 
-    if not core_is_pore_network:
-        core = get_pore_network(core)
+    core = np.array(core, dtype=np.uint8)
 
-    pore_net = GenericNetwork()
-    pore_net.update(core)
-    alg = fd(network=pore_net, name='alg')
-    alg.setup()
-    alg.run()
-    d_eff = alg.calc_effective_diffusivity()
+    rw = pt.RandomWalk(core)
+    rw.run(nt=1e5, nw=1e4, same_start=False, stride=100, num_proc=12)
 
-    # TODO: Calculate tortuosity
-    raise NotImplementedError
+    path = fm.compile_directory(fm.SpecialFolder.FIGURES) + "/Analysis/Tortuosity"
+
+    rw.export_walk(image=rw.im, sample=1, path=path)
+    rw.plot_msd()
+
+    return rw.data['Mean_tau']
 
 
 def calculate_euler_number(core, core_is_pore_network=True):
@@ -180,13 +179,13 @@ def calculate_euler_number(core, core_is_pore_network=True):
 def update_database_core_analyses():
     print_notice("Updating core analyses in database...", mt.MessagePrefix.INFORMATION)
 
-    unprocessed_ct_directory = fm.compile_directory(fm.SpecialFolder.UNPROCESSED_SCANS)
+    ct_directory = fm.compile_directory(fm.SpecialFolder.UNPROCESSED_SCANS)
 
-    ct_ids = [name for name in os.listdir(unprocessed_ct_directory)]
+    ct_ids = [name for name in os.listdir(ct_directory)]
 
     dm.db_cursor.execute("USE ct_scans;")
 
-    included_calculations = "AirVoidContent, MasticContent, AverageVoidDiameter"
+    included_calculations = "AirVoidContent, MasticContent, AverageVoidDiameter, Tortuosity"
 
     for ct_id in ct_ids:
         sql = "SELECT " + included_calculations + " FROM asphalt_cores WHERE ID=%s"
@@ -201,12 +200,14 @@ def update_database_core_analyses():
             void_network = np.array([x == 0 for x in core], np.bool)
 
             # gradation = ca.calculate_aggregate_gradation(np.array([x == 2 for x in core], np.bool))
-            avd = calculate_average_void_diameter(void_network)
+            avd = calculate_average_void_diameter(void_network, False)
             # euler_number = ca.calculate_euler_number(void_network)
 
-            sql = "UPDATE asphalt_cores SET AirVoidContent=%s, MasticContent=%s, AverageVoidDiameter=%s WHERE ID=%s"
+            tortuosity = calculate_tortuosity(void_network)
 
-            values = (float(percentages[0]), float(percentages[1]), float(avd), ct_id)
+            sql = "UPDATE asphalt_cores SET AirVoidContent=%s, MasticContent=%s, AverageVoidDiameter=%s, Tortuosity=%s WHERE ID=%s"
+
+            values = (float(percentages[0]), float(percentages[1]), float(avd), float(tortuosity), ct_id)
             dm.db_cursor.execute(sql, values)
 
     dm.db_cursor.execute("USE ***REMOVED***_Phase1;")
