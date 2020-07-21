@@ -5,6 +5,7 @@
       <option name="ignoredIdentifiers">
         <list>
           <option value="property.model" />
+          <option value="property.save_weights" />
         </list>
       </option>
     </inspection_tool>

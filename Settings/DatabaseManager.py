@@ -215,6 +215,7 @@ def initialise_machine_learning_database():
 
     db_cursor.execute("CREATE TABLE IF NOT EXISTS model_architectures"
                       "(ID INT AUTO_INCREMENT NOT NULL,"
+                      "Description VARCHAR(128) NOT NULL,"
                       "NetworkType VARCHAR(256) NOT NULL,"
                       "GeneratorStrides VARCHAR(15) NOT NULL,"
                       "GeneratorKernelSize VARCHAR(15) NOT NULL,"

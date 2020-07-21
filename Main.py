@@ -62,10 +62,8 @@ def experiment_menu():
 
     print("- Experiment Menu -")
     print("")
-    print("[1] K-Cross Fold Validation (Batch Training)")
-    print("[2] K-Cross Fold Validation (Entire Dataset Generator)")
-    print("[3] Single Model (Batch Training)")
-    print("[4] Single Model (Entire Dataset Generator)")
+    print("[1] K-Cross Fold Validation")
+    print("[2] Train/Test Split")
 
     user_input = input("Enter your menu choice > ")
 
@@ -87,13 +85,7 @@ def experiment_menu():
         testing_core_ids = core_ids[int(split[0]):int(split[1])]
         # ExperimentRunner.test_network(directories[int(split[0] + 1):], )
     elif user_input == "2":
-        # TODO: K-Cross fold validation with iterative generator
-        raise NotImplementedError
-    elif user_input == "3":
-        # TODO: Single model training (batch)
-        raise NotImplementedError
-    elif user_input == "4":
-        # TODO: Single model training (iterative generator)
+        # TODO: Train/Test split
         raise NotImplementedError
 
 

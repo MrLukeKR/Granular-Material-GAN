@@ -187,43 +187,53 @@ def load_architecture_from_database(architecture_id=None):
             if len(model) == 0:
                 continue
 
-            print_notice("[%s] Model %s - %s " % (str(ind), str(model[0]), str(model[1:])))
+            print_notice("[{:^3s}] Model {:^3s} - \"{:s}\" ".format(str(ind), str(model[0]), str(model[1])))
+            _, _, _ = architecture_to_settings(model)
+
 
         choice = ""
 
         while not choice.isnumeric():
             choice = input("Enter the architecture ID to load > ")
 
-            if choice.isnumeric() and int(choice) not in [x[0] for x in models]:
+            if choice.isnumeric() and (0 >= int(choice) > len(models)):
                 print_notice("That architecture ID does not exist", mt.MessagePrefix.WARNING)
                 choice = ""
 
     model_choice = models[int(choice)]
 
-    print_notice("Loading architecture [" + str(model_choice[0]) + "] - '" + model_choice[1] + "'...", mt.MessagePrefix.INFORMATION)
+    print_notice("Loading [%s]: Architecture %s - '%s'..." % (choice, str(model_choice[0]), model_choice[1]))
 
+    architecture_id, gen_settings, disc_settings = architecture_to_settings(model_choice, True)
+
+    return architecture_id, gen_settings, disc_settings
+
+def architecture_to_settings(model_choice, suppress_output=False):
     gen_settings = dict()
     disc_settings = dict()
 
     architecture_id = int(model_choice[0])
 
-    setting_ind = 2
+    setting_ind = 3
 
     for setting_collection in [gen_settings, disc_settings]:
-        if setting_ind == 2:
-            print_notice("\tGenerator:")
-        else:
-            print_notice("\tDiscriminator:", mt.MessagePrefix.INFORMATION)
+        if not suppress_output:
+            if setting_ind == 3:
+                print("\t\tGenerator:")
+            else:
+                print("\t\tDiscriminator:")
 
         for setting in [("Strides", "strides"), ("Kernel Size", "kernel_size"), ("Number of Levels", "levels"),
                         ("Filters", "filters")]:
             setting_collection[setting[1]] = int(model_choice[setting_ind])
-            print_notice("\t\t" + setting[0] + "\t" + str(setting_collection[setting[1]]))
+            if not suppress_output:
+                print("\t\t\t{:<25s}\t{:>5s}".format(setting[0], str(setting_collection[setting[1]])))
             setting_ind += 1
 
         for setting in [("Normalisation Momentum", "normalisation_momentum"), ("Activation Alpha", "activation_alpha")]:
             setting_collection[setting[1]] = float(model_choice[setting_ind])
-            print_notice("\t\t" + setting[0] + "\t" + str(gen_settings[setting[1]]))
+            if not suppress_output:
+                print("\t\t\t{:<25s}\t{:>5s}".format(setting[0], str(setting_collection[setting[1]])))
             setting_ind += 1
 
     return architecture_id, gen_settings, disc_settings

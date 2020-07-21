@@ -1,5 +1,4 @@
 import os
-import tensorflow as tf
 import numpy as np
 import matplotlib as mpl
 from PIL import Image
@@ -7,7 +6,7 @@ from PIL import Image
 from tqdm import tqdm
 from itertools import repeat
 from ExperimentTools.DataVisualiser import save_training_graphs
-from ExperimentTools.VoxelGenerator import VoxelGenerator
+from ExperimentTools.DatasetProcessor import prepare_tf_set
 from GAN.DCGAN import gan_to_voxels
 from ImageTools.VoxelProcessor import voxels_to_core
 from Settings import MessageTools as mt
@@ -27,7 +26,43 @@ def run_model_on_core(core_id=None):
     pass
 
 
-def run_train_test_split_experiment(aggregates, binders, split_percentage):
+def run_experiment(dataset_iterator, gen_settings, disc_settings, experiment_id, batch_size, fold, epochs, dataset_size,
+                   animate_with_rois=False):
+    discriminator = mlm.create_discriminator(gen_settings)
+    generator = mlm.create_generator(disc_settings)
+
+    DCGAN.Network.discriminator = discriminator.model
+    DCGAN.Network.generator = generator.model
+
+    DCGAN.Network.create_network()
+
+    base_dir = fm.compile_directory(fm.SpecialFolder.GENERATED_ASPHALT_3D_ROI_MODELS if animate_with_rois
+                                    else fm.SpecialFolder.GENERATED_ASPHALT_3D_CORE_MODELS)
+    directory = base_dir + experiment_id + "/CoreAnimation/"
+    if sm.get_setting("ENABLE_TRAINING_ANIMATION") == "True":
+        fm.create_if_not_exists(directory)
+
+    animation_data = None
+
+    # Use 15-3007 as this is the largest core
+    if sm.get_setting("ENABLE_TRAINING_ANIMATION") == "True":
+        animation_dimensions, animation_aggregates = vp.load_materials("15-3007", use_rois=animate_with_rois,
+                                                                       return_binder=False)
+
+        animation_aggregates = np.expand_dims(animation_aggregates, 4)
+
+        animation_data = (animation_aggregates, animation_dimensions, directory)
+
+    d_loss, g_loss = DCGAN.Network.train_network_tfdata(batch_size, dataset_iterator, fold + 1, epochs, dataset_size,
+                                                        animation_data)
+
+    return g_loss, d_loss, DCGAN.Network.generator, DCGAN.Network.discriminator
+
+def run_train_test_split_experiment(dataset_directories, split_percentage):
+    raise NotImplemented
+
+    #TODO: Finish this and tidy up this file as much as possible
+    g_loss, d_loss, trained_gen, trained_disc = run_experiment()
     pass
 
 
@@ -64,11 +99,6 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
         Logger.current_fold = fold
         database_logged = False
 
-        fold_d_losses = list()
-        fold_d_accuracies = list()
-        fold_g_losses = list()
-        fold_g_mses = list()
-
         root_dir = fm.compile_directory(fm.SpecialFolder.MODEL_DATA)
 
         if not os.path.exists(root_dir):
@@ -95,82 +125,13 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
         voxel_res = int(sm.get_setting("VOXEL_RESOLUTION"))
         voxel_dims = [voxel_res, voxel_res, voxel_res]
 
-        train_ds = tf.data.TFRecordDataset(filenames=training_filenames, num_parallel_reads=len(training_filenames))
+        train_ds, dataset_size = prepare_tf_set(training_filenames, voxel_dims, epochs, batch_size)
 
-        example = {
-            'aggregate': tf.io.FixedLenFeature([], dtype=tf.string),
-            'binder': tf.io.FixedLenFeature([], dtype=tf.string)
-        }
+        train_ds_iter = iter(train_ds)
 
-        def _parse_voxel_function(example_proto):
-            return tf.io.parse_single_example(example_proto, example)
-
-        def _decode_voxel_function(serialised_example):
-            aggregate = tf.io.decode_raw(serialised_example['aggregate'], tf.bool)
-            binder = tf.io.decode_raw(serialised_example['binder'], tf.bool)
-
-            segments = [aggregate, binder]
-
-            for ind in range(2):
-                segments[ind] = tf.cast(segments[ind], dtype=tf.bfloat16)
-
-                segments[ind] = tf.reshape(segments[ind], voxel_dims)
-
-                segments[ind] = tf.expand_dims(segments[ind], -1)
-
-            return segments
-
-        def _rescale_voxel_values(features, labels):
-            segments = [features, labels]
-            # Data must be between [-1, 1] for GAN (voxels are stored between [0, 1])
-            for ind in range(2):
-                segments[ind] = segments[ind] * 2.0
-                segments[ind] = segments[ind] - 1.0
-
-            return segments[0], segments[1]
-
-        # Training dataset(s)
-        # Shuffle filenames, not images, as this is done in memory
-        train_ds = train_ds.shuffle(buffer_size=len(training_filenames))
-        train_ds = train_ds.repeat(epochs)
-
-        train_ds = train_ds.map(_parse_voxel_function, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-        train_ds = train_ds.map(_decode_voxel_function, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-        train_ds = train_ds.map(_rescale_voxel_values, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-
-        train_ds = train_ds.batch(batch_size=batch_size)
-        train_ds = train_ds.prefetch(1)
-
-        dataset_size = sum(1 for _ in train_ds)
-
-        ds_iter = iter(train_ds)
-
-        discriminator = mlm.create_discriminator(gen_settings)
-        generator = mlm.create_generator(disc_settings)
-
-        DCGAN.Network.discriminator = discriminator.model
-        DCGAN.Network.generator = generator.model
-
-        DCGAN.Network.create_network()
-
-        base_dir = fm.compile_directory(fm.SpecialFolder.GENERATED_ASPHALT_3D_ROI_MODELS if animate_with_rois
-                                        else fm.SpecialFolder.GENERATED_ASPHALT_3D_CORE_MODELS)
-        directory = base_dir + experiment_id + "/CoreAnimation/"
-        if sm.get_setting("ENABLE_TRAINING_ANIMATION") == "True":
-            fm.create_if_not_exists(directory)
-
-        animation_data = None
-
-        # Use 15-3007 as this is the largest core
-        if sm.get_setting("ENABLE_TRAINING_ANIMATION") == "True":
-            animation_dimensions, animation_aggregates = vp.load_materials("15-3007", use_rois=animate_with_rois,
-                                                                           return_binder=False)
-
-            animation_aggregates = np.expand_dims(animation_aggregates, 4)
-
-            animation_data = (animation_aggregates, animation_dimensions, directory)
-
-        d_loss, g_loss = DCGAN.Network.train_network_tfdata(batch_size, ds_iter, fold + 1, epochs, dataset_size, animation_data)
+        g_loss, d_loss, trained_gen, trained_disc = run_experiment(train_ds_iter, gen_settings, disc_settings,
+                                                                   experiment_id, batch_size, fold, epochs, dataset_size,
+                                                                   animate_with_rois=animate_with_rois)
 
         filename = "Experiment-" + str(Logger.experiment_id)
         directory = fm.compile_directory(fm.SpecialFolder.FIGURES) + filename + '/Training'
@@ -178,13 +139,8 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
 
         save_training_graphs(d_loss, g_loss, directory, experiment_id, fold, epochs)
 
-        fold_d_losses.append(d_loss[0])
-        fold_d_accuracies.append(d_loss[1])
-        fold_g_losses.append(g_loss[0])
-        fold_g_mses.append(g_loss[1])
-
-        generator.model.save_weights(generator_loc)
-        discriminator.model.save_weights(discriminator_loc)
+        trained_gen.save_weights(generator_loc)
+        trained_disc.save_weights(discriminator_loc)
 
         # If on the first iteration
         if not database_logged:
@@ -227,6 +183,7 @@ def test_network(testing_sets, fold, test_generator, batch_size, figure_director
             # Rescale outputs into [0, 1], which can then be thresholded and scaled into [0, 255]
 
             results = results >= float(sm.get_setting("IO_GAN_OUTPUT_THRESHOLD"))
+            results = results * 255
 
             experiment_id = "Experiment-" + str(Logger.experiment_id)
             fold_id = "_Fold-" + str(fold)
