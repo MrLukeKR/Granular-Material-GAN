@@ -9,6 +9,7 @@ from Settings.MessageTools import print_notice
 import tensorflow as tf
 import numpy as np
 
+
 vox_res = None
 data_template = None
 
@@ -170,7 +171,7 @@ def load_model_from_database(model_id=None):
 def load_architecture_from_database(architecture_id=None):
     cursor = dm.db_cursor
 
-    query = "SELECT * FROM ***REMOVED***_Phase1.model_architectures;"
+    query = "SELECT * FROM ***REMOVED***_Phase1.model_architectures ORDER BY ID ASC;"
 
     cursor.execute(query)
     models = cursor.fetchall()
@@ -181,26 +182,23 @@ def load_architecture_from_database(architecture_id=None):
         print_notice("There are no architectures in the database", mt.MessagePrefix.WARNING)
         return None, None, None
     elif cursor.rowcount != 1:
-        print("The following architectures are available:")
-        for model in models:
-            settings = get_model_architecture(model[0])
-
-            if len(settings) == 0:
+        print_notice("The following architectures are available:")
+        for ind, model in enumerate(models):
+            if len(model) == 0:
                 continue
 
-            print("Model [" + str(model[0]) + "] @ " + str(model[1:]) + " ", end='')
-            print(settings)
+            print_notice("[%s] Model %s - %s " % (str(ind), str(model[0]), str(model[1:])))
 
         choice = ""
 
         while not choice.isnumeric():
             choice = input("Enter the architecture ID to load > ")
 
-            if choice.isnumeric() and int(choice) not in models:
+            if choice.isnumeric() and int(choice) not in [x[0] for x in models]:
                 print_notice("That architecture ID does not exist", mt.MessagePrefix.WARNING)
                 choice = ""
 
-    model_choice = models[choice]
+    model_choice = models[int(choice)]
 
     print_notice("Loading architecture [" + str(model_choice[0]) + "] - '" + model_choice[1] + "'...", mt.MessagePrefix.INFORMATION)
 

@@ -244,11 +244,12 @@ def test_network(testing_sets, fold, test_generator, batch_size, figure_director
             aggregate_core = voxels_to_core(test_aggregate, dimensions)
 
             slice_directory = directory + "BinderSlices/"
+            fm.create_if_not_exists(slice_directory)
 
-            for ind, slice in enumerate(binder_core):
+            for ind, slice in tqdm(enumerate(binder_core), desc=mt.get_notice("Saving Generated Core Slices")):
                 im = Image.fromarray(slice)
 
-                buff_ind = (len(binder_core) - len(str(ind))) * "0" + str(ind)
+                buff_ind = (len(str(len(binder_core))) - len(str(ind))) * "0" + str(ind)
                 im.save(slice_directory + buff_ind + ".png")
 
             binder_core = cv.voxels_to_mesh(binder_core)

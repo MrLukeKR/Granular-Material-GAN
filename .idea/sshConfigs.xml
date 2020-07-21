@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project version="4">
-  <component name="SshConfigs">
-    <configs>
-      <sshConfig authType="PASSWORD" host="***REMOVED***" id="d20ec4ec-73ad-45b6-8cda-9b0e0b1bbb4d" nameFormat="DESCRIPTIVE" username="***REMOVED***" />
-      <sshConfig authType="PASSWORD" host="LKR-ArchDesktop" id="1cae898a-7c37-460b-bf48-63b82acb0783" port="22" nameFormat="DESCRIPTIVE" username="***REMOVED***" />
-    </configs>
-  </component>
-</project>

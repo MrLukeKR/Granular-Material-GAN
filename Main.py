@@ -75,11 +75,13 @@ def experiment_menu():
 
         fold_count = int(input("How many folds? > "))
 
+        use_rois = sm.get_setting("USE_REGIONS_OF_INTEREST") == "True"
+
         # Do train phase
         training_core_ids = core_ids[0:int(split[0])]
         ExperimentRunner.run_k_fold_cross_validation_experiment(training_core_ids, fold_count,
                                                                 architecture_loaded, multiprocessing_pool,
-                                                                train_with_rois=True, animate_with_rois=False)
+                                                                train_with_rois=use_rois, animate_with_rois=False)
 
         # TODO: Do test phase
         testing_core_ids = core_ids[int(split[0]):int(split[1])]
