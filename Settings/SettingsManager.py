@@ -7,8 +7,8 @@ import Settings.MessageTools as mt
 from Settings.MessageTools import print_notice
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-tf.get_logger().setLevel('INFO')
-tf.autograph.set_verbosity(1)
+tf.get_logger().setLevel('ERROR')
+tf.autograph.set_verbosity(3)
 
 settings_file = []
 auth = dict()

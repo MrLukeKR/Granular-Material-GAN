@@ -6,18 +6,10 @@ import tensorflow as tf
 from Settings.MessageTools import print_notice
 
 
-def dataset_to_train_and_test(dataset, split_percent):
-    shuffled = random.shuffle(dataset)
-    train_files = list()
-    test_files = list()
+def dataset_to_train_and_test(dataset, split_count):
+    random.shuffle(dataset)
 
-    for data in range(len(dataset)):
-        if data / len(dataset) < split_percent:
-            train_files += shuffled[data]
-        else:
-            test_files += shuffled[data]
-
-    return train_files, test_files
+    return dataset[0:split_count], dataset[split_count:]
 
 
 def chunks(dataset, n):

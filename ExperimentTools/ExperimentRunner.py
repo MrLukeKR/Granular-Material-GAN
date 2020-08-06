@@ -58,12 +58,84 @@ def run_experiment(dataset_iterator, gen_settings, disc_settings, experiment_id,
 
     return g_loss, d_loss, DCGAN.Network.generator, DCGAN.Network.discriminator
 
-def run_train_test_split_experiment(dataset_directories, split_percentage):
-    raise NotImplemented
 
-    #TODO: Finish this and tidy up this file as much as possible
-    g_loss, d_loss, trained_gen, trained_disc = run_experiment()
-    pass
+def run_train_test_split_experiment(dataset_directories, split_count, architecture,
+                                    multiprocessing_pool=None, train_with_rois=True, animate_with_rois=False):
+    data_length = len(dataset_directories)
+
+    training_sets, testing_sets = DatasetProcessor.dataset_to_train_and_test(dataset_directories, split_count)
+
+    epochs = int(sm.get_setting("TRAINING_EPOCHS"))
+    batch_size = int(sm.get_setting("TRAINING_BATCH_SIZE"))
+
+    MethodologyLogger.Logger(fm.compile_directory(fm.SpecialFolder.LOGS), 0, epochs, batch_size)
+
+    architecture_id, gen_settings, disc_settings = architecture
+
+    num_gpus = len(mlm.get_available_gpus())
+
+    print_notice("GPU devices available: %s" % str(num_gpus), mt.MessagePrefix.DEBUG)
+
+    if num_gpus == 0:
+        print_notice("No GPU devices available", mt.MessagePrefix.ERROR)
+        raise SystemError
+
+    batch_size *= num_gpus
+
+    root_dir = fm.compile_directory(fm.SpecialFolder.MODEL_DATA)
+
+    if not os.path.exists(root_dir):
+        os.makedirs(root_dir)
+
+    experiment_id = "Experiment-" + str(Logger.experiment_id)
+
+    print_notice("Running Train/Test Split Experiment [%s Train / %s Test]" %
+                 (str(split_count), str(len(dataset_directories) - split_count)))
+    Logger.current_fold = 0
+    database_logged = False
+
+    filepath = root_dir + experiment_id + '_'
+
+    discriminator_loc = filepath + "discriminator"
+    generator_loc = filepath + "generator"
+
+    # Machine Learning >>>
+
+    training_filenames = [fm.compile_directory(fm.SpecialFolder.ROI_DATASET_DATA
+                                               if train_with_rois else fm.SpecialFolder.CORE_DATASET_DATA) + x
+                          + "/segment_64.tfrecord" for x in training_sets]
+
+    testing_filenames = [fm.compile_directory(fm.SpecialFolder.ROI_DATASET_DATA
+                                              if train_with_rois else fm.SpecialFolder.CORE_DATASET_DATA) + x
+                         + "/segment_64.tfrecord" for x in testing_sets]
+
+    voxel_res = int(sm.get_setting("VOXEL_RESOLUTION"))
+    voxel_dims = [voxel_res, voxel_res, voxel_res]
+
+    train_ds, dataset_size = prepare_tf_set(training_filenames, voxel_dims, epochs, batch_size)
+
+    train_ds_iter = iter(train_ds)
+
+    g_loss, d_loss, trained_gen, trained_disc = run_experiment(train_ds_iter, gen_settings, disc_settings,
+                                                               experiment_id, batch_size, -1, epochs, dataset_size,
+                                                               animate_with_rois=animate_with_rois)
+
+    filename = "Experiment-" + str(Logger.experiment_id)
+    directory = fm.compile_directory(fm.SpecialFolder.FIGURES) + filename + '/Training'
+    fm.create_if_not_exists(directory)
+
+    save_training_graphs(d_loss, g_loss, directory, experiment_id, -1, epochs)
+
+    trained_gen.save_weights(generator_loc)
+    trained_disc.save_weights(discriminator_loc)
+
+    # If on the first iteration
+    if not database_logged:
+        instance_id = Logger.log_model_instance_to_database(architecture_id, generator_loc, discriminator_loc)[0]
+        Logger.log_model_experiment_to_database(Logger.experiment_id, instance_id)
+        database_logged = True
+
+    test_network(testing_sets, -1, DCGAN.Network.generator, batch_size, directory, multiprocessing_pool)
 
 
 def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture, multiprocessing_pool=None,
@@ -98,17 +170,18 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
 
     batch_size *= num_gpus
 
+    root_dir = fm.compile_directory(fm.SpecialFolder.MODEL_DATA)
+
+    if not os.path.exists(root_dir):
+        os.makedirs(root_dir)
+
+    experiment_id = "Experiment-" + str(Logger.experiment_id)
+
     for fold in range(k):
         print_notice("Running Cross Validation Fold " + str(fold + 1) + "/" + str(k))
         Logger.current_fold = fold
         database_logged = False
 
-        root_dir = fm.compile_directory(fm.SpecialFolder.MODEL_DATA)
-
-        if not os.path.exists(root_dir):
-            os.makedirs(root_dir)
-
-        experiment_id = "Experiment-" + str(Logger.experiment_id)
         fold_id = "_Fold-" + str(fold)
 
         filepath = root_dir + experiment_id + fold_id + '_'
