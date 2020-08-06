@@ -205,7 +205,7 @@ def update_database_core_analyses():
 
             tortuosity = calculate_tortuosity(void_network)
 
-            sql = "UPDATE asphalt_cores SET AirVoidContent=%s, MasticContent=%s, AverageVoidDiameter=%s, Tortuosity=%s WHERE ID=%s"
+            sql = "UPDATE asphalt_cores SET MeasuredAirVoidContent=%s, MasticContent=%s, AverageVoidDiameter=%s, Tortuosity=%s WHERE ID=%s"
 
             values = (float(percentages[0]), float(percentages[1]), float(avd), float(tortuosity), ct_id)
             dm.db_cursor.execute(sql, values)
