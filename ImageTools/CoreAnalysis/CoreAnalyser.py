@@ -176,7 +176,7 @@ def calculate_euler_number(core, core_is_pore_network=True):
     return euler
 
 
-def update_database_core_analyses():
+def update_database_core_analyses(ignore_blacklist=False):
     print_notice("Updating core analyses in database...", mt.MessagePrefix.INFORMATION)
 
     ct_directory = fm.compile_directory(fm.SpecialFolder.UNPROCESSED_SCANS)
@@ -185,16 +185,18 @@ def update_database_core_analyses():
 
     dm.db_cursor.execute("USE ct_scans;")
 
-    included_calculations = "AirVoidContent, MasticContent, AverageVoidDiameter, Tortuosity"
+    included_calculations = "MeasuredAirVoidContent, MasticContent, AverageVoidDiameter, Tortuosity"
 
     for ct_id in ct_ids:
         sql = "SELECT " + included_calculations + " FROM asphalt_cores WHERE ID=%s"
+        if not ignore_blacklist:
+            sql += " AND Blacklist = 0"
         values = (ct_id,)
 
         dm.db_cursor.execute(sql, values)
         res = dm.db_cursor.fetchone()
 
-        if any(x is None for x in res):
+        if res is not None and any(x is None for x in res):
             core = get_core_by_id(ct_id)
             counts, percentages = calculate_composition(core)
             void_network = np.array([x == 0 for x in core], np.bool)
@@ -205,7 +207,8 @@ def update_database_core_analyses():
 
             tortuosity = calculate_tortuosity(void_network)
 
-            sql = "UPDATE asphalt_cores SET MeasuredAirVoidContent=%s, MasticContent=%s, AverageVoidDiameter=%s, Tortuosity=%s WHERE ID=%s"
+            sql = "UPDATE asphalt_cores SET " \
+                  "MeasuredAirVoidContent=%s, MasticContent=%s, AverageVoidDiameter=%s, Tortuosity=%s WHERE ID=%s"
 
             values = (float(percentages[0]), float(percentages[1]), float(avd), float(tortuosity), ct_id)
             dm.db_cursor.execute(sql, values)

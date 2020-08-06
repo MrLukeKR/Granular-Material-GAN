@@ -6,7 +6,9 @@ import Settings.DatabaseManager as dm
 import Settings.MessageTools as mt
 from Settings.MessageTools import print_notice
 
-# os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+tf.get_logger().setLevel('INFO')
+tf.autograph.set_verbosity(1)
 
 settings_file = []
 auth = dict()

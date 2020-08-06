@@ -1,5 +1,5 @@
 # Utilities >>>
-
+import string
 from multiprocessing.pool import Pool
 from multiprocessing.spawn import freeze_support
 import random
@@ -128,13 +128,15 @@ def core_selection_menu():
 
     for core in cores:
         print_notice("[%s]"
-                     "\tAir Void Content: %s"
+                     "\tTarget Air Void Content: %s"
+                     "\tMeasured Air Void Content: %s"
                      "\tMastic Content: %s"
                      "\tTortuosity: %s"
                      "\tEuler Number: %s"
                      "\tAverage Void Diameter: %s"
                      "\tNotes: %s"
-                     % (core[0], str(float(core[3]) * 100) + "%", str(float(core[4]) * 100) + "%", core[5], core[6], core[7], core[8]), mt.MessagePrefix.INFORMATION)
+                     % (core[0], str(float(core[3]) * 100) + "%", str(float(core[4]) * 100) + "%",
+                        str(float(core[5]) * 100) + "%", core[6], core[7], core[8], core[9]), mt.MessagePrefix.INFORMATION)
 
     choice = ""
 
@@ -207,10 +209,25 @@ def data_selection_menu():
         elif user_input == "2":
             raise NotImplementedError
         elif user_input == "3":
-            air_voids = set([core[2] for core in cores])
-            print(air_voids)
+            air_voids = list(set([core[3] for core in cores]))
+            inp = ""
+            while not (str.isdigit(inp) and 0 <= int(inp) < len(air_voids)):
+                for ind, avc in enumerate(air_voids):
+                    available = sum([core[3] == avc for core in cores])
+                    print("[%s] %s%% AVC (%s available)" % (str(ind), str(avc), str(available)))
+                inp = input("Enter an AVC selection > ")
+
+                if not (str.isdigit(inp) and 0 <= int(inp) < len(air_voids)):
+                    print_notice("Invalid selection", mt.MessagePrefix.ERROR)
+
+            inp = int(inp)
+            core_ids = [core[0] for core in cores if core[3] == air_voids[inp]]
+            print_notice("%s %s%% Air Void Content cores selected:" % (str(len(core_ids)), str(air_voids[inp])))
+            for core in core_ids:
+                print("\t\t\t%s" % core)
+
         elif user_input == "4":
-            mastic_content = set([core[3] for core in cores])
+            mastic_content = set([core[5] for core in cores])
             print(mastic_content)
         else:
             valid = False

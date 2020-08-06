@@ -47,7 +47,7 @@ def get_cores_from_database(ignore_blacklist=False):
     db_cursor.execute("USE ct_scans;")
 
     sql = "SELECT * FROM asphalt_cores"
-    sql += " WHERE Blacklist = 0" if ignore_blacklist else ";"
+    sql += " WHERE Blacklist = 0" if not ignore_blacklist else ";"
 
     db_cursor.execute(sql)
 

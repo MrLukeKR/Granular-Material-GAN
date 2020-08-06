@@ -225,13 +225,13 @@ def architecture_to_settings(model_choice, suppress_output=False):
 
         for setting in [("Strides", "strides"), ("Kernel Size", "kernel_size"), ("Number of Levels", "levels"),
                         ("Filters", "filters")]:
-            setting_collection[setting[1]] = int(model_choice[setting_ind])
+            setting_collection[setting[1]] = int(model_choice[setting_ind - 1])
             if not suppress_output:
                 print("\t\t\t{:<25s}\t{:>5s}".format(setting[0], str(setting_collection[setting[1]])))
             setting_ind += 1
 
         for setting in [("Normalisation Momentum", "normalisation_momentum"), ("Activation Alpha", "activation_alpha")]:
-            setting_collection[setting[1]] = float(model_choice[setting_ind])
+            setting_collection[setting[1]] = float(model_choice[setting_ind - 1])
             if not suppress_output:
                 print("\t\t\t{:<25s}\t{:>5s}".format(setting[0], str(setting_collection[setting[1]])))
             setting_ind += 1
