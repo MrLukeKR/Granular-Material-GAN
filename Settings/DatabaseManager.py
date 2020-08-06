@@ -119,7 +119,7 @@ def initialise_settings():
     db_cursor.execute("USE ***REMOVED***_Phase1;")
 
     db_cursor.execute("CREATE TABLE IF NOT EXISTS settings"
-                      "(Name VARCHAR(32) NOT NULL,"
+                      "(Name VARCHAR(64) NOT NULL,"
                       "Value VARCHAR(64) NULL,"
                       "PRIMARY KEY(Name));")
 
