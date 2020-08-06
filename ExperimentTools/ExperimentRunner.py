@@ -28,8 +28,8 @@ def run_model_on_core(core_id=None):
 
 def run_experiment(dataset_iterator, gen_settings, disc_settings, experiment_id, batch_size, fold, epochs, dataset_size,
                    animate_with_rois=False):
-    discriminator = mlm.create_discriminator(gen_settings)
-    generator = mlm.create_generator(disc_settings)
+    discriminator = mlm.create_discriminator(disc_settings)
+    generator = mlm.create_generator(gen_settings)
 
     DCGAN.Network.discriminator = discriminator.model
     DCGAN.Network.generator = generator.model
@@ -91,6 +91,10 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
     num_gpus = len(mlm.get_available_gpus())
 
     print_notice("GPU devices available: %s" % str(num_gpus), mt.MessagePrefix.DEBUG)
+
+    if num_gpus == 0:
+        print_notice("No GPU devices available", mt.MessagePrefix.ERROR)
+        raise SystemError
 
     batch_size *= num_gpus
 

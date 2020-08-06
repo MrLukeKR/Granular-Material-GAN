@@ -43,10 +43,14 @@ def connect_to_database():
         exit(-1)
 
 
-def get_cores_from_database():
+def get_cores_from_database(ignore_blacklist=False):
     db_cursor.execute("USE ct_scans;")
 
-    db_cursor.execute("SELECT * FROM asphalt_cores;")
+    sql = "SELECT * FROM asphalt_cores"
+    sql += " WHERE Blacklist = 0" if ignore_blacklist else ";"
+
+    db_cursor.execute(sql)
+
     cores = db_cursor.fetchall()
 
     db_cursor.execute("USE ***REMOVED***_Phase1;")
@@ -78,11 +82,13 @@ def populate_ct_scan_database():
                       "(ID varchar(10) NOT NULL,"
                       "ScanDirectory VARCHAR(256) NOT NULL,"
                       "ModelFileLocation VARCHAR(256) NULL,"
-                      "AirVoidContent DOUBLE NULL,"
+                      "TargetAirVoidContent DOUBLE NULL,"
+                      "MeasuredAirVoidContent DOUBLE NULL,"
                       "MasticContent DOUBLE NULL,"
                       "Tortuosity DOUBLE NULL,"
                       "EulerNumber DOUBLE NULL,"
                       "AverageVoidDiameter DOUBLE NULL,"
+                      "Blacklist BOOLEAN NOT NULL DEFAULT FALSE,"
                       "Notes VARCHAR(1024) NULL,"
                       "PRIMARY KEY (ID));")
 
