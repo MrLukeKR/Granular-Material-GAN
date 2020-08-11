@@ -39,7 +39,7 @@ def normalise_images(images, pool):
     for ind, res in enumerate(pool.map(normalise_image, images)):
         fixed_images.insert(ind, res)
 
-    if sm.configuration.get("ENABLE_IMAGE_SAVING") == "True":
+    if sm.get_setting("ENABLE_IMAGE_SAVING") == "True":
         im.save_images(fixed_images, "Normalised", fm.SpecialFolder.SCAN_DATA, pool,
                        "Pre-Processed/Normalised/")
 
@@ -72,14 +72,14 @@ def enhanced_contrast_images(images, pool):
     enhanced_images = list()
 
     print_notice("\tEnhancing Contrast... ", mt.MessagePrefix.INFORMATION, end='')
-    for ind, res in enumerate(pool.map(enhance_contract, images)):
+    for ind, res in enumerate(pool.map(enhance_contrast, images)):
         enhanced_images.insert(ind, res)
 
     print("done!")
     return enhanced_images
 
 
-def enhance_contract(image):
+def enhance_contrast(image):
     return cv2.equalizeHist(image)
 
 
@@ -94,7 +94,7 @@ def denoise_images(images, pool):
     print_notice("\t\tPerforming 3D Gaussian Blur... ", mt.MessagePrefix.INFORMATION, end='')
     gaussian_images = gaussian_filter(images, 2)
 
-    if sm.configuration.get("ENABLE_IMAGE_SAVING") == "True":
+    if sm.get_setting("ENABLE_IMAGE_SAVING") == "True":
         im.save_images(gaussian_images, "Gaussian", fm.SpecialFolder.SCAN_DATA, pool,
                        "Pre-Processed/De-Noised/")
     print("done!")
@@ -102,7 +102,7 @@ def denoise_images(images, pool):
     print_notice("\t\tPerforming 3D Median Blur... ", mt.MessagePrefix.INFORMATION, end='')
     fixed_images = median_filter(gaussian_images, 2)
 
-    if sm.configuration.get("ENABLE_IMAGE_SAVING") == "True":
+    if sm.get_setting("ENABLE_IMAGE_SAVING") == "True":
         im.save_images(fixed_images, "Gaussian_Median", fm.SpecialFolder.SCAN_DATA, pool,
                        "Pre-Processed/De-Noised/")
 
@@ -111,7 +111,7 @@ def denoise_images(images, pool):
 
 
 def denoise_image(image):
-    img_denoise = denoise_tv_chambolle(image, weight=0.4)
+    img_denoise = denoise_tv_chambolle(image)
     return img_denoise
 
 
@@ -122,7 +122,7 @@ def remove_anomalies(images):
     for x in tqdm(range(len(images))):
         fixed_images.append(remove_anomaly(images[x]))
 
-        if sm.configuration.get("ENABLE_IMAGE_SAVING") == "True":
+        if sm.get_setting("ENABLE_IMAGE_SAVING") == "True":
             im.save_image(fixed_images[x], str(x), "Pre-processing/AnomalyRemoved/", "AnomalyRemoved")
 
     print("done!")
@@ -136,7 +136,7 @@ def remove_backgrounds(images):
     for x in tqdm(range(len(images))):
         fixed_images.append(remove_background(images[x]))
 
-        if sm.configuration.get("ENABLE_IMAGE_SAVING") == "True":
+        if sm.get_setting("ENABLE_IMAGE_SAVING") == "True":
             im.save_image(fixed_images[x], str(x), "Pre-processing/BackgroundRemoved/")
 
     print("done!")
@@ -145,10 +145,9 @@ def remove_backgrounds(images):
 
 def remove_background(image):
     image_array = np.squeeze(image, 2).astype(dtype=float)
-    #image_array *= 255
     image_array = image_array.astype(dtype=int)
 
-    if sm.configuration.get("ENABLE_IMAGE_DISPLAY") == "True":
+    if sm.get_setting("ENABLE_IMAGE_DISPLAY") == "True":
         content = image_array[np.nonzero(image_array)]
         min_val = np.min(content)
         max_val = np.max(content)
@@ -157,8 +156,6 @@ def remove_background(image):
 
         width_val = 2
         peaks, _ = ss.find_peaks(hist, width=width_val)
-        # plt.plot(hist)
-        # plt.plot(peaks, hist[peaks], marker='o')
 
         black_value = peaks[1] + width_val / 2
 
@@ -172,25 +169,20 @@ def remove_background(image):
         axarr[1].imshow(anomaly_mask)
         axarr[1].set_title("Anomaly Mask")
 
-        #axarr[2].imshow(altered_image)
-        #axarr[2].set_title("After")
-
-
         plt.show()
-        #plt.close(fig)
 
         return np.expand_dims(anomaly_mask, 2)
     return None
 
 
 def remove_anomaly(image):
-    threshold = float(sm.configuration.get("PREPROCESSING_BINARY_THRESHOLD"))
+    threshold = float(sm.get_setting("PREPROCESSING_BINARY_THRESHOLD"))
     image_array = np.squeeze(image, 2).astype(dtype=float)
-    anomaly_mask = np.array(binarize(image_array, 1- threshold * np.amax(image))).astype(dtype=float)
+    anomaly_mask = np.array(binarize(image_array, (1 - threshold) * np.amax(image))).astype(dtype=float)
 
     altered_image = (image_array - np.mean(image_array)/np.std(image_array))
 
-    if sm.configuration.get("ENABLE_IMAGE_DISPLAY") == "True":
+    if sm.get_setting("ENABLE_IMAGE_DISPLAY") == "True":
         fig, axarr = plt.subplots(1, 3)
 
         axarr[0].imshow(image_array)

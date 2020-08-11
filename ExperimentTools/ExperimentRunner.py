@@ -58,7 +58,7 @@ def run_experiment(dataset_iterator, gen_settings, disc_settings, experiment_id,
 
     return g_loss, d_loss, DCGAN.Network.generator, DCGAN.Network.discriminator
 
-def run_train_test_split_experiment(dataset_directories, split_percentage):
+def run_train_test_split_experiment(dataset_directories, split_count):
     raise NotImplemented
 
     #TODO: Finish this and tidy up this file as much as possible

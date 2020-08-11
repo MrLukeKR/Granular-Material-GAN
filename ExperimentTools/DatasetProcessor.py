@@ -90,22 +90,21 @@ def prepare_tf_set(set_filenames, voxel_dimensions, epochs, batch_size):
     # Shuffle filenames, not images, as this is done in memory
     train_ds = train_ds.shuffle(buffer_size=len(set_filenames))
 
-    print("\t\tEpochs: %s" % str(epochs))
-
     train_ds = train_ds.map(_parse_voxel_function, num_parallel_calls=tf.data.experimental.AUTOTUNE)
     train_ds = train_ds.map(_decode_voxel_function, num_parallel_calls=tf.data.experimental.AUTOTUNE)
     train_ds = train_ds.map(_rescale_voxel_values, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
-    print("\t\tDataset Size: ", end='', flush=True)
-    dataset_size = sum(1 for _ in train_ds) * epochs
-    print(str(dataset_size))
-
-    train_ds = train_ds.repeat(epochs)
-
     train_ds = train_ds.batch(batch_size=batch_size)
 
-    print("\t\tBatches: %s" % str(math.ceil(dataset_size / batch_size)))
+    print("\t\tDataset Size: (CALCULATING)\r", end='', flush=True)
+    batches = sum(1 for _ in train_ds)
+
+    print("\t\tDataset Size: %s " % str(batches * batch_size))
+    print("\t\tDataset Format: %s Epochs of %s batches, %s voxels each" % (str(epochs), str(batches), str(batch_size)))
+
+    train_ds = train_ds.repeat(epochs)
+    print("\t\tTotal Datapoints: %s" % (str(epochs * batch_size * batches)))
 
     train_ds = train_ds.prefetch(1)
 
-    return train_ds, dataset_size
+    return train_ds, batches * epochs

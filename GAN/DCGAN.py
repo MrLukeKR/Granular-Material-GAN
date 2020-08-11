@@ -119,7 +119,7 @@ class Network(AbstractGAN.Network):
 
         datasets_per_epoch = dataset_size // epochs
 
-        progress = tqdm(total=dataset_size, desc=mt.get_notice("Starting GAN Training"))
+        progress = tqdm(total=dataset_size * batch_size, desc=mt.get_notice("Starting GAN Training"))
 
         for features, labels in dataset_iterator:
             if features.shape[0] != batch_size:
@@ -326,7 +326,7 @@ class DCGANDiscriminator:
 
         # START MODEL BUILDING
         with strategy.scope():
-            model = Sequential()
+            model = Sequential(name="Discriminator")
 
             for level in range(0, encoder_levels):
                 if level == 0:
@@ -380,7 +380,7 @@ class DCGANGenerator:
 
         # START MODEL BUILDING
         with strategy.scope():
-            model = Sequential()
+            model = Sequential(name="Generator")
 
             for level in range(0, encoder_levels):
                 if level == 0:

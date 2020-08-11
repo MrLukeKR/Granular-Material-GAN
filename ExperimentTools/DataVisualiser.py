@@ -29,10 +29,10 @@ def plot_training_data(generator_losses, generator_errors, discriminator_losses,
     if experiment_id is not None:
         im.plt.gcf().suptitle("Experiment " + str(experiment_id))
 
-    gen_error_ax.plot(x, generator_losses, '-g', label="Generator Loss")
-    gen_error_ax.plot(x, generator_errors, '-b', label="Generator MSE")
-    dis_error_ax.plot(x, discriminator_losses, '-r', label="Discriminator Loss")
-    acc_ax.plot(x, discriminator_accuracies, '-m', label="Discriminator Accuracy")
+    gen_error_ax.plot(x, generator_losses, '-g', label="Generator Loss", linewidth=1)
+    gen_error_ax.plot(x, generator_errors, '-b', label="Generator MSE", linewidth=1)
+    dis_error_ax.plot(x, discriminator_losses, '-r', label="Discriminator Loss", linewidth=1)
+    acc_ax.plot(x, discriminator_accuracies, '-m', label="Discriminator Accuracy", linewidth=1)
 
     if epochs is not None:
         interval = len(x) // epochs
