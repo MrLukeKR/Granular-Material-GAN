@@ -13,5 +13,11 @@
       <jdbc-driver>org.mariadb.jdbc.Driver</jdbc-driver>
       <jdbc-url>jdbc:mariadb://localhost:3306</jdbc-url>
     </data-source>
+    <data-source source="LOCAL" name="Home_LaptopToDesktop" uuid="32bacfa6-ffa7-4bd6-a9ac-471c2b1b9214">
+      <driver-ref>mariadb</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.mariadb.jdbc.Driver</jdbc-driver>
+      <jdbc-url>jdbc:mariadb://localhost:3306</jdbc-url>
+    </data-source>
   </component>
 </project>

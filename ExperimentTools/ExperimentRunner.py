@@ -16,7 +16,7 @@ from GAN import DCGAN
 from Settings import FileManager as fm, SettingsManager as sm, MachineLearningManager as mlm
 from ImageTools import VoxelProcessor as vp, ImageManager as im
 from ExperimentTools.MethodologyLogger import Logger
-from Settings.EmailManager import send_email
+from Settings.EmailManager import send_email, send_experiment_success
 from Settings.MessageTools import print_notice
 from ImageTools.CoreAnalysis import CoreVisualiser as cv
 from matplotlib import pyplot as plt
@@ -62,35 +62,7 @@ def run_experiment(dataset_iterator, gen_settings, disc_settings, experiment_id,
 
     end_time = datetime.now()
 
-    total_time = (end_time - start_time)
-
-    time_fmt = "%m/%d/%Y, %H:%M:%S"
-
-    email_notification = """Hi there,
-    
-                            Experiment %s has successfully finished! 
-                            
-                            Started: %s
-                            Ended: %s
-                            Time taken: %s
-                            
-                            -- Generator Metrics --
-                            Final Generator Loss: %s
-                            Final Generator MSE: %s
-                            -----------------------
-                            
-                            -- Discriminator Metrics --
-                            Final Discriminator Loss: %s
-                            Final Discriminator Accuracy: %s
-                            ---------------------------
-                            
-                            ~ Automated Notification System
-                         """ % (str(experiment_id),
-                                start_time.strftime(time_fmt), end_time.strftime(time_fmt), str(total_time),
-                                str(g_loss[0]), str(g_loss[1]),
-                                str(d_loss[0]), str(d_loss[1]))
-
-    send_email(email_notification, "[Success Notification] Experiment %s Completed" % str(experiment_id))
+    send_experiment_success(experiment_id, start_time, end_time, g_loss, d_loss)
 
     return g_loss, d_loss, DCGAN.Network.generator, DCGAN.Network.discriminator
 
