@@ -349,7 +349,10 @@ def data_visualisation_menu():
             epochs = max([x[4] for x in train_data])
 
             # TODO: Get unique fold IDs and save a graph per fold
-            fold_id = train_data[0][2]
+            fold_id = train_data[0][3]
+
+            if fold_id == 0:
+                fold_id = None
 
             save_training_graphs((disc_loss, disc_accuracy), (gen_loss, gen_mse),
                                  fm.compile_directory(fm.SpecialFolder.FIGURES) + 'Experiment-' + experiment_id,

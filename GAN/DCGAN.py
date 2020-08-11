@@ -118,6 +118,7 @@ class Network(AbstractGAN.Network):
         epoch_no = 1
 
         datasets_per_epoch = dataset_size // epochs
+        batches_per_epoch = datasets_per_epoch // batch_size
 
         progress = tqdm(total=dataset_size, desc=mt.get_notice("Starting GAN Training"))
 
@@ -158,17 +159,15 @@ class Network(AbstractGAN.Network):
                     h = hpy()
                     print(h.heap())
 
-            if batch_no == datasets_per_epoch:
+            if batch_no >= batches_per_epoch:
                 epoch_no += 1
                 batch_no = 1
             else:
                 batch_no += 1
 
             if epoch_no > epochs:
-                # TODO: This shouldn't be happening, if the TFData repeat() works correctly
-                print_notice("There was a mismatch between epoch and datapoints-per-epoch; exiting training early.",
-                             mt.MessagePrefix.WARNING)
-                break
+                print_notice("Dataset could not be perfectly divided into %s epochs. "
+                             "Running overflow epoch..." % str(epochs), mt.MessagePrefix.WARNING)
 
         progress.close()
         return all_d_loss, all_g_loss

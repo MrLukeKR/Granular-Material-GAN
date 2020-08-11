@@ -1,10 +1,8 @@
 from matplotlib import animation
-
+from Settings.MessageTools import print_notice
 from ImageTools import ImageManager as im
 
 import numpy as np
-
-from Settings.MessageTools import print_notice
 
 
 def plot_training_data(generator_losses, generator_errors, discriminator_losses, discriminator_accuracies, epochs=None,
@@ -61,7 +59,7 @@ def plot_training_data(generator_losses, generator_errors, discriminator_losses,
     return gen_error_ax, dis_error_ax, acc_ax
 
 
-def save_training_graphs(d_loss, g_loss, directory, experiment_id, fold, epochs=None, animate=False):
+def save_training_graphs(d_loss, g_loss, directory, experiment_id, fold=None, epochs=None, animate=False):
     fig = im.plt.figure()
 
     gen_error_ax = fig.add_subplot(3, 1, 1)
@@ -70,7 +68,10 @@ def save_training_graphs(d_loss, g_loss, directory, experiment_id, fold, epochs=
 
     x = range(len(g_loss[0]))
 
-    filepath = directory + '/' + experiment_id + '_Fold-' + str(fold)
+    filepath = directory + '/Training/' + experiment_id
+
+    if fold is not None and fold >= 0:
+        filepath += ('_Fold-' + str(fold))
 
     if not animate:
         plot_training_data([x[0] for x in g_loss], [x[1] for x in g_loss],
@@ -81,10 +82,10 @@ def save_training_graphs(d_loss, g_loss, directory, experiment_id, fold, epochs=
 
         im.plt.gcf().savefig(filepath + '.pdf')
     else:
-        gen_error_line, = gen_error_ax.plot(x, g_loss[0], '-g', label="Generator Loss", linewidth=1)
-        gen_mse_line, = gen_error_ax.plot(x, g_loss[1], '-b', label="Generator MSE", linewidth=1)
-        dis_error_line, = dis_error_ax.plot(x, d_loss[0], '-r', label="Discriminator Loss", linewidth=1)
-        accuracy_line, = acc_ax.plot(x, d_loss[1], '-m', label="Discriminator Accuracy", linewidth=1)
+        gen_error_line, = gen_error_ax.plot(x, g_loss[0], '-g', label="Generator Loss", linewidth=0.1)
+        gen_mse_line, = gen_error_ax.plot(x, g_loss[1], '-b', label="Generator MSE", linewidth=0.1)
+        dis_error_line, = dis_error_ax.plot(x, d_loss[0], '-r', label="Discriminator Loss", linewidth=0.1)
+        accuracy_line, = acc_ax.plot(x, d_loss[1], '-m', label="Discriminator Accuracy", linewidth=0.1)
 
         im.plt.gcf().suptitle("Experiment " + str(experiment_id))
 
@@ -127,12 +128,16 @@ def save_training_graphs(d_loss, g_loss, directory, experiment_id, fold, epochs=
                 line.set_ydata(data)
             return lines,
 
+        animation_seconds = 30
+        fps = 30
+        final_fps = int(len(x) / fps / animation_seconds)
+
         print_notice("Animating training graph... ", end='')
         ani = animation.FuncAnimation(im.plt.gcf(), animate, init_func=init, frames=len(x), interval=1)
         print("done!")
 
         print_notice("Saving animation... ", end='')
-        ani.save(filepath + '.mp4', fps=24, dpi=300)
+        ani.save(filepath + '.mp4', fps=final_fps, dpi=300)
         print("done!")
 
     im.plt.close(im.plt.gcf())

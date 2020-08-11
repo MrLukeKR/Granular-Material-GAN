@@ -26,7 +26,7 @@ def run_model_on_core(core_id=None):
     pass
 
 
-def run_experiment(dataset_iterator, gen_settings, disc_settings, experiment_id, batch_size, fold, epochs, dataset_size,
+def run_experiment(dataset_iterator, gen_settings, disc_settings, experiment_id, batch_size, fold, epochs, total_batches,
                    animate_with_rois=False):
     discriminator = mlm.create_discriminator(disc_settings)
     generator = mlm.create_generator(gen_settings)
@@ -53,7 +53,7 @@ def run_experiment(dataset_iterator, gen_settings, disc_settings, experiment_id,
 
         animation_data = (animation_aggregates, animation_dimensions, directory)
 
-    d_loss, g_loss = DCGAN.Network.train_network_tfdata(batch_size, dataset_iterator, fold + 1, epochs, dataset_size,
+    d_loss, g_loss = DCGAN.Network.train_network_tfdata(batch_size, dataset_iterator, fold + 1, epochs, total_batches,
                                                         animation_data)
 
     return g_loss, d_loss, DCGAN.Network.generator, DCGAN.Network.discriminator
@@ -124,7 +124,7 @@ def run_train_test_split_experiment(dataset_directories, split_count, architectu
     directory = fm.compile_directory(fm.SpecialFolder.FIGURES) + filename + '/Training'
     fm.create_if_not_exists(directory)
 
-    save_training_graphs(d_loss, g_loss, directory, experiment_id, -1, epochs)
+    save_training_graphs(d_loss, g_loss, directory, experiment_id, epochs=epochs)
 
     trained_gen.save_weights(generator_loc)
     trained_disc.save_weights(discriminator_loc)
@@ -178,7 +178,8 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
     experiment_id = "Experiment-" + str(Logger.experiment_id)
 
     for fold in range(k):
-        print_notice("Running Cross Validation Fold " + str(fold + 1) + "/" + str(k))
+        fold += 1
+        print_notice("Running Cross Validation Fold " + str(fold) + "/" + str(k))
         Logger.current_fold = fold
         database_logged = False
 
@@ -231,9 +232,16 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
 def test_network(testing_sets, fold, test_generator, batch_size, figure_directory=None, multiprocessing_pool=None):
     mt.print_notice("Testing GAN on unseen aggregate voxels...")
 
-    for testing_set in testing_sets[fold]:
+    current_set = testing_sets[fold] if fold != -1 else testing_sets
+
+    for testing_set_ind in range(len(current_set)):
+        if len(current_set) > 1:
+            testing_set = current_set[testing_set_ind]
+        else:
+            testing_set = current_set
+
         if not isinstance(testing_set, list):
-            testing_set = list(testing_sets[fold])
+            testing_set = list(testing_set)
 
         for directory in testing_set:
             core = str.split(directory, '/')[-1]
