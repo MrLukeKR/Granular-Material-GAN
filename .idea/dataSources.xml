@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="***REMOVED***" uuid="a46a0ba2-c66a-4db8-a0f5-91e369f2fcab">
+    <data-source source="LOCAL" name="localhost" uuid="6c6c249c-3ddd-474f-ab6d-823f0732dea9">
       <driver-ref>mysql.8</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>com.mysql.cj.jdbc.Driver</jdbc-driver>
       <jdbc-url>jdbc:mysql://localhost:3306</jdbc-url>
     </data-source>
-    <data-source source="LOCAL" name="LKR-ArchDesktop" uuid="8c5e3bd0-0438-4191-b7a8-7d8710532908">
+    <data-source source="LOCAL" name="ArchDesktop" uuid="c6818660-b996-437a-bde7-ec0e9252afee">
       <driver-ref>mariadb</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.mariadb.jdbc.Driver</jdbc-driver>
-      <jdbc-url>jdbc:mariadb://localhost:3306/</jdbc-url>
+      <jdbc-url>jdbc:mariadb://localhost:3306</jdbc-url>
     </data-source>
   </component>
 </project>

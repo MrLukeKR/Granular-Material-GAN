@@ -1,5 +1,5 @@
 # Utilities >>>
-
+import string
 from multiprocessing.pool import Pool
 from multiprocessing.spawn import freeze_support
 import random
@@ -67,26 +67,27 @@ def experiment_menu():
 
     user_input = input("Enter your menu choice > ")
 
-    if user_input == "1":
-        core_ids, split = data_selection_menu()
-        random.shuffle(core_ids)
+    core_ids = data_selection_menu()
+    random.shuffle(core_ids)
 
+    use_rois = sm.get_setting("USE_REGIONS_OF_INTEREST") == "True"
+
+    if user_input == "1":
         fold_count = int(input("How many folds? > "))
 
-        use_rois = sm.get_setting("USE_REGIONS_OF_INTEREST") == "True"
-
         # Do train phase
-        training_core_ids = core_ids[0:int(split[0])]
-        ExperimentRunner.run_k_fold_cross_validation_experiment(training_core_ids, fold_count,
+        ExperimentRunner.run_k_fold_cross_validation_experiment(core_ids, fold_count,
                                                                 architecture_loaded, multiprocessing_pool,
                                                                 train_with_rois=use_rois, animate_with_rois=False)
-
-        # TODO: Do test phase
-        testing_core_ids = core_ids[int(split[0]):int(split[1])]
-        # ExperimentRunner.test_network(directories[int(split[0] + 1):], )
     elif user_input == "2":
-        # TODO: Train/Test split
-        raise NotImplementedError
+        split = ""
+
+        while not (str.isdigit(split) and 0 < int(split) <= (len(core_ids) - 1)):
+            split = input("How many cores should be used for testing? [1-%s] > " % str(len(core_ids) - 1))
+
+        split = int(split)
+        ExperimentRunner.run_train_test_split_experiment(core_ids, split, architecture_loaded, multiprocessing_pool,
+                                                         train_with_rois=use_rois, animate_with_rois=False)
 
 
 def core_analysis_menu():
@@ -128,13 +129,15 @@ def core_selection_menu():
 
     for core in cores:
         print_notice("[%s]"
-                     "\tAir Void Content: %s"
+                     "\tTarget Air Void Content: %s"
+                     "\tMeasured Air Void Content: %s"
                      "\tMastic Content: %s"
                      "\tTortuosity: %s"
                      "\tEuler Number: %s"
                      "\tAverage Void Diameter: %s"
                      "\tNotes: %s"
-                     % (core[0], str(float(core[3]) * 100) + "%", str(float(core[4]) * 100) + "%", core[5], core[6], core[7], core[8]), mt.MessagePrefix.INFORMATION)
+                     % (core[0], str(float(core[3]) * 100) + "%", str(float(core[4]) * 100) + "%",
+                        str(float(core[5]) * 100) + "%", core[6], core[7], core[8], core[9]), mt.MessagePrefix.INFORMATION)
 
     choice = ""
 
@@ -207,10 +210,25 @@ def data_selection_menu():
         elif user_input == "2":
             raise NotImplementedError
         elif user_input == "3":
-            air_voids = set([core[2] for core in cores])
-            print(air_voids)
+            air_voids = list(set([core[3] for core in cores]))
+            inp = ""
+            while not (str.isdigit(inp) and 0 <= int(inp) < len(air_voids)):
+                for ind, avc in enumerate(air_voids):
+                    available = sum([core[3] == avc for core in cores])
+                    print("[%s] %s%% AVC (%s available)" % (str(ind), str(avc), str(available)))
+                inp = input("Enter an AVC selection > ")
+
+                if not (str.isdigit(inp) and 0 <= int(inp) < len(air_voids)):
+                    print_notice("Invalid selection", mt.MessagePrefix.ERROR)
+
+            inp = int(inp)
+            core_ids = [core[0] for core in cores if core[3] == air_voids[inp]]
+            print_notice("%s x %s%% Air Void Content cores selected:" % (str(len(core_ids)), str(air_voids[inp])))
+            for core in core_ids:
+                print("\t\t\t\t%s" % core)
+
         elif user_input == "4":
-            mastic_content = set([core[3] for core in cores])
+            mastic_content = set([core[5] for core in cores])
             print(mastic_content)
         else:
             valid = False
@@ -223,18 +241,11 @@ def data_selection_menu():
     available_for_training = len(core_ids) - 1
     user_input = 0
 
-    if available_for_training > 1:
-        user_input = input("How many cores from the available set should be used as the training set? (1-%s) > "
-                           % str(available_for_training))
-    elif available_for_training <= 0:
+    if available_for_training <= 0:
         print_notice("There are not enough cores in this set to perform validation!", mt.MessagePrefix.ERROR)
-        return None, (0, 0)
+        return None
 
-    split = (user_input, str(len(core_ids) - int(user_input)))
-
-    print_notice("Using %s cores for training, with %s cores for validation" % split, mt.MessagePrefix.INFORMATION)
-
-    return core_ids, split
+    return core_ids
 
 
 def core_category_menu():
@@ -338,7 +349,10 @@ def data_visualisation_menu():
             epochs = max([x[4] for x in train_data])
 
             # TODO: Get unique fold IDs and save a graph per fold
-            fold_id = train_data[0][2]
+            fold_id = train_data[0][3]
+
+            if fold_id == 0:
+                fold_id = None
 
             save_training_graphs((disc_loss, disc_accuracy), (gen_loss, gen_mse),
                                  fm.compile_directory(fm.SpecialFolder.FIGURES) + 'Experiment-' + experiment_id,
