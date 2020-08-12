@@ -66,6 +66,9 @@ def send_results_generation_success(experiment_id, start_time, end_time):
 def send_experiment_success(experiment_id, start_time, end_time, g_loss, d_loss):
     total_time = (end_time - start_time)
 
+    gen_loss, gen_mse = ([x[0] for x in g_loss], [x[1] for x in g_loss])
+    disc_loss, disc_acc = ([x[0] for x in d_loss], [x[1] for x in d_loss])
+
     email_notification = """Hi there,
 
                             %s has successfully finished on %s! 
@@ -77,17 +80,33 @@ def send_experiment_success(experiment_id, start_time, end_time, g_loss, d_loss)
                             -- Generator Metrics --
                             Final Generator Loss: %s
                             Final Generator MSE: %s
+                            
+                            Lowest Generator Loss: %s
+                            Highest Generator Loss: %s
+                            
+                            Lowest Generator MSE: %s
+                            Highest Generator MSE: %s
                             -----------------------
 
                             -- Discriminator Metrics --
                             Final Discriminator Loss: %s
                             Final Discriminator Accuracy: %s
+                            
+                            Lowest Discriminator Loss: %s
+                            Highest Discriminator Loss: %s
+                            
+                            Lowest Discriminator Accuracy: %s
+                            Highest Discriminator Accuracy: %s
                             ---------------------------
 
                             ~ Automated Notification System
                             """ % (str(experiment_id), socket.gethostname(),
                                    start_time.strftime(time_fmt), end_time.strftime(time_fmt), str(total_time),
-                                   str(g_loss[0][-1]), str(g_loss[1][-1]),
-                                   str(d_loss[0][-1]), str(d_loss[1][-1] * 100) + '%')
+                                   str(gen_loss[-1]), str(gen_mse[-1]),
+                                   str(min(gen_loss)), str(max(gen_loss)),
+                                   str(min(gen_mse)), str(max(gen_mse)),
+                                   str(disc_loss[-1]), str(disc_acc[-1] * 100) + '%',
+                                   str(min(disc_loss)), str(max(disc_loss)),
+                                   str(min(disc_acc) * 100) + '%', str(max(disc_acc) * 100) + '%')
 
     send_email(email_notification, "[Success Notification] GAN Training for %s Completed" % str(experiment_id))

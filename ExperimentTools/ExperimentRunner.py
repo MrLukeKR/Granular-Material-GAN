@@ -27,8 +27,8 @@ def run_model_on_core(core_id=None):
     pass
 
 
-def run_experiment(dataset_iterator, gen_settings, disc_settings, experiment_id, batch_size, fold, epochs, total_batches,
-                   animate_with_rois=False):
+def run_experiment(dataset_iterator, gen_settings, disc_settings, experiment_id, batch_size, epochs, total_batches,
+                   fold=None, animate_with_rois=False):
     discriminator = mlm.create_discriminator(disc_settings)
     generator = mlm.create_generator(gen_settings)
 
@@ -56,8 +56,8 @@ def run_experiment(dataset_iterator, gen_settings, disc_settings, experiment_id,
 
     start_time = datetime.now()
 
-    d_loss, g_loss = DCGAN.Network.train_network_tfdata(batch_size, dataset_iterator, fold + 1, epochs, total_batches,
-                                                        animation_data)
+    d_loss, g_loss = DCGAN.Network.train_network_tfdata(batch_size, dataset_iterator, epochs, total_batches,
+                                                        fold + 1 if fold else None, animation_data)
 
     end_time = datetime.now()
 
@@ -122,7 +122,7 @@ def run_train_test_split_experiment(dataset_directories, split_count, architectu
     train_ds_iter = iter(train_ds)
 
     g_loss, d_loss, trained_gen, trained_disc = run_experiment(train_ds_iter, gen_settings, disc_settings,
-                                                               experiment_id, batch_size, -1, epochs, dataset_size,
+                                                               experiment_id, batch_size, epochs, dataset_size, -1,
                                                                animate_with_rois=animate_with_rois)
 
     filename = "Experiment-" + str(Logger.experiment_id)
@@ -130,6 +130,7 @@ def run_train_test_split_experiment(dataset_directories, split_count, architectu
     fm.create_if_not_exists(directory)
 
     save_training_graphs(d_loss, g_loss, directory, experiment_id, epochs=epochs)
+    Logger.log_experiment_results_to_database(Logger.experiment_id, d_loss, g_loss)
 
     trained_gen.save_weights(generator_loc)
     trained_disc.save_weights(discriminator_loc)
@@ -140,7 +141,7 @@ def run_train_test_split_experiment(dataset_directories, split_count, architectu
         Logger.log_model_experiment_to_database(Logger.experiment_id, instance_id)
         database_logged = True
 
-    test_network(testing_sets, -1, DCGAN.Network.generator, batch_size, directory, multiprocessing_pool)
+    test_network(experiment_id, testing_sets, DCGAN.Network.generator, batch_size, -1, directory, multiprocessing_pool)
 
 
 def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture, multiprocessing_pool=None,
@@ -213,8 +214,8 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
         train_ds_iter = iter(train_ds)
 
         g_loss, d_loss, trained_gen, trained_disc = run_experiment(train_ds_iter, gen_settings, disc_settings,
-                                                                   experiment_id, batch_size, fold, epochs, dataset_size,
-                                                                   animate_with_rois=animate_with_rois)
+                                                                   experiment_id, batch_size, epochs, dataset_size,
+                                                                   fold, animate_with_rois=animate_with_rois)
 
         filename = "Experiment-" + str(Logger.experiment_id)
         directory = fm.compile_directory(fm.SpecialFolder.FIGURES) + filename + '/Training/'
@@ -232,26 +233,30 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
             database_logged = True
 
         start_time = datetime.now()
-        test_network(testing_sets, fold, DCGAN.Network.generator, batch_size, directory, multiprocessing_pool)
+        test_network(experiment_id, testing_sets, DCGAN.Network.generator, batch_size, fold, directory,
+                     multiprocessing_pool)
         end_time = datetime.now()
         send_results_generation_success(experiment_id, start_time, end_time)
 
 
-def test_network(testing_sets, fold, test_generator, batch_size, figure_directory=None, multiprocessing_pool=None):
+def test_network(experiment_id, testing_sets, test_generator, batch_size, fold=None, figure_directory=None,
+                 multiprocessing_pool=None):
     mt.print_notice("Testing GAN on unseen aggregate voxels...")
+
+    start_time = datetime.now()
 
     if not isinstance(testing_sets, list):
         testing_sets = list(testing_sets)
 
-    current_set = testing_sets[fold] if fold != -1 else testing_sets
+    testing_set = testing_sets[fold] if fold else testing_sets
 
-    for testing_set_ind in range(len(current_set)):
-        if len(current_set) > 1:
-            testing_set = current_set[testing_set_ind]
-        else:
-            testing_set = current_set
+    if not isinstance(testing_set, list):
+        temp = testing_set
+        testing_set = list()
+        testing_set.append(temp)
 
-        dimensions, test_aggregate, test_binder = vp.load_materials(testing_set, use_rois=False)
+    for current_set in testing_set:
+        dimensions, test_aggregate, test_binder = vp.load_materials(current_set, use_rois=False)
         test_aggregate = np.expand_dims(test_aggregate, 4)
 
         # TODO: Make testing use TFData rather than numpy loading (faster)
@@ -269,7 +274,10 @@ def test_network(testing_sets, fold, test_generator, batch_size, figure_director
                 plt.savefig(figure_directory + "/GAN_Output_Histogram.pdf",)
 
             if sm.get_setting("ENABLE_IMAGE_DISPLAY") == "True":
-                plt.show()
+                plt.show(block=False)
+                plt.pause(10)
+
+            plt.close()
 
         # Rescale outputs into [0, 1], which can then be thresholded and scaled into [0, 255]
 
@@ -277,9 +285,9 @@ def test_network(testing_sets, fold, test_generator, batch_size, figure_director
         results = results * 255
 
         experiment_id = "Experiment-" + str(Logger.experiment_id)
-        fold_id = "_Fold-" + str(fold)
+        fold_id = "_Fold-" + str(fold) if fold else ""
 
-        directory = fm.compile_directory(fm.SpecialFolder.FIGURES) + experiment_id + "/Outputs/"
+        directory = fm.compile_directory(fm.SpecialFolder.FIGURES) + experiment_id + "/Outputs/" + current_set + "/"
         fm.create_if_not_exists(directory)
 
         test_aggregate = np.squeeze(test_aggregate)
@@ -312,21 +320,25 @@ def test_network(testing_sets, fold, test_generator, batch_size, figure_director
         results = list(results)
         vp.save_voxels(results, dimensions, directory, "GeneratedVoxels")
 
-        voxel_plot_directory = directory + "VoxelPlots/"
-        fm.create_if_not_exists(voxel_plot_directory)
+        if sm.get_setting("ENABLE_VOXEL_PLOT_GENERATION") == "True":
+            voxel_plot_directory = directory + "VoxelPlots/"
+            fm.create_if_not_exists(voxel_plot_directory)
 
-        print_notice("Saving Real vs. Generated voxel plots... ", end='')
-        file_location = voxel_plot_directory + experiment_id + fold_id + "_core-" + testing_set
+            print_notice("Saving Real vs. Generated voxel plots... ", end='')
+            file_location = voxel_plot_directory + experiment_id + fold_id + "_core-" + testing_set
 
-        result_length = range(len(results))
+            result_length = range(len(results))
 
-        if multiprocessing_pool is None:
-            for ind in tqdm(result_length):
-                plot_real_vs_generated_voxels(test_aggregate[ind], test_binder[ind], results[ind], file_location, ind)
-        else:
-            multiprocessing_pool.starmap(plot_real_vs_generated_voxels,
-                                         zip(test_aggregate, test_binder, results,
-                                             repeat(file_location, len(results)), list(result_length)))
+            if multiprocessing_pool is None:
+                for ind in tqdm(result_length):
+                    plot_real_vs_generated_voxels(test_aggregate[ind], test_binder[ind], results[ind], file_location, ind)
+            else:
+                multiprocessing_pool.starmap(plot_real_vs_generated_voxels,
+                                             zip(test_aggregate, test_binder, results,
+                                                 repeat(file_location, len(results)), list(result_length)))
+
+    end_time = datetime.now()
+    send_results_generation_success(experiment_id, start_time, end_time)
 
 
 def plot_real_vs_generated_voxels(aggregates, expected, actual, file_location, ind):

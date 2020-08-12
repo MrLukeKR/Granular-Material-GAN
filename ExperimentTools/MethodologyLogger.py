@@ -85,16 +85,31 @@ class Logger:
             raise ConnectionError
 
     @staticmethod
-    def log_batch_training_to_database(fold, epoch, batch, g_loss, d_loss):
+    def log_experiment_results_to_database(experiment_id, d_loss, g_loss):
+        if dm.database_connected:
+            sql = "INSERT INTO results (ExperimentID, FinalDiscriminatorLoss, FinalDiscriminatorAccuracy," \
+                  "FinalGeneratorLoss, FinalGeneratorMSE)" \
+                  "VALUES (%s, %s, %s, %s, %s)"
+
+            val = (experiment_id, str(d_loss[-1][0]), str(d_loss[-1][1]), str(g_loss[-1][0]), str(g_loss[-1][1]))
+
+            dm.db_cursor.execute(sql, val)
+        else:
+            raise ConnectionError
+
+    @staticmethod
+    def log_batch_training_to_database(epoch, batch, g_loss, d_loss, fold=None):
         if dm.database_connected:
             sql = "INSERT INTO training (ExperimentID, Fold, Epoch, Batch, " \
                   "DiscriminatorLoss, DiscriminatorAccuracy, GeneratorLoss, GeneratorMSE)" \
                   "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
 
-            val = (str(Logger.experiment_id), str(fold), str(epoch), str(batch),
+            val = (str(Logger.experiment_id), str(fold if fold else 0), str(epoch), str(batch),
                    str(d_loss[0]), str(d_loss[1]), str(g_loss[0]), str(g_loss[1]))
 
             dm.db_cursor.execute(sql, val)
+        else:
+            raise ConnectionError
 
     @staticmethod
     def log_model_to_database(gen_settings, disc_settings):

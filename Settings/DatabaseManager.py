@@ -203,6 +203,7 @@ def initialise_settings():
                       "('ENABLE_POSTPROCESSING', 'True'),"
                       "('ENABLE_GAN_TRAINING', 'False'),"
                       "('ENABLE_TRAINING_ANIMATION', 'True'),"
+                      "('ENABLE_VOXEL_PLOT_GENERATION', 'True'),"
                       "('ENABLE_GAN_OUTPUT_HISTOGRAM', 'True'),"
                       "('ENABLE_GAN_GENERATION', 'False');")
 

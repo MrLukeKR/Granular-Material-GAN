@@ -101,7 +101,8 @@ class Network(AbstractGAN.Network):
         return list(d_loss.numpy()), g_loss
 
     @classmethod
-    def train_network_tfdata(cls, batch_size, dataset_iterator, fold, epochs, total_batches, core_animation_data=None):
+    def train_network_tfdata(cls, batch_size, dataset_iterator, epochs, total_batches, fold=None,
+                             core_animation_data=None):
         print_notice("Training Generative Adversarial Network...")
 
         valid = tf.fill((batch_size, 1), 0.9)
@@ -146,7 +147,7 @@ class Network(AbstractGAN.Network):
                                                       + (batch_no * batch_size),
                                                       d_loss[0], 100 * d_loss[1], g_loss[0], g_loss[1])))
 
-            Logger.log_batch_training_to_database(fold, epoch_no, batch_no, g_loss, d_loss)
+            Logger.log_batch_training_to_database(epoch_no, batch_no, g_loss, d_loss, fold)
 
             all_d_loss.append(d_loss)
             all_g_loss.append(g_loss)

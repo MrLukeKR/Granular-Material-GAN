@@ -1,6 +1,13 @@
 # Do not allow timeouts
 set timeout -1
 
+# Set number of training samples available for each AVC
+set avc_test_values(0) 6
+set avc_test_values(1) 5
+set avc_test_values(2) 9
+set avc_test_values(3) 7
+set avc_test_values(4) 6
+
 # Start python script
 spawn python Main.py
 
@@ -12,23 +19,41 @@ expect "Enter the architecture ID to load" { send "0\r" }
 
 # -- END OF SETUP --
 
-# Run each AVC experiment 3 times
-for {set i 1} {$i < 3} {incr i 1} {
+# Run over each AVC
+for {set a 0} {$a < 5} {incr a 1} {
+	# Run each AVC experiment 3 times
+	for {set i 0} {$i < 3} {incr i 1} {
+	
+		# Being training the model
+		expect "Enter a menu option" { send "4\r" }
+	
+		# Run as a Test/Train split experiment
+		expect "Enter a menu option" { send "2\r" }
+	
+		# Load cores by Air Void Content
+		expect "Enter a menu option" { send "3\r" }
+	
+		# Load current ($a) AVC cores
+		expect "Enter an AVC selection" { send "$a\r" }
+	
+		# Use MAX-1 cores for training (1 for testing)
+		expect "How many cores should be used for training?" { send "$avc_test_values($a)\r" }
+	}
+}
 
+# Run the ALL cores experiment 3 times
+for {set i 0} {$i < 3} {incr i 1} {
 	# Being training the model
 	expect "Enter a menu option" { send "4\r" }
-
+	
 	# Run as a Test/Train split experiment
 	expect "Enter a menu option" { send "2\r" }
-
-	# Load cores by Air Void Content
-	expect "Enter a menu option" { send "3\r" }
-
-	# Load 10% AVC cores
-	expect "Enter an AVC selection" { send "0\r" }
+	
+	# Load all cores
+	expect "Enter a menu option" { send "1\r" }
 
 	# Use MAX-1 cores for training (1 for testing)
-	expect "How many cores should be used for training?" { send "1\r" }
+	expect "How many cores should be used for training?" { send "36\r" }
 }
 
 # Wait to return to the menu

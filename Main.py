@@ -236,7 +236,6 @@ def data_selection_menu():
         return None, (0, 0)
 
     available_for_training = len(core_ids) - 1
-    user_input = 0
 
     if available_for_training <= 0:
         print_notice("There are not enough cores in this set to perform validation!", mt.MessagePrefix.ERROR)
