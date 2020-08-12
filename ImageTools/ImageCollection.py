@@ -5,7 +5,7 @@ from scipy import ndimage
 from skimage.viewer import CollectionViewer
 from os import walk
 from tqdm import tqdm
-from ExperimentTools.MethodologyLogger import Logger
+from src.ExperimentTools import Logger
 
 
 import numpy as np

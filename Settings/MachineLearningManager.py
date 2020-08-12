@@ -4,7 +4,7 @@ from tensorflow.python.client import device_lib
 from ExperimentTools.MethodologyLogger import Logger
 
 from GAN import DCGAN
-from Settings import FileManager as fm, MessageTools as mt, DatabaseManager as dm, SettingsManager as sm
+from Settings import DatabaseManager as dm, FileManager as fm, SettingsManager as sm, MessageTools as mt
 from Settings.MessageTools import print_notice
 import tensorflow as tf
 import numpy as np

@@ -2,7 +2,6 @@ import itertools
 
 import numpy as np
 import matplotlib.pyplot as plt
-from PIL.Image import Image
 
 import ImageTools.VoxelProcessor as vp
 import ImageTools.Postprocessor as pop
@@ -14,7 +13,7 @@ from ImageTools.Segmentation.TwoDimensional import Otsu2D as segmentor2D
 from os import walk
 from matplotlib import cm
 from tqdm import tqdm
-from Settings import SettingsManager as sm, FileManager as fm, MessageTools as mt
+from Settings import FileManager as fm, SettingsManager as sm, MessageTools as mt
 from Settings.MessageTools import print_notice, get_notice
 
 global_voxels = None

@@ -2,7 +2,7 @@ import datetime
 import cpuinfo
 
 from psutil import virtual_memory
-from Settings import DatabaseManager as dm, MessageTools as mt, SettingsManager as sm
+from Settings import DatabaseManager as dm, MessageTools as mt
 from Settings.MessageTools import print_notice
 
 

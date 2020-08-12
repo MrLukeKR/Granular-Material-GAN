@@ -6,13 +6,12 @@ import h5py
 import tensorflow as tf
 
 from ImageTools import ImageManager as im
-from Settings import MessageTools as mt, SettingsManager as sm, FileManager as fm
+from Settings import FileManager as fm, SettingsManager as sm, MessageTools as mt
 from Settings.MessageTools import print_notice
 
 # DO NOT DELETE THIS! It shows as unused but it is vital to 3D projection
-from mpl_toolkits.mplot3d import axes3d, Axes3D
 
-from Settings import FileManager as fm, SettingsManager as sm
+from Settings import FileManager as fm
 from ExperimentTools.MethodologyLogger import Logger
 
 

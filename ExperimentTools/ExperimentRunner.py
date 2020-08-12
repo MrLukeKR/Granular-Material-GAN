@@ -10,13 +10,12 @@ from ExperimentTools.DataVisualiser import save_training_graphs
 from ExperimentTools.DatasetProcessor import prepare_tf_set
 from GAN.DCGAN import gan_to_voxels
 from ImageTools.VoxelProcessor import voxels_to_core
-from Settings import MessageTools as mt
 from ExperimentTools import DatasetProcessor, MethodologyLogger
 from GAN import DCGAN
-from Settings import FileManager as fm, SettingsManager as sm, MachineLearningManager as mlm
-from ImageTools import VoxelProcessor as vp, ImageManager as im
+from Settings import FileManager as fm, MachineLearningManager as mlm, SettingsManager as sm, MessageTools as mt
+from ImageTools import ImageManager as im, VoxelProcessor as vp
 from ExperimentTools.MethodologyLogger import Logger
-from Settings.EmailManager import send_email, send_experiment_success
+from Settings.EmailManager import send_experiment_success, send_results_generation_success
 from Settings.MessageTools import print_notice
 from ImageTools.CoreAnalysis import CoreVisualiser as cv
 from matplotlib import pyplot as plt
@@ -127,7 +126,7 @@ def run_train_test_split_experiment(dataset_directories, split_count, architectu
                                                                animate_with_rois=animate_with_rois)
 
     filename = "Experiment-" + str(Logger.experiment_id)
-    directory = fm.compile_directory(fm.SpecialFolder.FIGURES) + filename + '/Training'
+    directory = fm.compile_directory(fm.SpecialFolder.FIGURES) + filename + '/Training/'
     fm.create_if_not_exists(directory)
 
     save_training_graphs(d_loss, g_loss, directory, experiment_id, epochs=epochs)
@@ -218,7 +217,7 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
                                                                    animate_with_rois=animate_with_rois)
 
         filename = "Experiment-" + str(Logger.experiment_id)
-        directory = fm.compile_directory(fm.SpecialFolder.FIGURES) + filename + '/Training'
+        directory = fm.compile_directory(fm.SpecialFolder.FIGURES) + filename + '/Training/'
         fm.create_if_not_exists(directory)
 
         save_training_graphs(d_loss, g_loss, directory, experiment_id, fold, epochs)
@@ -232,11 +231,17 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
             Logger.log_model_experiment_to_database(Logger.experiment_id, instance_id)
             database_logged = True
 
+        start_time = datetime.now()
         test_network(testing_sets, fold, DCGAN.Network.generator, batch_size, directory, multiprocessing_pool)
+        end_time = datetime.now()
+        send_results_generation_success(experiment_id, start_time, end_time)
 
 
 def test_network(testing_sets, fold, test_generator, batch_size, figure_directory=None, multiprocessing_pool=None):
     mt.print_notice("Testing GAN on unseen aggregate voxels...")
+
+    if not isinstance(testing_sets, list):
+        testing_sets = list(testing_sets)
 
     current_set = testing_sets[fold] if fold != -1 else testing_sets
 
@@ -246,81 +251,82 @@ def test_network(testing_sets, fold, test_generator, batch_size, figure_director
         else:
             testing_set = current_set
 
-        if not isinstance(testing_set, list):
-            testing_set = list(testing_set)
+        dimensions, test_aggregate, test_binder = vp.load_materials(testing_set, use_rois=False)
+        test_aggregate = np.expand_dims(test_aggregate, 4)
 
-        for directory in testing_set:
-            core = str.split(directory, '/')[-1]
-            dimensions, test_aggregate, test_binder = vp.load_materials(core, use_rois=False)
-            test_aggregate = np.expand_dims(test_aggregate, 4)
+        # TODO: Make testing use TFData rather than numpy loading (faster)
 
-            # TODO: Make testing use TFData rather than numpy loading (faster)
+        # Data must be in the range of [-1, 1] for the GAN (voxels are stored as [0, 1])
+        results = gan_to_voxels(test_generator, ((test_aggregate / 255) * 2) - 1, batch_size)
 
-            # Data must be in the range of [-1, 1] for the GAN (voxels are stored as [0, 1])
-            results = gan_to_voxels(test_generator, ((test_aggregate / 255) * 2) - 1, batch_size)
+        results = (results + 1) / 2
 
-            results = (results + 1) / 2
+        if sm.get_setting("ENABLE_GAN_OUTPUT_HISTOGRAM") == "True":
+            plt.hist(np.array((results * 255), dtype=np.uint8).flatten(), bins=range(256))
+            plt.title("Histogram of GAN outputs")
 
-            if sm.get_setting("ENABLE_GAN_OUTPUT_HISTOGRAM") == "True":
-                plt.hist(np.array((results * 255), dtype=np.uint8).flatten(), bins=range(256))
-                plt.title("Histogram of GAN outputs")
+            if figure_directory is not None:
+                plt.savefig(figure_directory + "/GAN_Output_Histogram.pdf",)
 
-                if figure_directory is not None:
-                    plt.savefig(figure_directory + "/GAN_Output_Histogram.pdf",)
+            if sm.get_setting("ENABLE_IMAGE_DISPLAY") == "True":
+                plt.show()
 
-                if sm.get_setting("ENABLE_IMAGE_DISPLAY") == "True":
-                    plt.show()
+        # Rescale outputs into [0, 1], which can then be thresholded and scaled into [0, 255]
 
-            # Rescale outputs into [0, 1], which can then be thresholded and scaled into [0, 255]
+        results = results >= float(sm.get_setting("IO_GAN_OUTPUT_THRESHOLD"))
+        results = results * 255
 
-            results = results >= float(sm.get_setting("IO_GAN_OUTPUT_THRESHOLD"))
-            results = results * 255
+        experiment_id = "Experiment-" + str(Logger.experiment_id)
+        fold_id = "_Fold-" + str(fold)
 
-            experiment_id = "Experiment-" + str(Logger.experiment_id)
-            fold_id = "_Fold-" + str(fold)
+        directory = fm.compile_directory(fm.SpecialFolder.FIGURES) + experiment_id + "/Outputs/"
+        fm.create_if_not_exists(directory)
 
-            directory = fm.compile_directory(fm.SpecialFolder.FIGURES) + experiment_id + "/Outputs/"
-            fm.create_if_not_exists(directory)
+        test_aggregate = np.squeeze(test_aggregate)
 
-            test_aggregate = np.squeeze(test_aggregate)
+        # Remove overlapping aggregate and binder
+        if sm.get_setting("ENABLE_FIX_GAN_OUTPUT_OVERLAP") == "True":
+            results -= np.logical_and(results, test_aggregate == 255)
 
-            # Remove overlapping aggregate and binder
-            if sm.get_setting("ENABLE_FIX_GAN_OUTPUT_OVERLAP") == "True":
-                results -= np.logical_and(results, test_aggregate == 255)
+        binder_core = voxels_to_core(results, dimensions)
+        aggregate_core = voxels_to_core(test_aggregate, dimensions)
 
-            binder_core = voxels_to_core(results, dimensions)
-            aggregate_core = voxels_to_core(test_aggregate, dimensions)
+        slice_directory = directory + "BinderSlices/"
+        fm.create_if_not_exists(slice_directory)
 
-            slice_directory = directory + "BinderSlices/"
-            fm.create_if_not_exists(slice_directory)
+        for ind, slice in tqdm(enumerate(binder_core), desc=mt.get_notice("Saving Generated Core Slices")):
+            im = Image.fromarray(slice)
 
-            for ind, slice in tqdm(enumerate(binder_core), desc=mt.get_notice("Saving Generated Core Slices")):
-                im = Image.fromarray(slice)
+            buff_ind = (len(str(len(binder_core))) - len(str(ind))) * "0" + str(ind)
+            im.save(slice_directory + buff_ind + ".png")
 
-                buff_ind = (len(str(len(binder_core))) - len(str(ind))) * "0" + str(ind)
-                im.save(slice_directory + buff_ind + ".png")
+        binder_core = cv.voxels_to_mesh(binder_core)
+        aggregate_core = cv.voxels_to_mesh(aggregate_core)
 
-            binder_core = cv.voxels_to_mesh(binder_core)
-            aggregate_core = cv.voxels_to_mesh(aggregate_core)
+        model_directory = directory + "3DModels/"
+        fm.create_if_not_exists(model_directory)
 
-            cv.save_mesh(binder_core, directory + "generated_binder.stl")
-            cv.save_mesh(aggregate_core, directory + "aggregate.stl")
+        cv.save_mesh(binder_core, model_directory + "generated_binder.stl")
+        cv.save_mesh(aggregate_core, model_directory + "aggregate.stl")
 
-            results = list(results)
-            vp.save_voxels(results, dimensions, directory, "GeneratedVoxels")
+        results = list(results)
+        vp.save_voxels(results, dimensions, directory, "GeneratedVoxels")
 
-            print_notice("Saving Real vs. Generated voxel plots... ", end='')
-            file_location = directory + experiment_id + fold_id + "_core-" + core
+        voxel_plot_directory = directory + "VoxelPlots/"
+        fm.create_if_not_exists(voxel_plot_directory)
 
-            result_length = range(len(results))
+        print_notice("Saving Real vs. Generated voxel plots... ", end='')
+        file_location = voxel_plot_directory + experiment_id + fold_id + "_core-" + testing_set
 
-            if multiprocessing_pool is None:
-                for ind in tqdm(result_length):
-                    plot_real_vs_generated_voxels(test_aggregate[ind], test_binder[ind], results[ind], file_location, ind)
-            else:
-                multiprocessing_pool.starmap(plot_real_vs_generated_voxels,
-                                             zip(test_aggregate, test_binder, results,
-                                                 repeat(file_location, len(results)), list(result_length)))
+        result_length = range(len(results))
+
+        if multiprocessing_pool is None:
+            for ind in tqdm(result_length):
+                plot_real_vs_generated_voxels(test_aggregate[ind], test_binder[ind], results[ind], file_location, ind)
+        else:
+            multiprocessing_pool.starmap(plot_real_vs_generated_voxels,
+                                         zip(test_aggregate, test_binder, results,
+                                             repeat(file_location, len(results)), list(result_length)))
 
 
 def plot_real_vs_generated_voxels(aggregates, expected, actual, file_location, ind):

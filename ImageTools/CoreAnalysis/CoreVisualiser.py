@@ -1,14 +1,12 @@
-import gc
 import sys
 
 import numpy as np
 import trimesh
 from trimesh import caching
-from numpy.linalg import norm
 from multiprocessing import Process
 
 from ImageTools.CoreAnalysis import CoreAnalyser as ca
-from Settings import SettingsManager as sm, MessageTools as mt, DatabaseManager as dm, FileManager as fm
+from Settings import DatabaseManager as dm, FileManager as fm, SettingsManager as sm, MessageTools as mt
 from Settings.MessageTools import print_notice
 from skimage import measure
 
@@ -27,7 +25,7 @@ def voxels_to_mesh(core, suppress_messages=False):
 
     core = np.pad(core, stepsize, 'constant', constant_values=0)
 
-    verts, faces, _, _ = measure.marching_cubes(core, step_size=stepsize, allow_degenerate=False)
+    verts, faces, _, _ = measure.marching_cubes_lewiner(core, step_size=stepsize, allow_degenerate=False)
     del _
     del core
 

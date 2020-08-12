@@ -68,7 +68,7 @@ def save_training_graphs(d_loss, g_loss, directory, experiment_id, fold=None, ep
 
     x = range(len(g_loss[0]))
 
-    filepath = directory + '/Training/' + experiment_id
+    filepath = directory + experiment_id
 
     if fold is not None and fold >= 0:
         filepath += ('_Fold-' + str(fold))

@@ -19,8 +19,7 @@ from ExperimentTools.MethodologyLogger import Logger
 from ImageTools.CoreAnalysis.CoreVisualiser import save_mesh, voxels_to_mesh, fix_mesh
 from ImageTools.VoxelProcessor import voxels_to_core
 from Settings.MessageTools import print_notice
-from Settings import SettingsManager as sm, MessageTools as mt, MachineLearningManager as mlm, DatabaseManager as dm
-from tensorflow.keras.mixed_precision import experimental as mixed_precision
+from Settings import DatabaseManager as dm, MachineLearningManager as mlm, SettingsManager as sm, MessageTools as mt
 
 #  strategy = tf.distribute.experimental.MultiWorkerMirroredStrategy(tf.distribute.experimental.CollectiveCommunication.AUTO)
 #  strategy = tf.distribute.MirroredStrategy()
@@ -102,7 +101,7 @@ class Network(AbstractGAN.Network):
         return list(d_loss.numpy()), g_loss
 
     @classmethod
-    def train_network_tfdata(cls, batch_size, dataset_iterator, fold, epochs, dataset_size, core_animation_data=None):
+    def train_network_tfdata(cls, batch_size, dataset_iterator, fold, epochs, total_batches, core_animation_data=None):
         print_notice("Training Generative Adversarial Network...")
 
         valid = tf.fill((batch_size, 1), 0.9)
@@ -116,12 +115,19 @@ class Network(AbstractGAN.Network):
         batch_no = 1
         epoch_no = 1
 
-        datasets_per_epoch = dataset_size // epochs
-        batches_per_epoch = datasets_per_epoch // batch_size
+        batches_per_epoch = total_batches // epochs
 
-        progress = tqdm(total=dataset_size * batch_size, desc=mt.get_notice("Starting GAN Training"))
+        progress = tqdm(total=total_batches * batch_size, desc=mt.get_notice("Starting GAN Training"))
+
+        overflow_notified = False
 
         for features, labels in dataset_iterator:
+            if epoch_no > epochs and not overflow_notified:
+                print_notice("Dataset could not be perfectly divided into %s epochs. "
+                             "Running overflow epoch..." % str(epochs), mt.MessagePrefix.WARNING)
+
+                overflow_notified = True
+
             if features.shape[0] != batch_size:
                 last_valid = tf.fill((features.shape[0], 1), 0.9)
                 last_fake = tf.zeros((features.shape[0], 1))
@@ -135,7 +141,8 @@ class Network(AbstractGAN.Network):
             progress.update(batch_size)
             progress.set_description(mt.get_notice("Epoch %d, Batch %d (%d Voxels) "
                                                    "[DIS loss: %f, acc: %.2f%%] [GEN loss: %f, mse: %f]"
-                                                   % (epoch_no, batch_no, ((epoch_no - 1) * datasets_per_epoch * batch_size)
+                                                   % (epoch_no, batch_no,
+                                                      ((epoch_no - 1) * batches_per_epoch * batch_size)
                                                       + (batch_no * batch_size),
                                                       d_loss[0], 100 * d_loss[1], g_loss[0], g_loss[1])))
 
@@ -163,10 +170,6 @@ class Network(AbstractGAN.Network):
                 batch_no = 1
             else:
                 batch_no += 1
-
-            if epoch_no > epochs:
-                print_notice("Dataset could not be perfectly divided into %s epochs. "
-                             "Running overflow epoch..." % str(epochs), mt.MessagePrefix.WARNING)
 
         progress.close()
         return all_d_loss, all_g_loss

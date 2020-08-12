@@ -1,4 +1,3 @@
-import ImageTools.ImageManager as im
 from skimage.filters import threshold_multiotsu
 import numpy as np
 

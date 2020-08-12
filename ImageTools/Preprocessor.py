@@ -8,12 +8,11 @@ import Settings.FileManager as fm
 import scipy.signal as ss
 
 from scipy.ndimage import gaussian_filter, median_filter
-from Settings import MessageTools as mt
 from Settings.MessageTools import print_notice
 from skimage.restoration import denoise_tv_chambolle
 from tqdm import tqdm
 from sklearn.preprocessing import binarize
-from Settings import SettingsManager as sm
+from Settings import SettingsManager as sm, MessageTools as mt
 
 
 def remove_empty_scans(images):

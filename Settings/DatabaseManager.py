@@ -1,7 +1,7 @@
 import os
 import mysql.connector
 
-from Settings import SettingsManager as sm, MessageTools as mt, FileManager as fm
+from Settings import FileManager as fm, SettingsManager as sm, MessageTools as mt
 from Settings.MessageTools import print_notice
 
 db = None

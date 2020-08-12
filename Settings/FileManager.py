@@ -4,7 +4,7 @@ from os import walk, path, makedirs
 from Settings import SettingsManager as sm, MessageTools as mt
 from Settings.MessageTools import print_notice
 from enum import Enum
-from anytree import Node, RenderTree, Walker, search
+from anytree import Node, RenderTree, search
 
 
 class SpecialFolder(Enum):

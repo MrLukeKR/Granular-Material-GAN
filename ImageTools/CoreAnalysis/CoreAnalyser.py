@@ -1,4 +1,3 @@
-import imagej
 import os
 import numpy as np
 import kimimaro
@@ -6,10 +5,9 @@ import pytrax as pt
 import porespy.networks as psn
 
 from tqdm import tqdm
-from Settings import MessageTools as mt, FileManager as fm, DatabaseManager as dm, SettingsManager as sm
+from Settings import DatabaseManager as dm, FileManager as fm, SettingsManager as sm, MessageTools as mt
 from Settings.MessageTools import print_notice
 from ImageTools import ImageManager as im
-from mpl_toolkits import mplot3d
 
 
 def get_core_by_id(core_id, use_rois=True, multiprocessing_pool=None):

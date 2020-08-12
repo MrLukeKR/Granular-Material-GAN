@@ -1,5 +1,4 @@
 # Utilities >>>
-import string
 from multiprocessing.pool import Pool
 from multiprocessing.spawn import freeze_support
 import random
@@ -7,20 +6,16 @@ import random
 import numpy as np
 
 # Experiments >>>
-from ExperimentTools import MethodologyLogger, ExperimentRunner
-from ExperimentTools.DataVisualiser import plot_training_data, save_training_graphs
-from ImageTools import VoxelProcessor as vp, ImageManager as im
+from ExperimentTools import ExperimentRunner
+from ExperimentTools.DataVisualiser import save_training_graphs
+from ImageTools import ImageManager as im, VoxelProcessor as vp
 from ImageTools.CoreAnalysis import CoreAnalyser as ca, CoreVisualiser as cv
 # Settings >>>
 from ImageTools.CoreAnalysis.CoreAnalyser import update_database_core_analyses
 from ImageTools.CoreAnalysis.CoreVisualiser import model_all_cores
 from ImageTools.VoxelProcessor import generate_voxels
-from Settings import \
-    MachineLearningManager as mlm, \
-    MessageTools as mt, \
-    SettingsManager as sm, \
-    FileManager as fm, \
-    DatabaseManager as dm
+from Settings import DatabaseManager as dm, FileManager as fm, MachineLearningManager as mlm, SettingsManager as sm, \
+    MessageTools as mt, EmailManager as em
 from Settings.MessageTools import print_notice
 
 # <<< Utilities
@@ -45,6 +40,8 @@ def setup():
     dm.connect_to_database()
     dm.initialise_database()
 
+    em.initialise()
+
     fm.initialise_directory_tree()
     fm.assign_special_folders()
 
@@ -65,7 +62,7 @@ def experiment_menu():
     print("[1] K-Cross Fold Validation")
     print("[2] Train/Test Split")
 
-    user_input = input("Enter your menu choice > ")
+    user_input = input("Enter a menu option > ")
 
     core_ids = data_selection_menu()
     random.shuffle(core_ids)
@@ -83,7 +80,7 @@ def experiment_menu():
         split = ""
 
         while not (str.isdigit(split) and 0 < int(split) <= (len(core_ids) - 1)):
-            split = input("How many cores should be used for testing? [1-%s] > " % str(len(core_ids) - 1))
+            split = input("How many cores should be used for training? [1-%s] > " % str(len(core_ids) - 1))
 
         split = int(split)
         ExperimentRunner.run_train_test_split_experiment(core_ids, split, architecture_loaded, multiprocessing_pool,
@@ -202,7 +199,7 @@ def data_selection_menu():
         print("[3] Select cores by air void percentage")
         print("[4] Select cores by mastic content percentage")
 
-        user_input = input("Input your choice > ")
+        user_input = input("Enter a menu option > ")
         valid = True
 
         if user_input == "1":
@@ -355,7 +352,7 @@ def data_visualisation_menu():
                 fold_id = None
 
             save_training_graphs((disc_loss, disc_accuracy), (gen_loss, gen_mse),
-                                 fm.compile_directory(fm.SpecialFolder.FIGURES) + 'Experiment-' + experiment_id,
+                                 fm.compile_directory(fm.SpecialFolder.FIGURES) + 'Experiment-' + experiment_id + '/Training/',
                                  experiment_id, fold_id, epochs, animate=True)
 
         else:
