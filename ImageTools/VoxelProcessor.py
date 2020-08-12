@@ -289,6 +289,12 @@ def generate_voxels(use_rois=True, multiprocessing_pool=None):
                 aggregates = np.array([x == 255 for x in voxels], dtype=bool)
                 binders = np.array([(x != 255) & (x != 0) for x in voxels], dtype=bool)
                 del voxels
+
+                # Shuffle the dataset
+                shuffle_order = np.random.permutation(len(aggregates))
+                aggregates = aggregates[shuffle_order]
+                binders = binders[shuffle_order]
+
                 save_voxel_tfrecord(aggregates, binders, array_dimensions, core_dimensions,
                                     dataset_directory, filename)
         # im.save_voxel_image_collection(voxels, fm.SpecialFolder.VOXEL_DATA, "figures/" + segment)

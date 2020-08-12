@@ -57,7 +57,7 @@ def run_experiment(dataset_iterator, gen_settings, disc_settings, experiment_id,
     start_time = datetime.now()
 
     d_loss, g_loss = DCGAN.Network.train_network_tfdata(batch_size, dataset_iterator, epochs, total_batches,
-                                                        fold + 1 if fold else None, animation_data)
+                                                        fold + 1 if fold is not None else None, animation_data)
 
     end_time = datetime.now()
 
@@ -141,7 +141,8 @@ def run_train_test_split_experiment(dataset_directories, split_count, architectu
         Logger.log_model_experiment_to_database(Logger.experiment_id, instance_id)
         database_logged = True
 
-    test_network(experiment_id, testing_sets, DCGAN.Network.generator, batch_size, -1, directory, multiprocessing_pool)
+    test_network(experiment_id, testing_sets, DCGAN.Network.generator, batch_size,
+                 figure_directory=directory, multiprocessing_pool=multiprocessing_pool)
 
 
 def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture, multiprocessing_pool=None,
@@ -248,7 +249,7 @@ def test_network(experiment_id, testing_sets, test_generator, batch_size, fold=N
     if not isinstance(testing_sets, list):
         testing_sets = list(testing_sets)
 
-    testing_set = testing_sets[fold] if fold else testing_sets
+    testing_set = testing_sets[fold] if fold is not None else testing_sets
 
     if not isinstance(testing_set, list):
         temp = testing_set
@@ -285,7 +286,7 @@ def test_network(experiment_id, testing_sets, test_generator, batch_size, fold=N
         results = results * 255
 
         experiment_id = "Experiment-" + str(Logger.experiment_id)
-        fold_id = "_Fold-" + str(fold) if fold else ""
+        fold_id = "_Fold-" + str(fold) if fold is not None else ""
 
         directory = fm.compile_directory(fm.SpecialFolder.FIGURES) + experiment_id + "/Outputs/" + current_set + "/"
         fm.create_if_not_exists(directory)
@@ -302,11 +303,12 @@ def test_network(experiment_id, testing_sets, test_generator, batch_size, fold=N
         slice_directory = directory + "BinderSlices/"
         fm.create_if_not_exists(slice_directory)
 
-        for ind, slice in tqdm(enumerate(binder_core), desc=mt.get_notice("Saving Generated Core Slices")):
-            im = Image.fromarray(slice)
+        for ind, ct_slice in tqdm(enumerate(binder_core),
+                                  desc=mt.get_notice("Saving Generated Core Slices"), total=len(binder_core)):
+            ct_image = Image.fromarray(ct_slice)
 
             buff_ind = (len(str(len(binder_core))) - len(str(ind))) * "0" + str(ind)
-            im.save(slice_directory + buff_ind + ".png")
+            ct_image.save(slice_directory + buff_ind + ".png")
 
         binder_core = cv.voxels_to_mesh(binder_core)
         aggregate_core = cv.voxels_to_mesh(aggregate_core)
