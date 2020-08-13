@@ -19,5 +19,11 @@
       <jdbc-driver>org.mariadb.jdbc.Driver</jdbc-driver>
       <jdbc-url>jdbc:mariadb://localhost:3306</jdbc-url>
     </data-source>
+    <data-source source="LOCAL" name="***REMOVED***" uuid="89b8b225-cffb-4a38-b7eb-38bf7b96003e">
+      <driver-ref>mariadb</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.mariadb.jdbc.Driver</jdbc-driver>
+      <jdbc-url>jdbc:mariadb://localhost:3306/***REMOVED***_Phase1</jdbc-url>
+    </data-source>
   </component>
 </project>

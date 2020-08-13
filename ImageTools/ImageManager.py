@@ -62,24 +62,25 @@ def segment_images(multiprocessing_pool, use_rois=True):
 
             max_contour_area = int(sm.get_setting("MAXIMUM_BLOB_AREA"))
 
-            segments = list(tqdm(map(pop.remove_particles, segments, itertools.repeat(max_contour_area, len(segments))),
-                            desc=get_notice("  Removing Small Particles", mt.MessagePrefix.INFORMATION),
-                            total=len(segments)))
+#            segments = list(tqdm(map(pop.remove_particles, segments, itertools.repeat(max_contour_area, len(segments))),
+#                            desc=get_notice("  Removing Small Particles", mt.MessagePrefix.INFORMATION),
+#                            total=len(segments)))
 
             print_notice("\tCleaning Aggregates... ", mt.MessagePrefix.INFORMATION)
             aggregates = list(tqdm(multiprocessing_pool.map(pop.fill_holes, [x == 2 for x in segments]),
                               desc=get_notice("    Filling Holes", mt.MessagePrefix.INFORMATION),
                               total=len(segments)))
 
-            aggregates = list(tqdm(multiprocessing_pool.map(pop.open_close_segment, aggregates),
-                              desc=get_notice("    Open/Closing Segment", mt.MessagePrefix.INFORMATION),
-                              total=len(aggregates)))
+#            aggregates = list(tqdm(multiprocessing_pool.map(pop.open_close_segment, aggregates),
+#                              desc=get_notice("    Open/Closing Segment", mt.MessagePrefix.INFORMATION),
+#                              total=len(aggregates)))
 
-            print_notice("\tCleaning Binders... ", mt.MessagePrefix.INFORMATION)
-            binders = list(tqdm(multiprocessing_pool.map(pop.open_close_segment, [x == 1 for x in segments]),
-                           desc=get_notice("    Open/Closing Segment", mt.MessagePrefix.INFORMATION),
-                           total=len(segments)))
+#            print_notice("\tCleaning Binders... ", mt.MessagePrefix.INFORMATION)
+#            binders = list(tqdm(multiprocessing_pool.map(pop.open_close_segment, [x == 1 for x in segments]),
+#                           desc=get_notice("    Open/Closing Segment", mt.MessagePrefix.INFORMATION),
+#                           total=len(segments)))
 
+            binders = [x == 1 for x in segments]
             binders = np.logical_and(binders, np.logical_not(aggregates))
 
             segments = list(tqdm(map(lambda x, y: (x * 255) + (y * 127), aggregates, binders),
@@ -99,9 +100,9 @@ def apply_preprocessing_pipeline(images, multiprocessing_pool):
     processed_images = images
 
     processed_images = prp.reshape_images(processed_images, pool=multiprocessing_pool)
-    processed_images = prp.enhanced_contrast_images(processed_images, pool=multiprocessing_pool)
-    processed_images = prp.normalise_images(processed_images, pool=multiprocessing_pool)
     processed_images = prp.denoise_images(processed_images, pool=multiprocessing_pool)
+    processed_images = prp.normalise_images(processed_images, pool=multiprocessing_pool)
+    processed_images = prp.enhanced_contrast_images(processed_images, pool=multiprocessing_pool)
     # processed_images = itp.remove_empty_scans(processed_images)
     # processed_images = itp.remove_anomalies(processed_images)
     # processed_images = itp.remove_backgrounds(processed_images)

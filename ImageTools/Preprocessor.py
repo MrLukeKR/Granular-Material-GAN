@@ -91,7 +91,7 @@ def normalise_image(image):
 def denoise_images(images, pool):
     print_notice("\tDe-noising Images... ", mt.MessagePrefix.INFORMATION)
     print_notice("\t\tPerforming 3D Gaussian Blur... ", mt.MessagePrefix.INFORMATION, end='')
-    gaussian_images = gaussian_filter(images, 2)
+    gaussian_images = gaussian_filter(images, 3)
 
     if sm.get_setting("ENABLE_IMAGE_SAVING") == "True":
         im.save_images(gaussian_images, "Gaussian", fm.SpecialFolder.SCAN_DATA, pool,
@@ -99,13 +99,13 @@ def denoise_images(images, pool):
     print("done!")
 
     print_notice("\t\tPerforming 3D Median Blur... ", mt.MessagePrefix.INFORMATION, end='')
-    fixed_images = median_filter(gaussian_images, 2)
+    fixed_images = median_filter(gaussian_images, 3)
 
     if sm.get_setting("ENABLE_IMAGE_SAVING") == "True":
         im.save_images(fixed_images, "Gaussian_Median", fm.SpecialFolder.SCAN_DATA, pool,
                        "Pre-Processed/De-Noised/")
-
     print("done!")
+
     return fixed_images
 
 
