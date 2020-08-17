@@ -5,16 +5,21 @@ from Settings import FileManager as fm, SettingsManager as sm, MessageTools as m
 from Settings.MessageTools import print_notice
 
 db = None
-db_cursor = None
-database_connected = False
+
+
+def get_cursor():
+    try:
+        db.ping(reconnect=True, attempts=3, delay=5)
+    except mysql.connector.Error as err:
+        print_notice("Database is not connected: " + err.msg, mt.MessagePrefix.ERROR)
+
+        connect_to_database()
+
+    return db.cursor()
 
 
 def reinitialise_database():
-    global db, db_cursor, database_connected
-
-    if not database_connected:
-        print_notice("Database is not connected!", mt.MessagePrefix.ERROR)
-        exit(-1)
+    db_cursor = get_cursor()
 
     print_notice("Deleting databases... ", mt.MessagePrefix.INFORMATION, end='')
     db_cursor.execute("DROP DATABASE ct_scans;")
@@ -25,9 +30,10 @@ def reinitialise_database():
 
 
 def connect_to_database():
-    global db, db_cursor, database_connected
+    global db
 
     try:
+        print_notice("Connecting to Database...")
         db = mysql.connector.connect(
             host=sm.auth.get("DB_HOST"),
             port=sm.auth.get("DB_PORT"),
@@ -35,15 +41,16 @@ def connect_to_database():
             passwd=sm.auth.get("DB_PASS")
         )
 
-        db_cursor = db.cursor()
         db.autocommit = True
-        database_connected = True
+        print_notice("Connected to Database!", mt.MessagePrefix.SUCCESS)
     except Exception as exc:
-        print(exc)
+        print_notice(exc, mt.MessagePrefix.ERROR)
         exit(-1)
 
 
 def get_cores_from_database(ignore_blacklist=False):
+    db_cursor = get_cursor()
+
     db_cursor.execute("USE ct_scans;")
 
     sql = "SELECT * FROM asphalt_cores"
@@ -69,6 +76,8 @@ def get_experiment_information():
 
 
 def get_training_data(experiment_id):
+    db_cursor = get_cursor()
+
     sql = "SELECT * FROM training WHERE ExperimentID=" + experiment_id + ';'
     db_cursor.execute(sql)
 
@@ -76,6 +85,8 @@ def get_training_data(experiment_id):
 
 
 def populate_ct_scan_database():
+    db_cursor = get_cursor()
+
     db_cursor.execute("CREATE DATABASE IF NOT EXISTS ct_scans;")
     db_cursor.execute("USE ct_scans;")
     db_cursor.execute("CREATE TABLE IF NOT EXISTS asphalt_cores"
@@ -122,6 +133,8 @@ def populate_ct_scan_database():
 
 
 def initialise_settings():
+    db_cursor = get_cursor()
+
     db_cursor.execute("USE ***REMOVED***_Phase1;")
 
     db_cursor.execute("CREATE TABLE IF NOT EXISTS settings"
@@ -137,6 +150,7 @@ def initialise_settings():
                       
                       "('IO_UNPROCESSED_SCAN_ROOT_DIR', 'Unprocessed'),"
                       "('IO_PROCESSED_SCAN_ROOT_DIR', 'Processed'),"
+
                       "('IO_ROI_SCAN_ROOT_DIR', 'Regions-Of-Interest'),"
                       
                       "('IO_SEGMENTED_SCAN_ROOT_DIR', 'Segmented'),"
@@ -219,6 +233,8 @@ def initialise_settings():
 
 
 def initialise_machine_learning_database():
+    db_cursor = get_cursor()
+
     db_cursor.execute("CREATE DATABASE IF NOT EXISTS ***REMOVED***_Phase1;")
     db_cursor.execute("USE ***REMOVED***_Phase1;")
 
@@ -301,11 +317,7 @@ def initialise_machine_learning_database():
 
 
 def initialise_database():
-    global db, db_cursor, database_connected
-
-    if not database_connected:
-        print_notice("Database is not connected!", mt.MessagePrefix.ERROR)
-        exit(-1)
+    global db
 
     print_notice("Initialising database... ", mt.MessagePrefix.INFORMATION)
     try:

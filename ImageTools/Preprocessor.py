@@ -1,14 +1,18 @@
 import statistics
-
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+from skimage import exposure, filters
+
 import ImageTools.ImageManager as im
 import Settings.FileManager as fm
 import scipy.signal as ss
 
+from skimage.filters import difference_of_gaussians
 from scipy.ndimage import gaussian_filter, median_filter
-from Settings.MessageTools import print_notice
+
+from ImageTools import SmallestEnclosingCircle
+from Settings.MessageTools import print_notice, get_notice
 from skimage.restoration import denoise_tv_chambolle
 from tqdm import tqdm
 from sklearn.preprocessing import binarize
@@ -34,8 +38,8 @@ def remove_empty_scans(images):
 def normalise_images(images, pool):
     fixed_images = list()
 
-    print_notice("\tNormalising Images... ", mt.MessagePrefix.INFORMATION, end='')
-    for ind, res in enumerate(pool.map(normalise_image, images)):
+    print_notice("\tNormalising... ", mt.MessagePrefix.INFORMATION, end='')
+    for ind, res in enumerate(pool.imap(normalise_image, images)):
         fixed_images.insert(ind, res)
 
     if sm.get_setting("ENABLE_IMAGE_SAVING") == "True":
@@ -50,11 +54,11 @@ def reshape_images(images, pool):
     reshaped_images = list()
     dimensions = statistics.mode([x.shape for x in images])
 
-    print_notice("\tReshaping Images... ", mt.MessagePrefix.INFORMATION, end='')
-    for ind, res in enumerate(pool.starmap(reshape_image, zip(images, [dimensions] * len(images)))):
+    for ind, res in tqdm(enumerate(pool.starmap(reshape_image, zip(images, [dimensions] * len(images)))),
+                         desc=get_notice("\tReshaping"),
+                         total=len(images)):
         reshaped_images.insert(ind, res)
 
-    print("done!")
     return reshaped_images
 
 
@@ -67,29 +71,41 @@ def reshape_image(image, dimensions):
     return reshaped
 
 
-def enhanced_contrast_images(images, pool):
+def enhance_contrasts(images, pool):
     enhanced_images = list()
 
-    print_notice("\tEnhancing Contrast... ", mt.MessagePrefix.INFORMATION, end='')
-    for ind, res in enumerate(pool.map(enhance_contrast, images)):
+    for ind, res in tqdm(enumerate(pool.imap(enhance_contrast, images)),
+                         desc=get_notice("\tEnhancing Contrast"),
+                         total=len(images)):
         enhanced_images.insert(ind, res)
 
-    print("done!")
     return enhanced_images
 
 
 def enhance_contrast(image):
-    return cv2.equalizeHist(image)
+    return exposure.equalize_adapthist(image, clip_limit=0.03)
 
 
 def normalise_image(image):
-    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(20, 20))
+    return np.array((image / np.max(image)) * 255, dtype=np.uint8)
 
-    return clahe.apply(image)
+
+def bandpass_filter_images(images, pool):
+    filtered_images = list(tqdm(pool.imap(bandpass_filter, images),
+                           desc=get_notice("\tBandpass Filtering"),
+                           total=len(images)))
+
+    return filtered_images
+
+
+def bandpass_filter(image):
+    filtered_image = difference_of_gaussians(image, 1, 12)
+
+    return filtered_image
 
 
 def denoise_images(images, pool):
-    print_notice("\tDe-noising Images... ", mt.MessagePrefix.INFORMATION)
+    print_notice("\tDe-noising... ", mt.MessagePrefix.INFORMATION)
     print_notice("\t\tPerforming 3D Gaussian Blur... ", mt.MessagePrefix.INFORMATION, end='')
     gaussian_images = gaussian_filter(images, 3)
 
@@ -98,13 +114,14 @@ def denoise_images(images, pool):
                        "Pre-Processed/De-Noised/")
     print("done!")
 
-    print_notice("\t\tPerforming 3D Median Blur... ", mt.MessagePrefix.INFORMATION, end='')
-    fixed_images = median_filter(gaussian_images, 3)
+    #print_notice("\t\tPerforming 3D Median Blur... ", mt.MessagePrefix.INFORMATION, end='')
+    #fixed_images = median_filter(gaussian_images, 5)
+    fixed_images = gaussian_images
 
-    if sm.get_setting("ENABLE_IMAGE_SAVING") == "True":
-        im.save_images(fixed_images, "Gaussian_Median", fm.SpecialFolder.SCAN_DATA, pool,
-                       "Pre-Processed/De-Noised/")
-    print("done!")
+    #if sm.get_setting("ENABLE_IMAGE_SAVING") == "True":
+#        im.save_images(fixed_images, "Gaussian_Median", fm.SpecialFolder.SCAN_DATA, pool,
+ #                      "Pre-Processed/De-Noised/")
+#    print("done!")
 
     return fixed_images
 
@@ -128,50 +145,17 @@ def remove_anomalies(images):
     return fixed_images
 
 
-def remove_backgrounds(images):
-    fixed_images = list()
-    print_notice("\tRemoving backgrounds (air-voids)... ", mt.MessagePrefix.INFORMATION, end='')
+def remove_backgrounds(images, pool):
+    print_notice("\tRemoving backgrounds... ", mt.MessagePrefix.INFORMATION, end='')
 
-    for x in tqdm(range(len(images))):
-        fixed_images.append(remove_background(images[x]))
-
-        if sm.get_setting("ENABLE_IMAGE_SAVING") == "True":
-            im.save_image(fixed_images[x], str(x), "Pre-processing/BackgroundRemoved/")
+    fixed_images = list(tqdm(pool.imap(remove_background, images)))
 
     print("done!")
     return fixed_images
 
 
 def remove_background(image):
-    image_array = np.squeeze(image, 2).astype(dtype=float)
-    image_array = image_array.astype(dtype=int)
-
-    if sm.get_setting("ENABLE_IMAGE_DISPLAY") == "True":
-        content = image_array[np.nonzero(image_array)]
-        min_val = np.min(content)
-        max_val = np.max(content)
-        hist, _ = np.histogram(image_array, bins=255, range=(min_val, max_val))
-        hist = hist[np.nonzero(hist)]
-
-        width_val = 2
-        peaks, _ = ss.find_peaks(hist, width=width_val)
-
-        black_value = peaks[1] + width_val / 2
-
-        fig, axarr = plt.subplots(1, 3)
-
-        anomaly_mask = image_array <= black_value
-
-        axarr[0].imshow(image_array)
-        axarr[0].set_title("Before")
-
-        axarr[1].imshow(anomaly_mask)
-        axarr[1].set_title("Anomaly Mask")
-
-        plt.show()
-
-        return np.expand_dims(anomaly_mask, 2)
-    return None
+    raise NotImplemented
 
 
 def remove_anomaly(image):

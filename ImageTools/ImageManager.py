@@ -14,6 +14,7 @@ from os import walk
 from matplotlib import cm
 from tqdm import tqdm
 from Settings import FileManager as fm, SettingsManager as sm, MessageTools as mt
+from Settings.EmailManager import send_email
 from Settings.MessageTools import print_notice, get_notice
 
 global_voxels = None
@@ -45,67 +46,97 @@ def segment_images(multiprocessing_pool, use_rois=True):
 
     for data_directory in fm.data_directories:
         segments = load_images_from_directory(data_directory, multiprocessing_pool=multiprocessing_pool)
-        fm.current_directory = data_directory.replace(fm.compile_directory(
-            fm.SpecialFolder.ROI_SCANS if use_rois else fm.SpecialFolder.PROCESSED_SCANS), '')
+        fm.current_directory = data_directory.replace(fm.compile_directory(fm.SpecialFolder.PROCESSED_SCANS), '')
 
         if not fm.current_directory.endswith('/'):
             fm.current_directory += '/'
         # sm.images = images # TODO: Does this need to be here?
 
         # \-- | 2D DATA SEGMENTATION SUB-MODULE
-        segments = list(tqdm(multiprocessing_pool.map(segmentor2D.segment_image, segments),
-                        desc=get_notice("  Segmenting images", mt.MessagePrefix.INFORMATION),
+        segments = list(tqdm(multiprocessing_pool.imap(segmentor2D.segment_image, segments),
+                        desc=get_notice("Segmenting images", mt.MessagePrefix.INFORMATION),
                         total=len(segments)))
 
         if sm.get_setting("ENABLE_POSTPROCESSING") == "True":
-            print_notice("Post-processing Segment Collection...", mt.MessagePrefix.INFORMATION)
-
-            max_contour_area = int(sm.get_setting("MAXIMUM_BLOB_AREA"))
-
-#            segments = list(tqdm(map(pop.remove_particles, segments, itertools.repeat(max_contour_area, len(segments))),
-#                            desc=get_notice("  Removing Small Particles", mt.MessagePrefix.INFORMATION),
-#                            total=len(segments)))
-
-            print_notice("\tCleaning Aggregates... ", mt.MessagePrefix.INFORMATION)
-            aggregates = list(tqdm(multiprocessing_pool.map(pop.fill_holes, [x == 2 for x in segments]),
-                              desc=get_notice("    Filling Holes", mt.MessagePrefix.INFORMATION),
-                              total=len(segments)))
-
-#            aggregates = list(tqdm(multiprocessing_pool.map(pop.open_close_segment, aggregates),
-#                              desc=get_notice("    Open/Closing Segment", mt.MessagePrefix.INFORMATION),
-#                              total=len(aggregates)))
-
-#            print_notice("\tCleaning Binders... ", mt.MessagePrefix.INFORMATION)
-#            binders = list(tqdm(multiprocessing_pool.map(pop.open_close_segment, [x == 1 for x in segments]),
-#                           desc=get_notice("    Open/Closing Segment", mt.MessagePrefix.INFORMATION),
-#                           total=len(segments)))
-
-            binders = [x == 1 for x in segments]
-            binders = np.logical_and(binders, np.logical_not(aggregates))
-
-            segments = list(tqdm(map(lambda x, y: (x * 255) + (y * 127), aggregates, binders),
-                            desc=get_notice("  Recombining Segments", mt.MessagePrefix.INFORMATION),
-                            total=len(segments)))
+            segments = apply_postprocessing_pipeline(segments, multiprocessing_pool)
 
         print_notice("Saving segmented images... ", mt.MessagePrefix.INFORMATION)
-        #save_images(binders, "binder", fm.SpecialFolder.SEGMENTED_SCANS, multiprocessing_pool)
-        #save_images(aggregates, "aggregate", fm.SpecialFolder.SEGMENTED_SCANS, multiprocessing_pool)
-        #save_images(voids, "void", fm.SpecialFolder.SEGMENTED_SCANS, multiprocessing_pool)
-
+        # save_images(binders, "binder", fm.SpecialFolder.SEGMENTED_SCANS, multiprocessing_pool)
+        # save_images(aggregates, "aggregate", fm.SpecialFolder.SEGMENTED_SCANS, multiprocessing_pool)
+        # save_images(voids, "void", fm.SpecialFolder.SEGMENTED_SCANS, multiprocessing_pool)
         save_images(segments, "segment", segment_dir, multiprocessing_pool)
+
+        send_email("Completed %s post-processing" % data_directory)
+
+
+def apply_postprocessing_pipeline(segments, multiprocessing_pool):
+    print_notice("Post-processing Segment Collection...", mt.MessagePrefix.INFORMATION)
+
+    max_contour_area = int(sm.get_setting("MAXIMUM_BLOB_AREA"))
+
+    segments = prp.reshape_images(segments, multiprocessing_pool)
+
+    segments = list(tqdm(multiprocessing_pool.starmap(pop.remove_particles,
+                         zip(segments, itertools.repeat(max_contour_area, len(segments)))),
+                         desc=get_notice("\tRemoving Small Particles", mt.MessagePrefix.INFORMATION),
+                         total=len(segments)))
+
+    #print_notice("\tCleaning Aggregates... ", mt.MessagePrefix.INFORMATION)
+    #aggregates = list(tqdm(multiprocessing_pool.imap(pop.fill_holes, [x == 2 for x in segments]),
+    #                       desc=get_notice("    Filling Holes", mt.MessagePrefix.INFORMATION),
+    #                       total=len(segments)))
+    #            aggregates = list(tqdm(multiprocessing_pool.imap(pop.open_close_segment, aggregates),
+    #                              desc=get_notice("    Open/Closing Segment", mt.MessagePrefix.INFORMATION),
+    #                              total=len(aggregates)))
+
+    #            print_notice("\tCleaning Binders... ", mt.MessagePrefix.INFORMATION)
+    #            binders = list(tqdm(multiprocessing_pool.imap(pop.open_close_segment, [x == 1 for x in segments]),
+    #                           desc=get_notice("    Open/Closing Segment", mt.MessagePrefix.INFORMATION),
+    #                           total=len(segments)))
+
+    #binders = np.array([x == 1 for x in segments])
+    #binders = np.logical_and(binders, np.logical_not(aggregates))
+
+    #segments = list(tqdm(map(lambda x, y: (x * 255) + (y * 127), aggregates, binders),
+    #                     desc=get_notice("  Recombining Segments", mt.MessagePrefix.INFORMATION),
+    #                     total=len(segments)))
+
+    return segments
 
 
 def apply_preprocessing_pipeline(images, multiprocessing_pool):
     print_notice("Pre-processing Image Collection...", mt.MessagePrefix.INFORMATION)
     processed_images = images
 
+#    images[50] = prp.reshape_image(images[50], (1024, 1024))
+#    test = prp.normalise_image(images[50])
+#    test = prp.denoise_image(test)
+#    test = prp.normalise_image(test)
+#    test = prp.enhance_contrast(test)
+#    test = prp.normalise_image(test)
+#    test = prp.bandpass_filter(test)
+#    test = prp.normalise_image(test)
+#
+#    f, axarr = plt.subplots(1, 4)
+#
+#    axarr[0].imshow(images[50])
+#    axarr[1].imshow(test)
+#    negate = 255 - test
+#    axarr[2].imshow(negate)
+#    axarr[3].imshow(images[50] - negate)
+#    axarr[3].imshow(images[50] * (negate / np.max(negate)))
+#    plt.show()
+
     processed_images = prp.reshape_images(processed_images, pool=multiprocessing_pool)
+    # processed_images = prp.remove_backgrounds(processed_images, pool=multiprocessing_pool)
     processed_images = prp.denoise_images(processed_images, pool=multiprocessing_pool)
+
+    processed_images = prp.enhance_contrasts(processed_images, pool=multiprocessing_pool)
+    # processed_images = prp.bandpass_filter_images(processed_images, pool=multiprocessing_pool)
+
     processed_images = prp.normalise_images(processed_images, pool=multiprocessing_pool)
-    processed_images = prp.enhanced_contrast_images(processed_images, pool=multiprocessing_pool)
     # processed_images = itp.remove_empty_scans(processed_images)
     # processed_images = itp.remove_anomalies(processed_images)
-    # processed_images = itp.remove_backgrounds(processed_images)
 
     return processed_images
 
@@ -127,6 +158,7 @@ def extract_rois(multiprocessing_pool):
         fm.current_directory = data_directory.replace(fm.compile_directory(fm.SpecialFolder.PROCESSED_SCANS), '')
 
         images = load_images_from_directory(data_directory, multiprocessing_pool=multiprocessing_pool)
+        images = prp.reshape_images(images, multiprocessing_pool)
         images = extract_roi(np.array(images))
 
         print_notice("Saving Region of Interest (ROI) images... ", mt.MessagePrefix.INFORMATION, end='')
@@ -142,11 +174,11 @@ def extract_roi(core):
     roi_depth_metric = sm.get_setting("ROI_DEPTH_METRIC")
 
     if roi_image_metric == "PERCENTAGE":
-        roi_percentages = [float(x) / 100 for x in sm.configuration.get("ROI_IMAGE_DIMENSIONS").split(',')]
+        roi_percentages = [float(x) / 100 for x in sm.get_setting("ROI_IMAGE_DIMENSIONS").split(',')]
         roi_size = (int(roi_percentages[0] * core.shape[1]),
                     int(roi_percentages[1] * core.shape[2]))
     elif roi_image_metric == "PIXELS":
-        roi_size = tuple(map(int, sm.configuration.get("ROI_IMAGE_DIMENSIONS").split(',')))
+        roi_size = tuple(map(int, sm.get_setting("ROI_IMAGE_DIMENSIONS").split(',')))
     elif roi_image_metric == "MILLIMETRES":
         raise NotImplementedError
     else:
@@ -154,9 +186,9 @@ def extract_roi(core):
         raise ValueError
 
     if roi_depth_metric == "ABSOLUTE":
-        roi_size = (int(sm.configuration.get("ROI_DEPTH_DIMENSION")), roi_size[0], roi_size[1])
+        roi_size = (int(sm.get_setting("ROI_DEPTH_DIMENSION")), roi_size[0], roi_size[1])
     elif roi_depth_metric == "PERCENTAGE":
-        roi_percentage = float(sm.configuration.get("ROI_DEPTH_DIMENSION")) / 100
+        roi_percentage = float(sm.get_setting("ROI_DEPTH_DIMENSION")) / 100
         roi_size = (int(roi_percentage * core.shape[0]), roi_size[0], roi_size[1])
     else:
         print_notice("Invalid value for ROI Depth Metric", mt.MessagePrefix.ERROR)
@@ -195,12 +227,15 @@ def preprocess_images(multiprocessing_pool):
     for data_directory in fm.data_directories:
         fm.current_directory = data_directory.replace(fm.compile_directory(fm.SpecialFolder.UNPROCESSED_SCANS), '')
 
+        print_notice("Preprocessing %s..." % data_directory)
         images = load_images_from_directory(data_directory, multiprocessing_pool=multiprocessing_pool)
         images = apply_preprocessing_pipeline(images, multiprocessing_pool)
 
         print_notice("Saving processed images... ", mt.MessagePrefix.INFORMATION, end='')
         save_images(images, "processed_scan", fm.SpecialFolder.PROCESSED_SCANS, multiprocessing_pool)
         print("done!")
+
+        send_email("Completed %s preprocessing" % data_directory)
 
 
 def save_plot(filename, save_location, root_directory, use_current_directory):
@@ -214,19 +249,20 @@ def save_plot(filename, save_location, root_directory, use_current_directory):
 
     fm.create_if_not_exists(plot_directory)
 
-    file_loc = plot_directory + '/' + filename + '.' + sm.configuration.get("IO_IMAGE_FILETYPE")
+    file_loc = plot_directory + '/' + filename + '.' + sm.get_setting("IO_IMAGE_FILETYPE")
 
     if not fm.file_exists(file_loc):
         if sm.USE_BW:
-            plt.savefig(file_loc, cmap='gray', dpi=int(sm.configuration.get("IO_OUTPUT_DPI")))
+            plt.savefig(file_loc, cmap='gray', dpi=int(sm.get_setting("IO_OUTPUT_DPI")))
         else:
-            plt.savefig(file_loc, cmap='jet', dpi=int(sm.configuration.get("IO_OUTPUT_DPI")))
+            plt.savefig(file_loc, cmap='jet', dpi=int(sm.get_setting("IO_OUTPUT_DPI")))
 
 
 def save_images(images, filename_pretext, root_directory, multiprocessing_pool, save_location="", use_current_directory=True):
     image_count = len(images)
+    current_core = fm.current_directory.split('/')[-2]
     arguments = zip(images, itertools.repeat(fm.compile_directory(root_directory), image_count),
-                    itertools.repeat(save_location + fm.current_directory, image_count),
+                    itertools.repeat(save_location + current_core + '/', image_count),
                     itertools.repeat(filename_pretext, image_count), itertools.repeat(len(str(len(images))), image_count),
                     range(image_count), itertools.repeat(use_current_directory, image_count))
     list_arg = list(arguments)
@@ -244,7 +280,7 @@ def save_segmentation_plots(images, segments, voids, binders, aggregates):
         ax[0, 0].imshow(np.reshape(images[i], (1024, 1024)))
 
         ax[0, 1].axis('off')
-        if sm.configuration.get("ENABLE_PREPROCESSING") == "True":
+        if sm.get_setting("ENABLE_PREPROCESSING") == "True":
             ax[0, 1].set_title("Processed Image")
             ax[0, 1].imshow(np.reshape(images[i], (1024, 1024)))
 
@@ -268,9 +304,9 @@ def save_segmentation_plots(images, segments, voids, binders, aggregates):
 
 
 def save_voxel_image(voxel, file_name, save_location):
-    image_directory = sm.configuration.get("IO_ROOT_DIR") + fm.current_directory + save_location
+    image_directory = sm.get_setting("IO_ROOT_DIR") + fm.current_directory + save_location
 
-    file_loc = image_directory + file_name + '.' + sm.configuration.get("IO_IMAGE_FILETYPE")
+    file_loc = image_directory + file_name + '.' + sm.get_setting("IO_IMAGE_FILETYPE")
 
     fm.create_if_not_exists(image_directory)
 
@@ -287,7 +323,7 @@ def parallel_save(i):
 
     buff_ind = '0' * (len(str(len(global_voxels))) - len(str(i))) + str(i)
 
-    file_loc = directory + '/' + buff_ind + '.' + sm.configuration.get("IO_IMAGE_FILETYPE")
+    file_loc = directory + '/' + buff_ind + '.' + sm.get_setting("IO_IMAGE_FILETYPE")
 
     voxel = global_voxels[i]
 
@@ -342,7 +378,7 @@ def save_voxel_image_collection(voxels, root_location, multiprocessing_pool, sav
 
     fm.create_if_not_exists(directory)
 
-    multiprocessing_pool.map(parallel_save, range(len(voxels)))
+    multiprocessing_pool.imap(parallel_save, range(len(voxels)))
 
     global_voxels = None
     global_comparison_voxels = None
@@ -402,9 +438,9 @@ def load_images_from_list(file_list, multiprocessing_pool=None):
     file_list.sort()
 
     ims = list(tqdm(map(load_image, file_list) if multiprocessing_pool is None
-               else multiprocessing_pool.map(load_image, file_list),
+               else multiprocessing_pool.imap(load_image, file_list),
                desc=get_notice("Loading images", mt.MessagePrefix.INFORMATION),
-               total=len(file_list)).iterable)
+               total=len(file_list)))
 
     if len(ims) == 0:
         print_notice("No images were loaded!", mt.MessagePrefix.ERROR)

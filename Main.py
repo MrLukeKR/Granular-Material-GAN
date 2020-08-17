@@ -16,6 +16,7 @@ from ImageTools.CoreAnalysis.CoreVisualiser import model_all_cores
 from ImageTools.VoxelProcessor import generate_voxels
 from Settings import DatabaseManager as dm, FileManager as fm, MachineLearningManager as mlm, SettingsManager as sm, \
     MessageTools as mt, EmailManager as em
+from Settings.EmailManager import send_email
 from Settings.MessageTools import print_notice
 
 # <<< Utilities
@@ -442,10 +443,14 @@ def main():
     # \-- | DATA LOADING SUB-MODULE
     if sm.get_setting("ENABLE_SEGMENTATION") == "True":
         im.segment_images(multiprocessing_pool, True)
+        # send_email("Segmenting ROIs is finished!")
         im.segment_images(multiprocessing_pool, False)
+        send_email("Segmenting Cores is finished!")
 
     generate_voxels(True, multiprocessing_pool)
+    send_email("Generating voxels from ROIs is finished!")
     generate_voxels(False, multiprocessing_pool)
+    send_email("Generating voxels from Cores is finished!")
     # \-- | SEGMENT-TO-VOXEL CONVERSION SUB-MODULE
 
     update_database_core_analyses()

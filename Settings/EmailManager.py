@@ -5,6 +5,7 @@ import socket
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from Settings import SettingsManager as sm
+from Settings import MessageTools as mt
 
 user = None
 server = None
@@ -39,14 +40,22 @@ def send_email(message, subject="[Automated Alert] Asphalt GAN Notification", re
 
     email.attach(plain)
 
-    email_server = smtplib.SMTP(host=server, port=port)
+    try:
+        email_server = smtplib.SMTP(host=server, port=port)
 
-    email_server.login(user, password)
-    email_server.send_message(email)
+        email_server.login(user, password)
+        email_server.send_message(email)
+    except:
+        mt.print_notice("Could not send e-mail", mt.MessagePrefix.ERROR)
 
 
 def send_results_generation_success(experiment_id, start_time, end_time):
     total_time = (end_time - start_time)
+
+    try:
+        hostname = socket.gethostname()
+    except:
+        hostname = "Unknown Host"
 
     email_notification = """Hi there,
 
@@ -57,7 +66,7 @@ def send_results_generation_success(experiment_id, start_time, end_time):
                             Time taken: %s
 
                             ~ Automated Notification System
-                            """ % (str(experiment_id), socket.gethostname(),
+                            """ % (str(experiment_id), hostname,
                                    start_time.strftime(time_fmt), end_time.strftime(time_fmt), str(total_time))
 
     send_email(email_notification, "[Success Notification] Results for %s Completed" % str(experiment_id))
@@ -68,6 +77,11 @@ def send_experiment_success(experiment_id, start_time, end_time, g_loss, d_loss)
 
     gen_loss, gen_mse = ([x[0] for x in g_loss], [x[1] for x in g_loss])
     disc_loss, disc_acc = ([x[0] for x in d_loss], [x[1] for x in d_loss])
+
+    try:
+        hostname = socket.gethostname()
+    except:
+        hostname = "Unknown Host"
 
     email_notification = """Hi there,
 
@@ -100,7 +114,7 @@ def send_experiment_success(experiment_id, start_time, end_time, g_loss, d_loss)
                             ---------------------------
 
                             ~ Automated Notification System
-                            """ % (str(experiment_id), socket.gethostname(),
+                            """ % (str(experiment_id), hostname,
                                    start_time.strftime(time_fmt), end_time.strftime(time_fmt), str(total_time),
                                    str(gen_loss[-1]), str(gen_mse[-1]),
                                    str(min(gen_loss)), str(max(gen_loss)),

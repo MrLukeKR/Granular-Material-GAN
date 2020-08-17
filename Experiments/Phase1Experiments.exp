@@ -19,10 +19,10 @@ expect "Enter the architecture ID to load" { send "0\r" }
 
 # -- END OF SETUP --
 
-# Run over each AVC
-for {set a 0} {$a < 5} {incr a 1} {
-	# Run each AVC experiment 3 times
-	for {set i 0} {$i < 3} {incr i 1} {
+# Run each AVC experiment 3 times
+for {set i 0} {$i < 3} {incr i 1} {
+	# Run over each AVC
+	for {set a 0} {$a < 5} {incr a 1} {
 	
 		# Being training the model
 		expect "Enter a menu option" { send "4\r" }
@@ -39,10 +39,8 @@ for {set a 0} {$a < 5} {incr a 1} {
 		# Use MAX-1 cores for training (1 for testing)
 		expect "How many cores should be used for training?" { send "$avc_test_values($a)\r" }
 	}
-}
-
-# Run the ALL cores experiment 3 times
-for {set i 0} {$i < 3} {incr i 1} {
+	
+	# Run the ALL cores experiment 3 times
 	# Being training the model
 	expect "Enter a menu option" { send "4\r" }
 	
@@ -53,7 +51,7 @@ for {set i 0} {$i < 3} {incr i 1} {
 	expect "Enter a menu option" { send "1\r" }
 
 	# Use MAX-1 cores for training (1 for testing)
-	expect "How many cores should be used for training?" { send "36\r" }
+	expect "How many cores should be used for training?" { send "37\r" }
 }
 
 # Wait to return to the menu
