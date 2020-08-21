@@ -30,10 +30,12 @@ USE_BW = True
 
 
 def get_setting(setting_id):
-    sql = "SELECT Value FROM ***REMOVED***_Phase1.settings WHERE Name='" + setting_id + "';"
-    dm.db_cursor.execute(sql)
+    db_cursor = dm.get_cursor()
 
-    setting = dm.db_cursor.fetchone()
+    sql = "SELECT Value FROM ***REMOVED***_Phase1.settings WHERE Name='" + setting_id + "';"
+    db_cursor.execute(sql)
+
+    setting = db_cursor.fetchone()
 
     if setting is None:
         print_notice("Setting '%s' does not exist!" % setting_id, mt.MessagePrefix.ERROR)

@@ -7,6 +7,7 @@ import tensorflow as tf
 
 from ImageTools import ImageManager as im
 from Settings import FileManager as fm, SettingsManager as sm, MessageTools as mt
+from Settings.EmailManager import send_email
 from Settings.MessageTools import print_notice
 
 # DO NOT DELETE THIS! It shows as unused but it is vital to 3D projection
@@ -298,6 +299,7 @@ def generate_voxels(use_rois=True, multiprocessing_pool=None):
                 save_voxel_tfrecord(aggregates, binders, array_dimensions, core_dimensions,
                                     dataset_directory, filename)
         # im.save_voxel_image_collection(voxels, fm.SpecialFolder.VOXEL_DATA, "figures/" + segment)
+    send_email("Generating voxels from %ss is finished!" % ("ROI" if use_rois else "Core"))
 
 
 def save_voxel_tfrecord(aggregates, binders, array_dimensions, core_dimensions, directory, filename):

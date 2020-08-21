@@ -282,6 +282,7 @@ def test_network(experiment_id, testing_sets, test_generator, batch_size, fold=N
 
         # Rescale outputs into [0, 1], which can then be thresholded and scaled into [0, 255]
 
+        print_notice("Rescaling outputs to 0-255...")
         results = results >= float(sm.get_setting("IO_GAN_OUTPUT_THRESHOLD"))
         results = results * 255
 

@@ -28,16 +28,17 @@ class Logger:
     def __init__(self, log_directory, folds, epochs, batch_size, log_file_name=None):
         try:
             if not Logger._initialised:
-                if dm.database_connected:
-                    sql = "INSERT INTO experiments (Timestamp, CPUCores, CPUSpeed, GPUVRAMSize, "\
-                          "GPUCUDACores, RAMSize, Folds, Epochs, BatchSize) "\
-                          "VALUES (CURRENT_TIMESTAMP, '%s', '%s', '%s', '%s', '%s', " % get_system_info()
-                    sql += "'%s', '%s', '%s');" % (folds, epochs, batch_size)
+                sql = "INSERT INTO experiments (Timestamp, CPUCores, CPUSpeed, GPUVRAMSize, "\
+                      "GPUCUDACores, RAMSize, Folds, Epochs, BatchSize) "\
+                      "VALUES (CURRENT_TIMESTAMP, '%s', '%s', '%s', '%s', '%s', " % get_system_info()
+                sql += "'%s', '%s', '%s');" % (folds, epochs, batch_size)
 
-                    dm.db_cursor.execute(sql)
+                db_cursor = dm.get_cursor()
 
-                    dm.db_cursor.execute("SELECT ID FROM experiments ORDER BY Timestamp DESC LIMIT 1;")
-                    Logger.experiment_id = dm.db_cursor.fetchall()[0][0]
+                db_cursor.execute(sql)
+
+                db_cursor.execute("SELECT ID FROM experiments ORDER BY Timestamp DESC LIMIT 1;")
+                Logger.experiment_id = db_cursor.fetchall()[0][0]
 
                 if not Logger.experiment_id:
                     Logger.experiment_id = Logger.get_timestamp()
@@ -60,84 +61,78 @@ class Logger:
     @staticmethod
     def log_model_instance_to_database(architecture_id, gen_filepath, disc_filepath):
         print_notice("Logging model instance to database... ", mt.MessagePrefix.DEBUG, end='')
-        if dm.database_connected:
-            sql = "INSERT INTO model_instances (ArchitectureID, GeneratorFilePath, DiscriminatorFilePath) VALUES (%s, %s, %s);"
-            val = (architecture_id, gen_filepath, disc_filepath)
-            dm.db_cursor.execute(sql, val)
 
-            dm.db_cursor.execute("SELECT ID FROM model_instances "
-                                 "WHERE GeneratorFilePath = '%s' AND DiscriminatorFilePath = '%s'" % (gen_filepath, disc_filepath))
+        sql = "INSERT INTO model_instances (ArchitectureID, GeneratorFilePath, DiscriminatorFilePath) VALUES (%s, %s, %s);"
+        val = (architecture_id, gen_filepath, disc_filepath)
+        db_cursor = dm.get_cursor()
 
-            print('done')
+        db_cursor.execute(sql, val)
 
-            return dm.db_cursor.fetchone()
-        else:
-            raise ConnectionError
+        db_cursor.execute("SELECT ID FROM model_instances "
+                          "WHERE GeneratorFilePath = '%s' AND DiscriminatorFilePath = '%s'" % (gen_filepath, disc_filepath))
+
+        print('done')
+
+        return db_cursor.fetchone()
 
     @staticmethod
     def log_model_experiment_to_database(experiment_id, instance_id):
-        if dm.database_connected:
-            sql = "INSERT INTO model_experiments (ExperimentID, ModelInstanceID) VALUES (%s, %s);"
-            val = (experiment_id, instance_id)
+        sql = "INSERT INTO model_experiments (ExperimentID, ModelInstanceID) VALUES (%s, %s);"
+        val = (experiment_id, instance_id)
 
-            dm.db_cursor.execute(sql, val)
-        else:
-            raise ConnectionError
+        db_cursor = dm.get_cursor()
+
+        db_cursor.execute(sql, val)
 
     @staticmethod
     def log_experiment_results_to_database(experiment_id, d_loss, g_loss):
-        if dm.database_connected:
-            sql = "INSERT INTO results (ExperimentID, FinalDiscriminatorLoss, FinalDiscriminatorAccuracy," \
-                  "FinalGeneratorLoss, FinalGeneratorMSE)" \
-                  "VALUES (%s, %s, %s, %s, %s)"
+        sql = "INSERT INTO results (ExperimentID, FinalDiscriminatorLoss, FinalDiscriminatorAccuracy," \
+              "FinalGeneratorLoss, FinalGeneratorMSE)" \
+              "VALUES (%s, %s, %s, %s, %s)"
 
-            val = (experiment_id, str(d_loss[-1][0]), str(d_loss[-1][1]), str(g_loss[-1][0]), str(g_loss[-1][1]))
+        val = (experiment_id, str(d_loss[-1][0]), str(d_loss[-1][1]), str(g_loss[-1][0]), str(g_loss[-1][1]))
+        db_cursor = dm.get_cursor()
 
-            dm.db_cursor.execute(sql, val)
-        else:
-            raise ConnectionError
+        db_cursor.execute(sql, val)
 
     @staticmethod
     def log_batch_training_to_database(epoch, batch, g_loss, d_loss, fold=None):
-        if dm.database_connected:
-            sql = "INSERT INTO training (ExperimentID, Fold, Epoch, Batch, " \
-                  "DiscriminatorLoss, DiscriminatorAccuracy, GeneratorLoss, GeneratorMSE)" \
-                  "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
+        sql = "INSERT INTO training (ExperimentID, Fold, Epoch, Batch, " \
+              "DiscriminatorLoss, DiscriminatorAccuracy, GeneratorLoss, GeneratorMSE)" \
+              "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
 
-            val = (str(Logger.experiment_id), str(fold if fold else 0), str(epoch), str(batch),
-                   str(d_loss[0]), str(d_loss[1]), str(g_loss[0]), str(g_loss[1]))
+        val = (str(Logger.experiment_id), str(fold if fold else 0), str(epoch), str(batch),
+               str(d_loss[0]), str(d_loss[1]), str(g_loss[0]), str(g_loss[1]))
 
-            dm.db_cursor.execute(sql, val)
-        else:
-            raise ConnectionError
+        db_cursor = dm.get_cursor()
+
+        db_cursor.execute(sql, val)
 
     @staticmethod
     def log_model_to_database(gen_settings, disc_settings):
-        if dm.database_connected:
-            sql = "INSERT INTO model_architectures (NetworkType," \
-                  "GeneratorStrides, GeneratorKernelSize, GeneratorNumberOfLevels, GeneratorFilters, " \
-                  "GeneratorNormalisationMomentum, GeneratorActivationAlpha, " \
-                  "DiscriminatorStrides, DiscriminatorKernelSize, DiscriminatorNumberOfLevels, DiscriminatorFilters, " \
-                  "DiscriminatorNormalisationMomentum, DiscriminatorActivationAlpha) " \
-                  "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"
+        sql = "INSERT INTO model_architectures (NetworkType," \
+              "GeneratorStrides, GeneratorKernelSize, GeneratorNumberOfLevels, GeneratorFilters, " \
+              "GeneratorNormalisationMomentum, GeneratorActivationAlpha, " \
+              "DiscriminatorStrides, DiscriminatorKernelSize, DiscriminatorNumberOfLevels, DiscriminatorFilters, " \
+              "DiscriminatorNormalisationMomentum, DiscriminatorActivationAlpha) " \
+              "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"
 
-            val = ("DCGAN (Deep Convolutional Generative Adversarial Network)",
-                   gen_settings["strides"], gen_settings["kernel_size"], gen_settings["levels"],
-                   gen_settings["filters"],
-                   gen_settings["normalisation_momentum"], gen_settings["activation_alpha"],
-                   disc_settings["strides"], disc_settings["kernel_size"], disc_settings["levels"],
-                   disc_settings["filters"],
-                   disc_settings["normalisation_momentum"], disc_settings["activation_alpha"],)
+        val = ("DCGAN (Deep Convolutional Generative Adversarial Network)",
+               gen_settings["strides"], gen_settings["kernel_size"], gen_settings["levels"],
+               gen_settings["filters"],
+               gen_settings["normalisation_momentum"], gen_settings["activation_alpha"],
+               disc_settings["strides"], disc_settings["kernel_size"], disc_settings["levels"],
+               disc_settings["filters"],
+               disc_settings["normalisation_momentum"], disc_settings["activation_alpha"],)
 
-            dm.db_cursor.execute(sql, val)
+        db_cursor = dm.get_cursor()
+        db_cursor.execute(sql, val)
 
-            dm.db_cursor.execute("SELECT ID FROM model_architectures ORDER BY ID DESC LIMIT 1;")
+        db_cursor.execute("SELECT ID FROM model_architectures ORDER BY ID DESC LIMIT 1;")
 
-            result = dm.db_cursor.fetchone()[0]
+        result = db_cursor.fetchone()[0]
 
-            return result
-        else:
-            raise ConnectionError
+        return result
 
     @staticmethod
     def get_timestamp():

@@ -102,23 +102,26 @@ def design_gan_architecture():
 
 def get_model_instance(instance_id):
     query = "SELECT * FROM ***REMOVED***_Phase1.model_instances WHERE ID = " + str(instance_id) + ";"
+    db_cursor = dm.get_cursor()
 
-    dm.db_cursor.execute(query)
-    return dm.db_cursor.fetchone()
+    db_cursor.execute(query)
+    return db_cursor.fetchone()
 
 
 def get_model_instances():
     query = "SELECT ID FROM ***REMOVED***_Phase1.model_instances;"
+    db_cursor = dm.get_cursor()
 
-    dm.db_cursor.execute(query)
-    return [x[0] for x in dm.db_cursor.fetchall()]
+    db_cursor.execute(query)
+    return [x[0] for x in db_cursor.fetchall()]
 
 
 def get_model_architecture(architecture_id):
     query = "SELECT * FROM ***REMOVED***_Phase1.model_architectures WHERE ID = " + str(architecture_id) + ";"
+    db_cursor = dm.get_cursor()
 
-    dm.db_cursor.execute(query)
-    return dm.db_cursor.fetchone()
+    db_cursor.execute(query)
+    return db_cursor.fetchone()
 
 
 def load_model_from_database(model_id=None):
@@ -169,19 +172,19 @@ def load_model_from_database(model_id=None):
 
 
 def load_architecture_from_database(architecture_id=None):
-    cursor = dm.db_cursor
+    db_cursor = dm.get_cursor()
 
     query = "SELECT * FROM ***REMOVED***_Phase1.model_architectures ORDER BY ID ASC;"
 
-    cursor.execute(query)
-    models = cursor.fetchall()
+    db_cursor.execute(query)
+    models = db_cursor.fetchall()
 
     choice = 0
 
-    if cursor.rowcount == 0:
+    if db_cursor.rowcount == 0:
         print_notice("There are no architectures in the database", mt.MessagePrefix.WARNING)
         return None, None, None
-    elif cursor.rowcount != 1:
+    elif db_cursor.rowcount != 1:
         print_notice("The following architectures are available:")
         for ind, model in enumerate(models):
             if len(model) == 0:
@@ -207,6 +210,7 @@ def load_architecture_from_database(architecture_id=None):
     architecture_id, gen_settings, disc_settings = architecture_to_settings(model_choice, True)
 
     return architecture_id, gen_settings, disc_settings
+
 
 def architecture_to_settings(model_choice, suppress_output=False):
     gen_settings = dict()

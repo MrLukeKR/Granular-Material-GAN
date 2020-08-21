@@ -177,12 +177,12 @@ def calculate_euler_number(core, core_is_pore_network=True):
 
 def update_database_core_analyses(ignore_blacklist=False):
     print_notice("Updating core analyses in database...", mt.MessagePrefix.INFORMATION)
-
+    db_cursor = dm.get_cursor()
     ct_directory = fm.compile_directory(fm.SpecialFolder.UNPROCESSED_SCANS)
 
     ct_ids = [name for name in os.listdir(ct_directory)]
 
-    dm.db_cursor.execute("USE ct_scans;")
+    db_cursor.execute("USE ct_scans;")
 
     included_calculations = "MeasuredAirVoidContent, MasticContent, AverageVoidDiameter, Tortuosity"
 
@@ -192,8 +192,8 @@ def update_database_core_analyses(ignore_blacklist=False):
             sql += " AND Blacklist = 0"
         values = (ct_id,)
 
-        dm.db_cursor.execute(sql, values)
-        res = dm.db_cursor.fetchone()
+        db_cursor.execute(sql, values)
+        res = db_cursor.fetchone()
 
         if res is not None and any(x is None for x in res):
             core = get_core_by_id(ct_id)
@@ -210,6 +210,6 @@ def update_database_core_analyses(ignore_blacklist=False):
                   "MeasuredAirVoidContent=%s, MasticContent=%s, AverageVoidDiameter=%s, Tortuosity=%s WHERE ID=%s"
 
             values = (float(percentages[0]), float(percentages[1]), float(avd), float(tortuosity), ct_id)
-            dm.db_cursor.execute(sql, values)
+            db_cursor.execute(sql, values)
 
-    dm.db_cursor.execute("USE ***REMOVED***_Phase1;")
+    db_cursor.execute("USE ***REMOVED***_Phase1;")

@@ -68,6 +68,8 @@ def segment_images(multiprocessing_pool, use_rois=True):
 
         send_email("Completed %s post-processing" % data_directory)
 
+    send_email("Segmenting %ss is finished!" % "ROI" if use_rois else "Core")
+
 
 def apply_postprocessing_pipeline(segments, multiprocessing_pool):
     print_notice("Post-processing Segment Collection...", mt.MessagePrefix.INFORMATION)

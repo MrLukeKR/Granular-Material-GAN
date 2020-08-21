@@ -258,16 +258,16 @@ class Network(AbstractGAN.Network):
                 plt.draw()
                 plt.pause(0.1)
 
-            if dm.database_connected:
-                sql = "INSERT INTO training (ExperimentID, Fold, Epoch, TrainingSet, DiscriminatorLoss, " \
-                      "DiscriminatorAccuracy, GeneratorLoss, GeneratorMSE) " \
-                      "VALUES (%s, %s, %s, %s, %s, %s, %s, %s);"
+            sql = "INSERT INTO training (ExperimentID, Fold, Epoch, TrainingSet, DiscriminatorLoss, " \
+                  "DiscriminatorAccuracy, GeneratorLoss, GeneratorMSE) " \
+                  "VALUES (%s, %s, %s, %s, %s, %s, %s, %s);"
 
-                val = (Logger.experiment_id, Logger.current_fold + 1, epoch + 1, Logger.current_set + 1,
-                       float(d_loss[0]), float(d_loss[1]), float(g_loss[0]), float(g_loss[1]))
+            val = (Logger.experiment_id, Logger.current_fold + 1, epoch + 1, Logger.current_set + 1,
+                   float(d_loss[0]), float(d_loss[1]), float(g_loss[0]), float(g_loss[1]))
 
-                dm.db_cursor.execute(sql, val)
-                dm.db.commit()
+            db_cursor = dm.get_cursor()
+
+            db_cursor.execute(sql, val)
 
             if core_animation_data is not None and len(core_animation_data) == 3:
                 generated_core = gan_to_core(cls.adversarial, core_animation_data[0], core_animation_data[1], batch_size)
