@@ -452,8 +452,9 @@ def main():
 
     update_database_core_analyses()
 
-    model_all_cores(multiprocessing_pool, use_rois=False)
-    model_all_cores(multiprocessing_pool, use_rois=True)
+    if sm.get_setting("ENABLE_3D_MODEL_GENERATION"):
+        model_all_cores(multiprocessing_pool, use_rois=False)
+        model_all_cores(multiprocessing_pool, use_rois=True)
 
     while main_menu() != "EXIT":
         continue

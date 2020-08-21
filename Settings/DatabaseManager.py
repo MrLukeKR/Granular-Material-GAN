@@ -219,6 +219,7 @@ def initialise_settings():
                       "('ENABLE_TRAINING_ANIMATION', 'True'),"
                       "('ENABLE_VOXEL_PLOT_GENERATION', 'True'),"
                       "('ENABLE_GAN_OUTPUT_HISTOGRAM', 'True'),"
+                      "('ENABLE_3D_MODEL_GENERATION', 'False'),"
                       "('ENABLE_GAN_GENERATION', 'False');")
 
     db_cursor.execute("SELECT Name FROM settings WHERE Value IS NULL;")

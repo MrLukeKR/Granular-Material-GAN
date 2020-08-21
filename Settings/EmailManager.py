@@ -41,7 +41,7 @@ def send_email(message, subject="[Automated Alert] Asphalt GAN Notification", re
     email.attach(plain)
 
     try:
-        email_server = smtplib.SMTP(host=server, port=port)
+        email_server = smtplib.SMTP(host=server, port=port, timeout=10)
 
         email_server.login(user, password)
         email_server.send_message(email)
