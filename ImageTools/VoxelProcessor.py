@@ -148,15 +148,20 @@ def volume_to_voxels(volume_data, cubic_dimension):
     return voxels, dimensions
 
 
-def save_voxels(voxels, dimensions, location, filename):
+def save_voxels(voxels, dimensions, location, filename, compress=False):
     fm.create_if_not_exists(location)
 
     filepath = location + filename + ".h5"
 
     print_notice("Saving voxel collection to '" + filepath + "'... ", mt.MessagePrefix.INFORMATION, end='')
     h5f = h5py.File(filepath, 'w')
-    h5f.create_dataset("voxels", data=voxels)
-    h5f.create_dataset("dimensions", data=dimensions)
+    if compress:
+        print_notice("\tHeavily compressing voxel collection...", mt.MessagePrefix.WARNING)
+        h5f.create_dataset("voxels", data=voxels, compression="gzip", compression_opts=9)
+        h5f.create_dataset("dimensions", data=dimensions, compression="gzip", compression_opts=9)
+    else:
+        h5f.create_dataset("voxels", data=voxels)
+        h5f.create_dataset("dimensions", data=dimensions)
     h5f.close()
     print("done!")
 

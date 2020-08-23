@@ -200,8 +200,8 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
         # Machine Learning >>>
 
         training_filenames = [fm.compile_directory(fm.SpecialFolder.ROI_DATASET_DATA
-                                          if train_with_rois else fm.SpecialFolder.CORE_DATASET_DATA) + x
-                     + "/segment_64.tfrecord" for x in training_sets[fold]]
+                                                   if train_with_rois else fm.SpecialFolder.CORE_DATASET_DATA)
+                              + "%s/segment_64.tfrecord" % x for x in training_sets[fold]]
 
         testing_filenames = [fm.compile_directory(fm.SpecialFolder.ROI_DATASET_DATA
                                                    if train_with_rois else fm.SpecialFolder.CORE_DATASET_DATA) + x
@@ -321,7 +321,7 @@ def test_network(experiment_id, testing_sets, test_generator, batch_size, fold=N
         cv.save_mesh(aggregate_core, model_directory + "aggregate.stl")
 
         results = list(results)
-        vp.save_voxels(results, dimensions, directory, "GeneratedVoxels")
+        vp.save_voxels(results, dimensions, directory, "GeneratedVoxels", compress=True)
 
         if sm.get_setting("ENABLE_VOXEL_PLOT_GENERATION") == "True":
             voxel_plot_directory = directory + "VoxelPlots/"
