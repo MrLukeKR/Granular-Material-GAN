@@ -141,8 +141,7 @@ def run_train_test_split_experiment(dataset_directories, split_count, architectu
         Logger.log_model_experiment_to_database(Logger.experiment_id, instance_id)
         database_logged = True
 
-    test_network(experiment_id, testing_sets, DCGAN.Network.generator, batch_size,
-                 figure_directory=directory, multiprocessing_pool=multiprocessing_pool)
+    test_network(testing_sets, DCGAN.Network.generator, batch_size, multiprocessing_pool=multiprocessing_pool)
 
 
 def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture, multiprocessing_pool=None,
@@ -219,7 +218,7 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
                                                                    fold, animate_with_rois=animate_with_rois)
 
         filename = "Experiment-" + str(Logger.experiment_id)
-        directory = fm.compile_directory(fm.SpecialFolder.FIGURES) + filename + '/Training/'
+        directory = fm.compile_directory(fm.SpecialFolder.FIGURES) + filename + '/Fold-%s/Training/' % str(fold)
         fm.create_if_not_exists(directory)
 
         save_training_graphs(d_loss, g_loss, directory, experiment_id, fold, epochs)
@@ -234,15 +233,20 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
             database_logged = True
 
         start_time = datetime.now()
-        test_network(experiment_id, testing_sets, DCGAN.Network.generator, batch_size, fold, directory,
-                     multiprocessing_pool)
+        test_network(testing_sets, DCGAN.Network.generator, batch_size, fold, multiprocessing_pool)
         end_time = datetime.now()
         send_results_generation_success(experiment_id, start_time, end_time)
 
 
-def test_network(experiment_id, testing_sets, test_generator, batch_size, fold=None, figure_directory=None,
+def test_network(testing_sets, test_generator, batch_size, fold=None,
                  multiprocessing_pool=None):
     mt.print_notice("Testing GAN on unseen aggregate voxels...")
+
+    experiment_id = "Experiment-" + str(Logger.experiment_id)
+    fold_id = "Fold-" + str(fold) if fold is not None else ""
+
+    directory = fm.compile_directory(fm.SpecialFolder.FIGURES) + "%s/%s/" % (experiment_id, fold_id)
+    fm.create_if_not_exists(directory)
 
     start_time = datetime.now()
 
@@ -257,6 +261,16 @@ def test_network(experiment_id, testing_sets, test_generator, batch_size, fold=N
         testing_set.append(temp)
 
     for current_set in testing_set:
+        output_directory = directory + "Outputs/%s/" % current_set
+        model_directory = output_directory + "3DModels/"
+        slice_directory = output_directory + "BinderSlices/"
+        voxel_plot_directory = output_directory + "VoxelPlots/" \
+            if sm.get_setting("ENABLE_VOXEL_PLOT_GENERATION") == "True" else None
+
+        for new_dir in [output_directory, model_directory, slice_directory, voxel_plot_directory]:
+            if new_dir is not None:
+                fm.create_if_not_exists(new_dir)
+
         dimensions, test_aggregate, test_binder = vp.load_materials(current_set, use_rois=False)
         test_aggregate = np.expand_dims(test_aggregate, 4)
 
@@ -271,8 +285,8 @@ def test_network(experiment_id, testing_sets, test_generator, batch_size, fold=N
             plt.hist(np.array((results * 255), dtype=np.uint8).flatten(), bins=range(256))
             plt.title("Histogram of GAN outputs")
 
-            if figure_directory is not None:
-                plt.savefig(figure_directory + "/GAN_Output_Histogram.pdf",)
+            if output_directory is not None:
+                plt.savefig(output_directory + "/GAN_Output_Histogram.pdf",)
 
             if sm.get_setting("ENABLE_IMAGE_DISPLAY") == "True":
                 plt.show(block=False)
@@ -286,12 +300,6 @@ def test_network(experiment_id, testing_sets, test_generator, batch_size, fold=N
         results = results >= float(sm.get_setting("IO_GAN_OUTPUT_THRESHOLD"))
         results = results * 255
 
-        experiment_id = "Experiment-" + str(Logger.experiment_id)
-        fold_id = "_Fold-" + str(fold) if fold is not None else ""
-
-        directory = fm.compile_directory(fm.SpecialFolder.FIGURES) + experiment_id + "/Outputs/" + current_set + "/"
-        fm.create_if_not_exists(directory)
-
         test_aggregate = np.squeeze(test_aggregate)
 
         # Remove overlapping aggregate and binder
@@ -300,9 +308,6 @@ def test_network(experiment_id, testing_sets, test_generator, batch_size, fold=N
 
         binder_core = voxels_to_core(results, dimensions)
         aggregate_core = voxels_to_core(test_aggregate, dimensions)
-
-        slice_directory = directory + "BinderSlices/"
-        fm.create_if_not_exists(slice_directory)
 
         for ind, ct_slice in tqdm(enumerate(binder_core),
                                   desc=mt.get_notice("Saving Generated Core Slices"), total=len(binder_core)):
@@ -314,19 +319,13 @@ def test_network(experiment_id, testing_sets, test_generator, batch_size, fold=N
         binder_core = cv.voxels_to_mesh(binder_core)
         aggregate_core = cv.voxels_to_mesh(aggregate_core)
 
-        model_directory = directory + "3DModels/"
-        fm.create_if_not_exists(model_directory)
-
         cv.save_mesh(binder_core, model_directory + "generated_binder.stl")
         cv.save_mesh(aggregate_core, model_directory + "aggregate.stl")
 
         results = list(results)
-        vp.save_voxels(results, dimensions, directory, "GeneratedVoxels", compress=True)
+        vp.save_voxels(results, dimensions, output_directory, "GeneratedVoxels", compress=True)
 
         if sm.get_setting("ENABLE_VOXEL_PLOT_GENERATION") == "True":
-            voxel_plot_directory = directory + "VoxelPlots/"
-            fm.create_if_not_exists(voxel_plot_directory)
-
             print_notice("Saving Real vs. Generated voxel plots... ", end='')
             file_location = voxel_plot_directory + experiment_id + fold_id + "_core-" + testing_set
 

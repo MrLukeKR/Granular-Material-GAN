@@ -199,8 +199,7 @@ def initialise_settings():
                       "('MAXIMUM_BLOB_AREA', '150'),"
 
                       "('TRAINING_BATCH_SIZE', '32'),"
-                      "('TRAINING_EPOCHS', '1000'),"
-                      "('TRAINING_EPOCH_STEPS', '500'),"
+                      "('TRAINING_EPOCHS', '100'),"
                       "('TRAINING_USE_BATCH_NORMALISATION', 'False'),"  
                       "('TRAINING_ANIMATION_BATCH_STEP', '10'),"
 

@@ -34,7 +34,7 @@ for {set a 0} {$a < 5} {incr a 1} {
 	expect "Enter an AVC selection" { send "$a\r" }
 	
 	# Use MAX-1 cores for training (1 for testing)
-	expect "How many cores should be used for training?" { send "$avc_test_values($a)\r" }
+	expect "How many folds?" { send "$avc_test_values($a)\r" }
 }
 	
 # Run the ALL cores experiment 3 times
@@ -48,7 +48,7 @@ expect "Enter a menu option" { send "2\r" }
 expect "Enter a menu option" { send "1\r" }
 
 # Use MAX-1 cores for training (1 for testing)
-expect "How many cores should be used for training?" { send "37\r" }
+expect "How many folds?" { send "37\r" }
 }
 
 # Wait to return to the menu

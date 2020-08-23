@@ -153,7 +153,7 @@ def save_voxels(voxels, dimensions, location, filename, compress=False):
 
     filepath = location + filename + ".h5"
 
-    print_notice("Saving voxel collection to '" + filepath + "'... ", mt.MessagePrefix.INFORMATION, end='')
+    print_notice("Saving voxel collection to '" + filepath + "'... ", mt.MessagePrefix.INFORMATION)
     h5f = h5py.File(filepath, 'w')
     if compress:
         print_notice("\tHeavily compressing voxel collection...", mt.MessagePrefix.WARNING)
@@ -163,7 +163,6 @@ def save_voxels(voxels, dimensions, location, filename, compress=False):
         h5f.create_dataset("voxels", data=voxels)
         h5f.create_dataset("dimensions", data=dimensions)
     h5f.close()
-    print("done!")
 
 
 def load_voxels(location, filename):
@@ -266,6 +265,8 @@ def generate_voxels(use_rois=True, multiprocessing_pool=None):
     voxel_dir = fm.SpecialFolder.ROI_VOXEL_DATA if use_rois else fm.SpecialFolder.CORE_VOXEL_DATA
     dataset_dir = fm.SpecialFolder.ROI_DATASET_DATA if use_rois else fm.SpecialFolder.CORE_DATASET_DATA
 
+    generation_executed=False
+
     fm.data_directories = fm.prepare_directories(input_dir)
 
     for data_directory in fm.data_directories:
@@ -303,8 +304,12 @@ def generate_voxels(use_rois=True, multiprocessing_pool=None):
 
                 save_voxel_tfrecord(aggregates, binders, array_dimensions, core_dimensions,
                                     dataset_directory, filename)
+
+                if not generation_executed:
+                    generation_executed = True
         # im.save_voxel_image_collection(voxels, fm.SpecialFolder.VOXEL_DATA, "figures/" + segment)
-    send_email("Generating voxels from %ss is finished!" % ("ROI" if use_rois else "Core"))
+    if generation_executed:
+        send_email("Generating voxels from %ss is finished!" % ("ROI" if use_rois else "Core"))
 
 
 def save_voxel_tfrecord(aggregates, binders, array_dimensions, core_dimensions, directory, filename):

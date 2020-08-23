@@ -25,7 +25,7 @@ def voxels_to_mesh(core, suppress_messages=False):
 
     core = np.pad(core, stepsize, 'constant', constant_values=0)
 
-    verts, faces, _, _ = measure.marching_cubes_lewiner(core, step_size=stepsize, allow_degenerate=False)
+    verts, faces, _, _ = measure.marching_cubes(core, step_size=stepsize, allow_degenerate=False)
     del _
     del core
 
