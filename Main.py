@@ -452,7 +452,7 @@ def main():
 
     update_database_core_analyses()
 
-    if sm.get_setting("ENABLE_3D_MODEL_GENERATION"):
+    if sm.get_setting("ENABLE_3D_MODEL_GENERATION") == "True":
         model_all_cores(multiprocessing_pool, use_rois=False)
         model_all_cores(multiprocessing_pool, use_rois=True)
 
