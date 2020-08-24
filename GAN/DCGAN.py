@@ -12,7 +12,6 @@ from trimesh import caching
 
 from GAN import AbstractGAN
 from tensorflow.keras import Sequential, optimizers
-from tensorflow.keras.mixed_precision import experimental as mixed_precision
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Flatten, Dense, Activation, Conv3D, Conv3DTranspose as Deconv3D, BatchNormalization, LeakyReLU
 from ExperimentTools import DataVisualiser as dv
@@ -21,15 +20,6 @@ from ImageTools.CoreAnalysis.CoreVisualiser import save_mesh, voxels_to_mesh, fi
 from ImageTools.VoxelProcessor import voxels_to_core
 from Settings.MessageTools import print_notice
 from Settings import DatabaseManager as dm, MachineLearningManager as mlm, SettingsManager as sm, MessageTools as mt
-
-# >>> TENSORFLOW TRAINING SPEEDUP & EFFICIENCY SETTINGS
-# strategy = tf.distribute.experimental.MultiWorkerMirroredStrategy(tf.distribute.experimental.CollectiveCommunication.AUTO)
-strategy = tf.distribute.MirroredStrategy()
-# tf.config.optimizer.set_jit(True)
-
-policy = mixed_precision.Policy('mixed_float16')
-mixed_precision.set_policy(policy)
-# <<<
 
 
 class Network(AbstractGAN.Network):
@@ -74,7 +64,7 @@ class Network(AbstractGAN.Network):
 
         masked_vol = Input(shape=data_shape)
 
-        with strategy.scope():
+        with mlm.strategy.scope():
             cls.discriminator.compile(loss='binary_crossentropy',
                                       optimizer=optimizer,
                                       metrics=['accuracy'])
@@ -135,10 +125,10 @@ class Network(AbstractGAN.Network):
                 last_valid = tf.fill((features.shape[0], 1), 0.9)
                 last_fake = tf.zeros((features.shape[0], 1))
 
-                with strategy.scope():
+                with mlm.strategy.scope():
                     d_loss, g_loss = cls.train_step(features, labels, last_valid, last_fake)
             else:
-                with strategy.scope():
+                with mlm.strategy.scope():
                     d_loss, g_loss = cls.train_step(features, labels, valid, fake)
 
             progress.update(batch_size)
@@ -329,7 +319,7 @@ class DCGANDiscriminator:
         voxel_shape = (x, y, z, channels)
 
         # START MODEL BUILDING
-        with strategy.scope():
+        with mlm.strategy.scope():
             model = Sequential(name="Discriminator")
 
             for level in range(0, encoder_levels):
@@ -383,7 +373,7 @@ class DCGANGenerator:
         voxel_shape = (x, y, z, channels)
 
         # START MODEL BUILDING
-        with strategy.scope():
+        with mlm.strategy.scope():
             model = Sequential(name="Generator")
 
             for level in range(0, encoder_levels):

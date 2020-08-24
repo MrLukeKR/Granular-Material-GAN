@@ -203,8 +203,8 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
                               + "%s/segment_64.tfrecord" % x for x in training_sets[fold]]
 
         testing_filenames = [fm.compile_directory(fm.SpecialFolder.ROI_DATASET_DATA
-                                                   if train_with_rois else fm.SpecialFolder.CORE_DATASET_DATA) + x
-                              + "/segment_64.tfrecord" for x in testing_sets[fold]]
+                                                  if train_with_rois else fm.SpecialFolder.CORE_DATASET_DATA)
+                             + "%s/segment_64.tfrecord" % x for x in testing_sets[fold]]
 
         voxel_res = int(sm.get_setting("VOXEL_RESOLUTION"))
         voxel_dims = [voxel_res, voxel_res, voxel_res]
@@ -243,9 +243,9 @@ def test_network(testing_sets, test_generator, batch_size, fold=None,
     mt.print_notice("Testing GAN on unseen aggregate voxels...")
 
     experiment_id = "Experiment-" + str(Logger.experiment_id)
-    fold_id = "Fold-" + str(fold) if fold is not None else ""
+    fold_id = "Fold-%s/" % str(fold) if fold is not None else ""
 
-    directory = fm.compile_directory(fm.SpecialFolder.FIGURES) + "%s/%s/" % (experiment_id, fold_id)
+    directory = fm.compile_directory(fm.SpecialFolder.FIGURES) + "%s/%s" % (experiment_id, fold_id)
     fm.create_if_not_exists(directory)
 
     start_time = datetime.now()
@@ -304,17 +304,17 @@ def test_network(testing_sets, test_generator, batch_size, fold=None,
 
         # Remove overlapping aggregate and binder
         if sm.get_setting("ENABLE_FIX_GAN_OUTPUT_OVERLAP") == "True":
-            results -= np.logical_and(results, test_aggregate == 255)
+            agg_positions = np.where(test_aggregate == 255)
+            results[agg_positions] = 0
 
         binder_core = voxels_to_core(results, dimensions)
         aggregate_core = voxels_to_core(test_aggregate, dimensions)
 
         for ind, ct_slice in tqdm(enumerate(binder_core),
                                   desc=mt.get_notice("Saving Generated Core Slices"), total=len(binder_core)):
-            agg_image = Image.fromarray(aggregate_core[ind])
-            bind_image = Image.fromarray(ct_slice)
-            bind_image /= 2
-            bind_image += agg_image
+            segment = ct_slice // 2
+            segment = np.add(segment, aggregate_core[ind], dtype=np.uint8)
+            bind_image = Image.fromarray(segment)
 
             buff_ind = (len(str(len(binder_core))) - len(str(ind))) * "0" + str(ind)
             bind_image.save(slice_directory + buff_ind + ".png")

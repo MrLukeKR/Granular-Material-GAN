@@ -464,7 +464,7 @@ def main():
 
 if __name__ == "__main__":
     freeze_support()
-    try:
-        main()
-    except:
-        send_email("Software Failed")
+    #try:
+    main()
+    #except:
+#        send_email("Software Failed")

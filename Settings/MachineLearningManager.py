@@ -2,13 +2,19 @@ import math
 
 from tensorflow.python.client import device_lib
 from ExperimentTools.MethodologyLogger import Logger
-
+from tensorflow.keras.mixed_precision import experimental as mixed_precision
 from GAN import DCGAN
 from Settings import DatabaseManager as dm, FileManager as fm, SettingsManager as sm, MessageTools as mt
 from Settings.MessageTools import print_notice
 import tensorflow as tf
 import numpy as np
 
+
+# >>> TENSORFLOW TRAINING SPEEDUP & EFFICIENCY SETTINGS
+# strategy = tf.distribute.experimental.MultiWorkerMirroredStrategy(tf.distribute.experimental.CollectiveCommunication.AUTO)
+strategy = tf.distribute.MirroredStrategy()
+# tf.config.optimizer.set_jit(True)
+# <<<
 
 vox_res = None
 data_template = None
@@ -18,6 +24,10 @@ def initialise():
     global vox_res, data_template
     vox_res = int(sm.get_setting("VOXEL_RESOLUTION"))
     data_template = np.zeros(shape=(1, vox_res, vox_res, vox_res, sm.image_channels))
+
+    if sm.get_setting("ENABLE_HALF_PRECISION_TRAINING") == "True":
+        policy = mixed_precision.Policy('mixed_float16')
+        mixed_precision.set_policy(policy)
 
 
 def get_available_gpus():
