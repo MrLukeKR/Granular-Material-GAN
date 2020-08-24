@@ -263,7 +263,7 @@ def test_network(testing_sets, test_generator, batch_size, fold=None,
     for current_set in testing_set:
         output_directory = directory + "Outputs/%s/" % current_set
         model_directory = output_directory + "3DModels/"
-        slice_directory = output_directory + "BinderSlices/"
+        slice_directory = output_directory + "CoreSlices/"
         voxel_plot_directory = output_directory + "VoxelPlots/" \
             if sm.get_setting("ENABLE_VOXEL_PLOT_GENERATION") == "True" else None
 
@@ -311,10 +311,13 @@ def test_network(testing_sets, test_generator, batch_size, fold=None,
 
         for ind, ct_slice in tqdm(enumerate(binder_core),
                                   desc=mt.get_notice("Saving Generated Core Slices"), total=len(binder_core)):
-            ct_image = Image.fromarray(ct_slice)
+            agg_image = Image.fromarray(aggregate_core[ind])
+            bind_image = Image.fromarray(ct_slice)
+            bind_image /= 2
+            bind_image += agg_image
 
             buff_ind = (len(str(len(binder_core))) - len(str(ind))) * "0" + str(ind)
-            ct_image.save(slice_directory + buff_ind + ".png")
+            bind_image.save(slice_directory + buff_ind + ".png")
 
         binder_core = cv.voxels_to_mesh(binder_core)
         aggregate_core = cv.voxels_to_mesh(aggregate_core)
