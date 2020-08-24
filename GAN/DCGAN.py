@@ -12,6 +12,7 @@ from trimesh import caching
 
 from GAN import AbstractGAN
 from tensorflow.keras import Sequential, optimizers
+from tensorflow.keras.mixed_precision import experimental as mixed_precision
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Flatten, Dense, Activation, Conv3D, Conv3DTranspose as Deconv3D, BatchNormalization, LeakyReLU
 from ExperimentTools import DataVisualiser as dv
@@ -21,13 +22,14 @@ from ImageTools.VoxelProcessor import voxels_to_core
 from Settings.MessageTools import print_notice
 from Settings import DatabaseManager as dm, MachineLearningManager as mlm, SettingsManager as sm, MessageTools as mt
 
-#  strategy = tf.distribute.experimental.MultiWorkerMirroredStrategy(tf.distribute.experimental.CollectiveCommunication.AUTO)
-#  strategy = tf.distribute.MirroredStrategy()
-strategy = tf.distribute.experimental.CentralStorageStrategy()
+# >>> TENSORFLOW TRAINING SPEEDUP & EFFICIENCY SETTINGS
+# strategy = tf.distribute.experimental.MultiWorkerMirroredStrategy(tf.distribute.experimental.CollectiveCommunication.AUTO)
+strategy = tf.distribute.MirroredStrategy()
 # tf.config.optimizer.set_jit(True)
 
-# policy = mixed_precision.Policy('mixed_float16')
-# mixed_precision.set_policy(policy)
+policy = mixed_precision.Policy('mixed_float16')
+mixed_precision.set_policy(policy)
+# <<<
 
 
 class Network(AbstractGAN.Network):

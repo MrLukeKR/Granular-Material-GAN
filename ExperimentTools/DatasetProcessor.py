@@ -97,6 +97,6 @@ def prepare_tf_set(set_filenames, voxel_dimensions, epochs, batch_size):
     train_ds = train_ds.repeat(epochs)
     print("\t\tTotal Datapoints: %s" % (str(epochs * batch_size * batches)))
 
-    train_ds = train_ds.prefetch(1)
+    train_ds = train_ds.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
     return train_ds, batches * epochs

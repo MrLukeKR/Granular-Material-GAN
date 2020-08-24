@@ -205,6 +205,7 @@ def initialise_settings():
 
                       "('EMAIL_NOTIFICATION_RECIPIENT', NULL),"
 
+                      "('ENABLE_HALF_PRECISION_TRAINING', 'False'),"
                       "('ENABLE_FIX_GAN_OUTPUT_OVERLAP', 'False'),"
                       "('ENABLE_IMAGE_SAVING', 'False'),"
                       "('ENABLE_VOXEL_INPUT_SAVING', 'False'),"
