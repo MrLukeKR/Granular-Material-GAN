@@ -304,10 +304,14 @@ def test_network(testing_sets, test_generator, batch_size, fold=None,
 
         # Remove overlapping aggregate and binder
         if sm.get_setting("ENABLE_FIX_GAN_OUTPUT_OVERLAP") == "True":
+            print_notice("Cleaning aggregate/binder overlap...")
             agg_positions = np.where(test_aggregate == 255)
             results[agg_positions] = 0
 
+        print_notice("Converting binder voxels to core...")
         binder_core = voxels_to_core(results, dimensions)
+
+        print_notice("Converting aggregate voxels to core...")
         aggregate_core = voxels_to_core(test_aggregate, dimensions)
 
         for ind, ct_slice in tqdm(enumerate(binder_core),
@@ -319,11 +323,11 @@ def test_network(testing_sets, test_generator, batch_size, fold=None,
             buff_ind = (len(str(len(binder_core))) - len(str(ind))) * "0" + str(ind)
             bind_image.save(slice_directory + buff_ind + ".png")
 
-        binder_core = cv.voxels_to_mesh(binder_core)
-        aggregate_core = cv.voxels_to_mesh(aggregate_core)
+        cv.save_mesh(cv.voxels_to_mesh(binder_core), model_directory + "generated_binder.stl")
+        cv.save_mesh(cv.voxels_to_mesh(aggregate_core), model_directory + "aggregate.stl")
 
-        cv.save_mesh(binder_core, model_directory + "generated_binder.stl")
-        cv.save_mesh(aggregate_core, model_directory + "aggregate.stl")
+        del binder_core
+        del aggregate_core
 
         results = list(results)
         vp.save_voxels(results, dimensions, output_directory, "GeneratedVoxels", compress=True)
