@@ -2,11 +2,11 @@
 set timeout -1
 
 # Set number of training samples available for each AVC
-set avc_test_values(0) 7
+set avc_test_values(0) 6
 set avc_test_values(1) 6
-set avc_test_values(2) 10
-set avc_test_values(3) 8
-set avc_test_values(4) 7
+set avc_test_values(2) 6
+set avc_test_values(3) 6
+set avc_test_values(4) 6
 
 # Start python script
 spawn python Main.py
@@ -20,7 +20,7 @@ expect "Enter the architecture ID to load" { send "0\r" }
 # -- END OF SETUP --
 
 # Run over each AVC
-for {set a 4} {$a >= 0} {incr a -1} {
+for {set a 0} {$a < 5} {incr a 1} {
 	# Begin training the model
 	expect "Enter a menu option" { send "4\r" }
 	
