@@ -4,6 +4,8 @@ import matplotlib as mpl
 
 from PIL import Image
 from datetime import datetime
+
+from scipy.sparse import csr_matrix
 from tqdm import tqdm
 from itertools import repeat
 from ExperimentTools.DataVisualiser import save_training_graphs
@@ -282,6 +284,7 @@ def test_network(testing_sets, test_generator, batch_size, fold=None,
         results = (results + 1) / 2
 
         if sm.get_setting("ENABLE_GAN_OUTPUT_HISTOGRAM") == "True":
+            print_notice("Generating output histogram...")
             plt.hist(np.array((results * 255), dtype=np.uint8).flatten(), bins=range(256))
             plt.title("Histogram of GAN outputs")
 
@@ -304,9 +307,10 @@ def test_network(testing_sets, test_generator, batch_size, fold=None,
 
         # Remove overlapping aggregate and binder
         if sm.get_setting("ENABLE_FIX_GAN_OUTPUT_OVERLAP") == "True":
-            print_notice("Cleaning aggregate/binder overlap...")
-            agg_positions = np.where(test_aggregate == 255)
-            results[agg_positions] = 0
+            print_notice("Fixing aggregate/binder overlap...")
+            print_notice("\t\tThis can take some time!", mt.MessagePrefix.WARNING)
+            locs = np.flatnonzero(test_aggregate)
+            results[np.unravel_index(locs, test_aggregate.shape)] = 0
 
         print_notice("Converting binder voxels to core...")
         binder_core = voxels_to_core(results, dimensions)
@@ -323,10 +327,16 @@ def test_network(testing_sets, test_generator, batch_size, fold=None,
             buff_ind = (len(str(len(binder_core))) - len(str(ind))) * "0" + str(ind)
             bind_image.save(slice_directory + buff_ind + ".png")
 
-        cv.save_mesh(cv.voxels_to_mesh(binder_core), model_directory + "generated_binder.stl")
-        cv.save_mesh(cv.voxels_to_mesh(aggregate_core), model_directory + "aggregate.stl")
-
+        try:
+            cv.save_mesh(cv.voxels_to_mesh(binder_core), model_directory + "generated_binder.stl")
+        except:
+            print_notice("Could not create binder mesh", mt.MessagePrefix.ERROR)
         del binder_core
+
+        try:
+            cv.save_mesh(cv.voxels_to_mesh(aggregate_core), model_directory + "aggregate.stl")
+        except:
+            print_notice("Could not create aggregate mesh", mt.MessagePrefix.ERROR)
         del aggregate_core
 
         results = list(results)
