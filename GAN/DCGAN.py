@@ -96,7 +96,7 @@ class Network(AbstractGAN.Network):
 
         g_loss = cls.adversarial.train_on_batch(features, [labels, valid])
 
-        d_loss = 0.5 * tf.add(d_loss_real, d_loss_fake)
+        d_loss = tf.add(d_loss_real, d_loss_fake)
 
         return list(d_loss.numpy()), g_loss
 
