@@ -4,6 +4,8 @@ import matplotlib as mpl
 
 from PIL import Image
 from datetime import datetime
+
+from scipy.sparse import csr_matrix
 from tqdm import tqdm
 from itertools import repeat
 from ExperimentTools.DataVisualiser import save_training_graphs
@@ -203,8 +205,8 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
                               + "%s/segment_64.tfrecord" % x for x in training_sets[fold]]
 
         testing_filenames = [fm.compile_directory(fm.SpecialFolder.ROI_DATASET_DATA
-                                                   if train_with_rois else fm.SpecialFolder.CORE_DATASET_DATA) + x
-                              + "/segment_64.tfrecord" for x in testing_sets[fold]]
+                                                  if train_with_rois else fm.SpecialFolder.CORE_DATASET_DATA)
+                             + "%s/segment_64.tfrecord" % x for x in testing_sets[fold]]
 
         voxel_res = int(sm.get_setting("VOXEL_RESOLUTION"))
         voxel_dims = [voxel_res, voxel_res, voxel_res]
@@ -243,9 +245,9 @@ def test_network(testing_sets, test_generator, batch_size, fold=None,
     mt.print_notice("Testing GAN on unseen aggregate voxels...")
 
     experiment_id = "Experiment-" + str(Logger.experiment_id)
-    fold_id = "Fold-" + str(fold) if fold is not None else ""
+    fold_id = "Fold-%s/" % str(fold) if fold is not None else ""
 
-    directory = fm.compile_directory(fm.SpecialFolder.FIGURES) + "%s/%s/" % (experiment_id, fold_id)
+    directory = fm.compile_directory(fm.SpecialFolder.FIGURES) + "%s/%s" % (experiment_id, fold_id)
     fm.create_if_not_exists(directory)
 
     start_time = datetime.now()
@@ -282,6 +284,7 @@ def test_network(testing_sets, test_generator, batch_size, fold=None,
         results = (results + 1) / 2
 
         if sm.get_setting("ENABLE_GAN_OUTPUT_HISTOGRAM") == "True":
+            print_notice("Generating output histogram...")
             plt.hist(np.array((results * 255), dtype=np.uint8).flatten(), bins=range(256))
             plt.title("Histogram of GAN outputs")
 
@@ -304,26 +307,37 @@ def test_network(testing_sets, test_generator, batch_size, fold=None,
 
         # Remove overlapping aggregate and binder
         if sm.get_setting("ENABLE_FIX_GAN_OUTPUT_OVERLAP") == "True":
-            results -= np.logical_and(results, test_aggregate == 255)
+            print_notice("Fixing aggregate/binder overlap...")
+            print_notice("\t\tThis can take some time!", mt.MessagePrefix.WARNING)
+            locs = np.flatnonzero(test_aggregate)
+            results[np.unravel_index(locs, test_aggregate.shape)] = 0
 
+        print_notice("Converting binder voxels to core...")
         binder_core = voxels_to_core(results, dimensions)
+
+        print_notice("Converting aggregate voxels to core...")
         aggregate_core = voxels_to_core(test_aggregate, dimensions)
 
         for ind, ct_slice in tqdm(enumerate(binder_core),
                                   desc=mt.get_notice("Saving Generated Core Slices"), total=len(binder_core)):
-            agg_image = Image.fromarray(aggregate_core[ind])
-            bind_image = Image.fromarray(ct_slice)
-            bind_image /= 2
-            bind_image += agg_image
+            segment = ct_slice // 2
+            segment = np.add(segment, aggregate_core[ind], dtype=np.uint8)
+            bind_image = Image.fromarray(segment)
 
             buff_ind = (len(str(len(binder_core))) - len(str(ind))) * "0" + str(ind)
             bind_image.save(slice_directory + buff_ind + ".png")
 
-        binder_core = cv.voxels_to_mesh(binder_core)
-        aggregate_core = cv.voxels_to_mesh(aggregate_core)
+        try:
+            cv.save_mesh(cv.voxels_to_mesh(binder_core), model_directory + "generated_binder.stl")
+        except:
+            print_notice("Could not create binder mesh", mt.MessagePrefix.ERROR)
+        del binder_core
 
-        cv.save_mesh(binder_core, model_directory + "generated_binder.stl")
-        cv.save_mesh(aggregate_core, model_directory + "aggregate.stl")
+        try:
+            cv.save_mesh(cv.voxels_to_mesh(aggregate_core), model_directory + "aggregate.stl")
+        except:
+            print_notice("Could not create aggregate mesh", mt.MessagePrefix.ERROR)
+        del aggregate_core
 
         results = list(results)
         vp.save_voxels(results, dimensions, output_directory, "GeneratedVoxels", compress=True)

@@ -21,14 +21,6 @@ from ImageTools.VoxelProcessor import voxels_to_core
 from Settings.MessageTools import print_notice
 from Settings import DatabaseManager as dm, MachineLearningManager as mlm, SettingsManager as sm, MessageTools as mt
 
-#  strategy = tf.distribute.experimental.MultiWorkerMirroredStrategy(tf.distribute.experimental.CollectiveCommunication.AUTO)
-#  strategy = tf.distribute.MirroredStrategy()
-strategy = tf.distribute.experimental.CentralStorageStrategy()
-# tf.config.optimizer.set_jit(True)
-
-# policy = mixed_precision.Policy('mixed_float16')
-# mixed_precision.set_policy(policy)
-
 
 class Network(AbstractGAN.Network):
     @property
@@ -72,7 +64,7 @@ class Network(AbstractGAN.Network):
 
         masked_vol = Input(shape=data_shape)
 
-        with strategy.scope():
+        with mlm.strategy.scope():
             cls.discriminator.compile(loss='binary_crossentropy',
                                       optimizer=optimizer,
                                       metrics=['accuracy'])
@@ -133,10 +125,10 @@ class Network(AbstractGAN.Network):
                 last_valid = tf.fill((features.shape[0], 1), 0.9)
                 last_fake = tf.zeros((features.shape[0], 1))
 
-                with strategy.scope():
+                with mlm.strategy.scope():
                     d_loss, g_loss = cls.train_step(features, labels, last_valid, last_fake)
             else:
-                with strategy.scope():
+                with mlm.strategy.scope():
                     d_loss, g_loss = cls.train_step(features, labels, valid, fake)
 
             progress.update(batch_size)
@@ -327,7 +319,7 @@ class DCGANDiscriminator:
         voxel_shape = (x, y, z, channels)
 
         # START MODEL BUILDING
-        with strategy.scope():
+        with mlm.strategy.scope():
             model = Sequential(name="Discriminator")
 
             for level in range(0, encoder_levels):
@@ -381,7 +373,7 @@ class DCGANGenerator:
         voxel_shape = (x, y, z, channels)
 
         # START MODEL BUILDING
-        with strategy.scope():
+        with mlm.strategy.scope():
             model = Sequential(name="Generator")
 
             for level in range(0, encoder_levels):
