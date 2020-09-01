@@ -1,15 +1,58 @@
 import random
 import math
-
 import tensorflow as tf
+import numpy as np
 
-from Settings.MessageTools import print_notice
+from Settings import MessageTools as mt
+from Settings.MessageTools import print_notice, get_notice
 
 
 def dataset_to_train_and_test(dataset, split_count):
-    random.shuffle(dataset)
+    inp = ""
+    while not (str.isdigit(inp) and 1 <= int(inp) <= 3):
+        print_notice("[1] Random Selection")
+        print_notice("[2] Select Training Set By ID")
+        print_notice("[3] Select Testing Set By ID")
+        inp = input("Enter a data selection criteria option > ")
 
-    return dataset[0:split_count], dataset[split_count:]
+        if not (str.isdigit(inp) and 1 <= int(inp) <= 3):
+            print_notice("Invalid selection", mt.MessagePrefix.ERROR)
+
+    inp = int(inp)
+
+    if inp == 1:
+        random.shuffle(dataset)
+
+        return dataset[0:split_count], dataset[split_count:]
+    else:
+        print_notice("The following core IDs are available for selection:")
+        for ind, ds in enumerate(dataset):
+            print("[%s] %s" % (str(ind), ds))
+
+        if inp == 2:
+            allowance = len(dataset)
+            inp = input(get_notice("Please enter %s ID%s (separate multiple IDs with a comma ',') > "
+                                   % (str(allowance), "s" if allowance > 1 else "")))
+
+            ids = inp.split(',')
+            ids = [int(x) for x in ids]
+
+            train_set = [dataset[x] for x in ids]
+            test_set = [x for x in dataset if x not in train_set]
+
+            return train_set, test_set
+        elif inp == 3:
+            allowance = len(dataset) - split_count
+            inp = input(get_notice("Please enter %s ID%s (separate multiple IDs with a comma ',') > "
+                                   % (str(allowance), "s" if allowance > 1 else "")))
+
+            ids = inp.split(',')
+            ids = [int(x) for x in ids]
+
+            test_set = [dataset[x] for x in ids]
+            train_set = [x for x in dataset if x not in test_set]
+
+            return train_set, test_set
 
 
 def chunks(dataset, n):

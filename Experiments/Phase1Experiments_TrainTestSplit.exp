@@ -1,12 +1,13 @@
+
 # Do not allow timeouts
 set timeout -1
 
 # Set number of training samples available for each AVC
-set avc_test_values(0) 6
+set avc_test_values(0) 5
 set avc_test_values(1) 5
-set avc_test_values(2) 9
-set avc_test_values(3) 7
-set avc_test_values(4) 6
+set avc_test_values(2) 5
+set avc_test_values(3) 5
+set avc_test_values(4) 5
 
 # Start python script
 spawn python Main.py
@@ -38,6 +39,8 @@ for {set i 0} {$i < 3} {incr i 1} {
 	
 		# Use MAX-1 cores for training (1 for testing)
 		expect "How many cores should be used for training?" { send "$avc_test_values($a)\r" }
+
+		expect "Enter a data selection criteria option > " { send "1\r" }
 	}
 	
 	# Run the ALL cores experiment 3 times
