@@ -12,20 +12,37 @@ def analyseCore(results_dir):
 	ij.run("Set Scale...", "distance=1 known=0.096 unit=mm global")
 	imp = ij.getImage()
 
-	ij.log("Cropping to ROI...");
-	ij.run("Select Bounding Box");
-	ij.run("Crop");
-	ij.run("Fit Circle to Image", "threshold=253.02");
-	ij.run("Select Bounding Box");
-	ij.run("Crop");
+	ij.log("Cropping to content...")
+	ij.run("Select Bounding Box")
+	ij.run("Crop")
+
+	ij.log("Cropping to 5cm x 5cm ROI...");
+	# center_slice = imp_stack.size() // 2
+
+	roi_dim = int(50 // 0.096) # How many pixels in 50mm 
+	half_roi_dim = roi_dim // 2
+	cal = imp.getCalibration()
+
+	im_width = imp.getDimensions()[0]
+	im_height = imp.getDimensions()[1]
+
+	im_mid_width = im_width // 2
+	im_mid_height = im_height // 2
+
+	roi_start_x = int(im_mid_width - half_roi_dim)
+	roi_start_y = int(im_mid_height - half_roi_dim)
+
+	ij.makeRectangle(roi_start_x, roi_start_y, roi_dim, roi_dim)
+	ij.run("Crop")
+
+	#TODO: Crop in the z-dimension (currently unknown possibility due to small cores)
 
 	ij.log("Calculating Volumes...");
+	imp_stack = imp.getImageStack()
 	
 	voidVoxels = 0
 	binderVoxels = 0
 	aggregateVoxels = 0
-
-	imp_stack = imp.getImageStack()
 	
 	for ind in range(imp_stack.size()):
 		ImProc  = imp_stack.getProcessor(ind + 1)
@@ -56,9 +73,11 @@ def analyseCore(results_dir):
 	ij.run("Invert LUT");
 
 	ij.log("Analysing Particles for Void Volume, Average Diameter and Euler Characteristic...")
-	ij.run("Particle Analyser", "enclosed_volume euler thickness min=0.000 max=Infinity surface_resampling=2 surface=Gradient split=0.000 volume_resampling=2");
+	ij.run("Particle Analyser", "euler thickness min=0.000 max=Infinity surface_resampling=2 surface=Gradient split=0.000 volume_resampling=2");
 	ij.saveAs("Results", results_dir + "AnalyseParticles_Results.csv");
+	ij.selectWindow("CoreSlices_PostProcessed");
 	ij.run("Close")
+	# ij.run("Collect Garbage");
 
 	ij.log("Converting to Skeleton...");
 	ij.run("Skeletonize (2D/3D)");
@@ -76,6 +95,8 @@ def analyseCore(results_dir):
 	ij.run("Image Sequence... ", "format=TIFF use save=[" + results_dir + "/Skeleton/Original/]");
 	ij.selectWindow("Tagged skeleton");
 	ij.run("Image Sequence... ", "format=TIFF use save=[" + results_dir + "/Skeleton/Tagged/]");
+	ij.run("Collect Garbage");
+	ij.run("Close All")
 
 for results_dir in results_dirs:
 	if (results_dir.startswith("Results")):
@@ -85,6 +106,7 @@ for results_dir in results_dirs:
 
 		for fold_dir in fold_dirs:
 			if(fold_dir.startswith("Fold")):
+				ij.run("Collect Garbage");
 				ij.log(fold_dir)
 				core_dir = base_directory + results_dir + fold_dir + "Outputs/"
 				core = [f + '/' for f in listdir(core_dir) if isdir(join(core_dir, f))]
@@ -98,4 +120,3 @@ for results_dir in results_dirs:
 				ij.log(core_slice_dir)
 				ij.run("Image Sequence...", "open=[" + core_slice_dir + "] sort")
 				analyseCore(analysis_dir)
-				ij.run("Close All")
