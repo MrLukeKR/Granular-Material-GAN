@@ -19,10 +19,38 @@ def analyseCore(results_dir):
 	ij.run("Select Bounding Box");
 	ij.run("Crop");
 
-	ij.log("Isolating Air Voids...");
+	ij.log("Calculating Volumes...");
+	
+	voidVoxels = 0
+	binderVoxels = 0
+	aggregateVoxels = 0
+
+	imp_stack = imp.getImageStack()
+	
+	for ind in range(imp_stack.size()):
+		ImProc  = imp_stack.getProcessor(ind + 1)
+		ListBin = ImProc.getHistogram()
+		voidVoxels += int(ListBin[0])
+		binderVoxels += int(ListBin[127])
+		aggregateVoxels += int(ListBin[255])
+
+	totalVoxels = sum([voidVoxels, binderVoxels, aggregateVoxels])
+	voidPercent = float(voidVoxels) / totalVoxels
+	binderPercent = float(binderVoxels) / totalVoxels
+	aggregatePercent = float(aggregateVoxels) / totalVoxels
+	
+	histFile = open(results_dir + "Histogram_Results.csv", "w")
+	histFile.write("Void_Voxels, Binder_Voxels, Aggregate_Voxels, Total_Voxels\n")
+	histFile.write("%s,%s,%s,%s\n" % (str(voidVoxels), str(binderVoxels), str(aggregateVoxels), str(totalVoxels)))
+	histFile.write("%s,%s,%s,%s" % (str(voidPercent), str(binderPercent), str(aggregatePercent), "1.0"))
+	histFile.close()
+	
+	ij.log("Smoothing Images...");
 	ij.run("Invert", "stack");
 	ij.run("Mean 3D...", "x=2 y=2 z=2");
-	ij.run("Invert", "stack");
+	ij.run("Invert", "stack");	
+
+	ij.log("Isolating Air Voids...");
 	ij.setAutoThreshold(imp, "Default", );
 	ij.run("Convert to Mask", "method=Default background=Light calculate");
 	ij.run("Invert LUT");
@@ -30,13 +58,12 @@ def analyseCore(results_dir):
 	ij.log("Analysing Particles for Void Volume, Average Diameter and Euler Characteristic...")
 	ij.run("Particle Analyser", "enclosed_volume euler thickness min=0.000 max=Infinity surface_resampling=2 surface=Gradient split=0.000 volume_resampling=2");
 	ij.saveAs("Results", results_dir + "AnalyseParticles_Results.csv");
-
-	raise Exception()
+	ij.run("Close")
 
 	ij.log("Converting to Skeleton...");
 	ij.run("Skeletonize (2D/3D)");
 
-	ij.log("Analysing Skeleton...");
+	ij.log("Analysing Skeleton for Tortuosity...");
 	ij.run("Analyze Skeleton (2D/3D)", "prune=none show");
 
 	ij.saveAs("Results", results_dir + "AnalyseSkeleton_Results.csv");
