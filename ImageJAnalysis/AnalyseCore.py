@@ -75,8 +75,8 @@ def analyseCore(results_dir):
 	ij.log("Analysing Particles for Void Volume, Average Diameter and Euler Characteristic...")
 	ij.run("Particle Analyser", "euler thickness min=0.000 max=Infinity surface_resampling=2 surface=Gradient split=0.000 volume_resampling=2");
 	ij.saveAs("Results", results_dir + "AnalyseParticles_Results.csv");
-	ij.selectWindow("CoreSlices_PostProcessed");
-	ij.run("Close")
+	# ij.selectWindow("CoreSlices_PostProcessed");
+	# ij.run("Close")
 	# ij.run("Collect Garbage");
 
 	ij.log("Converting to Skeleton...");
@@ -109,7 +109,7 @@ for results_dir in results_dirs:
 				ij.run("Collect Garbage");
 				ij.log(fold_dir)
 				core_dir = base_directory + results_dir + fold_dir + "Outputs/"
-				core = [f + '/' for f in listdir(core_dir) if isdir(join(core_dir, f))]
+				core = [f + '/' for f in listdir(core_dir) if isdir(join(core_dir, f)) and f.startswith("1")]
 				core_slice_dir = core_dir + core[0] + "CoreSlices_PostProcessed/"
 
 				analysis_dir = core_dir + "/Analysis/"
