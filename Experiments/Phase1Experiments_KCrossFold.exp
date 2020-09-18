@@ -20,7 +20,7 @@ expect "Enter the architecture ID to load" { send "0\r" }
 # -- END OF SETUP --
 
 # Run over each AVC
-for {set a 0} {$a < 5} {incr a 1} {
+for {set a 2} {$a < 5} {incr a 1} {
 	# Begin training the model
 	expect "Enter a menu option" { send "4\r" }
 	

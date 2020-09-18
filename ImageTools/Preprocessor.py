@@ -2,16 +2,12 @@ import statistics
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-from skimage import exposure, filters
-
 import ImageTools.ImageManager as im
 import Settings.FileManager as fm
-import scipy.signal as ss
 
+from skimage import exposure
 from skimage.filters import difference_of_gaussians
-from scipy.ndimage import gaussian_filter, median_filter
-
-from ImageTools import SmallestEnclosingCircle
+from scipy.ndimage import gaussian_filter
 from Settings.MessageTools import print_notice, get_notice
 from skimage.restoration import denoise_tv_chambolle
 from tqdm import tqdm

@@ -186,12 +186,12 @@ def run_k_fold_cross_validation_experiment(dataset_directories, k, architecture,
     experiment_id = "Experiment-" + str(Logger.experiment_id)
 
     for fold in range(k):
-        fold += 1
-        print_notice("Running Cross Validation Fold " + str(fold) + "/" + str(k))
-        Logger.current_fold = fold
+        str_fold = fold + 1
+        print_notice("Running Cross Validation Fold " + str(str_fold) + "/" + str(k))
+        Logger.current_fold = str_fold
         database_logged = False
 
-        fold_id = "_Fold-" + str(fold)
+        fold_id = "_Fold-" + str(str_fold)
 
         filepath = root_dir + experiment_id + fold_id + '_'
 
