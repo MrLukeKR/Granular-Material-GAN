@@ -1,11 +1,11 @@
-id="15-2974";
+id="15-2975";
 
 threshold_skip_original = 64
 threshold_skip = threshold_skip_original
 threshold_low=0
 threshold_high=threshold_skip
 
-known_airvoid=9.4
+known_airvoid=10.6
 known_binder=4.5
 current_content=0
 
@@ -22,7 +22,7 @@ makeOval(0, 0, width, height);
 Roi.setName("Core");
 roiManager("add");
 run("Set Scale...", "distance=0 known=0 unit=pixel");
-t
+
 getStatistics(area);
 
 core_volume = area * nSlices;
@@ -31,10 +31,19 @@ total_content = width * height * nSlices;
 print("Core Volume: " + ((core_volume / total_content) * 100) + "% of image stack");
 print("Background Volume: " + (100 - (core_volume / total_content) * 100) + "% of image stack");
 
-timeout_count = 0;
-timeout_max = 20;
+timeout_max = 20;	
+
+base_dir = "X:/Doctorate/Phase1/data/CT-Scans/03_Segmented/Cores/Aggregate-CT-Scans/" + id + "/";
+void_dir = base_dir + "/Void/";
+binder_dir = base_dir + "/Binder/";
+File.makeDirectory(base_dir); 
+File.makeDirectory(void_dir);
+File.makeDirectory(binder_dir);
 
 void_upper_threshold = thresholdSegment(known_airvoid, threshold_low, threshold_high, core_volume);
+
+run("Invert LUT");
+run("Image Sequence... ", "select=" + void_dir + " dir=" + void_dir + " format=TIFF");
 
 air_void_image = getImageID();
 threshold_skip = threshold_skip_original;
@@ -42,8 +51,8 @@ threshold_low = void_upper_threshold + 1;
 threshold_high = threshold_low + threshold_skip;
 
 binder_upper_threshold = thresholdSegment(known_binder, threshold_low, threshold_high, core_volume);
-
-//run("Image Sequence... ", "select=X:/Doctorate/Phase1/data/CT-Scans/02_Processed/Aggregate-CT-Scans/" + id + "/ dir=X:/Doctorate/Phase1/data/CT-Scans/02_Processed/Aggregate-CT-Scans/" + id + "/ format=TIFF");
+run("Invert LUT");
+run("Image Sequence... ", "select=" + binder_dir + " dir=" + binder_dir + " format=TIFF");
 
 function thresholdStack(threshold_low, threshold_high, width, height, core_volume)
 {
@@ -81,6 +90,7 @@ function thresholdSegment(known_content, threshold_low, threshold_high, core_vol
 {
 	distance_to_actual = known_content;
 	min_distance_to_actual = known_content;
+	timeout_count = 0;
 	
 	while ((distance_to_actual != min_distance_to_actual || threshold_skip > 0) && timeout_count < timeout_max){		
 		if (timeout_count > 0)
