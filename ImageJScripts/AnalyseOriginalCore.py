@@ -11,8 +11,13 @@ results_dirs = [f + '/' for f in listdir(base_directory) if isdir(join(base_dire
 
 def analyseCore(results_dir):
 	print(results_dir)
-	ij.run("Set Scale...", "distance=1 known=0.096 unit=mm global")
 	imp = ij.getImage()
+	im_width = imp.getDimensions()[0]
+	im_height = imp.getDimensions()[1]
+
+	mm = "60"
+	
+	ij.run("Set Scale...", "distance=" + str(im_width) + " known=" + mm + " unit=mm global")
 
 	# ij.log("Cropping to content...")
 	ij.run("Select Bounding Box")
@@ -25,9 +30,6 @@ def analyseCore(results_dir):
 	half_roi_dim = roi_dim // 2
 	cal = imp.getCalibration()
 
-	im_width = imp.getDimensions()[0]
-	im_height = imp.getDimensions()[1]
-
 	im_mid_width = im_width // 2
 	im_mid_height = im_height // 2
 
@@ -36,8 +38,6 @@ def analyseCore(results_dir):
 
 	# ij.makeRectangle(roi_start_x, roi_start_y, roi_dim, roi_dim)
  	# ij.run("Crop")
-
-	return;
 
 	#TODO: Crop in the z-dimension (currently unknown possibility due to small cores)
 
@@ -68,13 +68,11 @@ def analyseCore(results_dir):
 	
 	ij.log("Smoothing Images...");
 	ij.run("Invert", "stack");
-	ij.run("Mean 3D...", "x=2 y=2 z=2");
-	ij.run("Invert", "stack");	
 
 	ij.log("Isolating Air Voids...");
 	ij.setAutoThreshold(imp, "Default", );
 	ij.run("Convert to Mask", "method=Default background=Light calculate");
-	ij.run("Invert LUT");
+	# ij.run("Invert LUT");
 
 	ij.log("Analysing Particles for Void Volume, Average Diameter and Euler Characteristic...")
 	ij.run("Particle Analyser", "euler thickness min=0.000 max=Infinity surface_resampling=2 surface=Gradient split=0.000 volume_resampling=2");
@@ -103,24 +101,18 @@ def analyseCore(results_dir):
 	ij.run("Close All")
 
 for results_dir in results_dirs:
-	if (results_dir.startswith("Results")):
-		ij.log(results_dir)
-		base_result_dir = base_directory + results_dir
-		fold_dirs = [f + '/' for f in listdir(base_result_dir) if isdir(join(base_result_dir, f))]
+	ij.log(results_dir)
 
-		for fold_dir in fold_dirs:
-			if(fold_dir.startswith("Fold")):
-				ij.run("Collect Garbage");
-				ij.log(fold_dir)
-				core_dir = base_directory + results_dir + fold_dir + "Outputs/"
-				core = [f + '/' for f in listdir(core_dir) if isdir(join(core_dir, f)) and f.startswith("1")]
-				core_slice_dir = core_dir + core[0] + "CoreSlices_PostProcessed/"
+	ij.run("Collect Garbage");
 
-				analysis_dir = core_dir + "/Analysis/"
+	core_dir = base_directory + results_dir
+	ij.log(core_dir)
 
-				if not os.path.exists(analysis_dir):
-					os.makedirs(analysis_dir)
+	analysis_dir = core_dir + "Analysis/"
+	ij.log(analysis_dir)
 
-				ij.log(core_slice_dir)
-				ij.run("Image Sequence...", "open=[" + core_slice_dir + "] sort")
-				analyseCore(analysis_dir)
+	if not os.path.exists(analysis_dir):
+		os.makedirs(analysis_dir)
+
+	ij.run("Image Sequence...", "open=[" + core_dir + "] sort")
+	analyseCore(analysis_dir)
