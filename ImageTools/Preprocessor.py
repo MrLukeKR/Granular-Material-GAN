@@ -7,7 +7,7 @@ import Settings.FileManager as fm
 
 from skimage import exposure
 from skimage.filters import difference_of_gaussians
-from scipy.ndimage import gaussian_filter
+from scipy.ndimage import gaussian_filter, median_filter
 from Settings.MessageTools import print_notice, get_notice
 from skimage.restoration import denoise_tv_chambolle
 from tqdm import tqdm
@@ -102,17 +102,17 @@ def bandpass_filter(image):
 
 def denoise_images(images, pool):
     print_notice("\tDe-noising... ", mt.MessagePrefix.INFORMATION)
-    print_notice("\t\tPerforming 3D Gaussian Blur... ", mt.MessagePrefix.INFORMATION, end='')
-    gaussian_images = gaussian_filter(images, 3)
+    # print_notice("\t\tPerforming 3D Gaussian Blur... ", mt.MessagePrefix.INFORMATION, end='')
+    # gaussian_images = gaussian_filter(images, 3)
 
-    if sm.get_setting("ENABLE_IMAGE_SAVING") == "True":
-        im.save_images(gaussian_images, "Gaussian", fm.SpecialFolder.SCAN_DATA, pool,
-                       "Pre-Processed/De-Noised/")
-    print("done!")
+    # if sm.get_setting("ENABLE_IMAGE_SAVING") == "True":
+#         im.save_images(gaussian_images, "Gaussian", fm.SpecialFolder.SCAN_DATA, pool,
+#                       "Pre-Processed/De-Noised/")
+#    print("done!")
 
-    #print_notice("\t\tPerforming 3D Median Blur... ", mt.MessagePrefix.INFORMATION, end='')
-    #fixed_images = median_filter(gaussian_images, 5)
-    fixed_images = gaussian_images
+    print_notice("\t\tPerforming 3D Median Blur... ", mt.MessagePrefix.INFORMATION, end='')
+    fixed_images = median_filter(images, 3)
+    #fixed_images = gaussian_images
 
     #if sm.get_setting("ENABLE_IMAGE_SAVING") == "True":
 #        im.save_images(fixed_images, "Gaussian_Median", fm.SpecialFolder.SCAN_DATA, pool,

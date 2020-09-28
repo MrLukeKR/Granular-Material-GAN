@@ -11,8 +11,11 @@ from ExperimentTools.DataVisualiser import save_training_graphs
 from ImageTools import ImageManager as im, VoxelProcessor as vp
 from ImageTools.CoreAnalysis import CoreAnalyser as ca, CoreVisualiser as cv
 # Settings >>>
-from ImageTools.CoreAnalysis.CoreAnalyser import update_database_core_analyses
+from ImageTools.CoreAnalysis.CoreAnalyser import update_database_core_analyses, get_core_by_id, calculate_composition, \
+    crop_to_core
 from ImageTools.CoreAnalysis.CoreVisualiser import model_all_cores
+from ImageTools.ImageManager import load_images_from_directory, apply_preprocessing_pipeline, save_images, \
+    segment_images
 from ImageTools.VoxelProcessor import generate_voxels
 from Settings import DatabaseManager as dm, FileManager as fm, MachineLearningManager as mlm, SettingsManager as sm, \
     MessageTools as mt, EmailManager as em
@@ -432,6 +435,32 @@ def main():
     multiprocessing_pool = Pool()
     setup()
 
+    print_notice("Testing pre-processing pipeline", mt.MessagePrefix.DEBUG)
+
+    test_processing = False
+
+    if test_processing:
+        fm.current_directory = "/run/media/***REMOVED***/Experiments/Doctorate/Phase1/data/CT-Scans/01_Unprocessed/Aggregate-CT-Scans/15-2974/"
+        data_directory = fm.current_directory
+
+        print_notice("Preprocessing %s..." % data_directory)
+        images = load_images_from_directory(data_directory, multiprocessing_pool=multiprocessing_pool)
+        images = apply_preprocessing_pipeline(images, multiprocessing_pool)
+
+        print_notice("Saving processed images... ", mt.MessagePrefix.INFORMATION, end='')
+        save_images(images, "processed_scan", fm.SpecialFolder.PROCESSED_SCANS, multiprocessing_pool)
+        print("done!")
+
+    segment_dir = fm.SpecialFolder.SEGMENTED_CORE_SCANS
+
+    fm.current_directory = "/run/media/***REMOVED***/Experiments/Doctorate/Phase1/data/CT-Scans/02_Processed/Aggregate-CT-Scans/15-2974/"
+    data_directory = fm.current_directory
+
+    segment_images(data_directory, segment_dir, multiprocessing_pool)
+
+    print_notice("Exiting early for manual image checking...")
+    exit(0)
+
     print_notice("Please wait while data collections are processed...", mt.MessagePrefix.INFORMATION)
 
     # | DATA PREPARATION MODULE
@@ -442,8 +471,8 @@ def main():
 
     # \-- | DATA LOADING SUB-MODULE
     if sm.get_setting("ENABLE_SEGMENTATION") == "True":
-        im.segment_images(multiprocessing_pool, True)
-        im.segment_images(multiprocessing_pool, False)
+        im.segment_all_images(multiprocessing_pool, True)
+        im.segment_all_images(multiprocessing_pool, False)
 
     generate_voxels(True, multiprocessing_pool)
     generate_voxels(False, multiprocessing_pool)

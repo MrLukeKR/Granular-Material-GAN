@@ -1,3 +1,4 @@
+import itertools
 import os
 import numpy as np
 import kimimaro
@@ -5,8 +6,10 @@ import pytrax as pt
 import porespy.networks as psn
 
 from tqdm import tqdm
+
+from ImageTools.SmallestEnclosingCircle import make_circle, is_in_circle
 from Settings import DatabaseManager as dm, FileManager as fm, SettingsManager as sm, MessageTools as mt
-from Settings.MessageTools import print_notice
+from Settings.MessageTools import print_notice, get_notice
 from ImageTools import ImageManager as im
 
 
@@ -22,6 +25,39 @@ def get_core_by_id(core_id, use_rois=True, multiprocessing_pool=None):
 
 def get_core_image_stack(directory, multiprocessing_pool=None):
     return im.load_images_from_directory(directory, "segment", multiprocessing_pool)
+
+
+def crop_image_to_circle(image, circle):
+    zero_indices = np.nonzero(image)
+    for index in zero_indices:
+        if is_in_circle(circle, index):
+            image[index[0]][index[1]] = 1
+
+    return image
+
+
+def crop_to_cylinder(core, multiprocessing_pool):
+    mask_core = [x != 0 for x in core]
+    flattened_core = np.zeros(np.shape(core[0]))
+
+    for i in tqdm(range(len(core)), "Flattening core..."):
+        flattened_core = np.logical_or(flattened_core, mask_core[i])
+
+    print_notice("Cropping core to cylinder...", mt.MessagePrefix.INFORMATION)
+    indices = np.where(flattened_core != 0)
+    indices = list(zip(indices[0], indices[1]))
+    circle = make_circle(indices)
+    cropped_core = list()
+
+    for ind, res in tqdm(multiprocessing_pool.starmap(crop_image_to_circle,
+                                                      zip(core, itertools.repeat(circle, len(core)))),
+                         desc=get_notice("Labelling inner air-voids"),
+                         total=len(core)):
+        cropped_core[ind] = res
+
+    print_notice("Finished circle")
+
+    return cropped_core
 
 
 def crop_to_core(core):
@@ -84,28 +120,28 @@ def calculate_aggregate_gradation(aggregates):
 def calculate_composition(core):
     print_notice("Calculating Core Compositions...", mt.MessagePrefix.INFORMATION)
 
-    unique, counts = np.unique(core, return_counts=True)
+    hist, _ = np.histogram(core, bins=3)
 
     offset = 0
 
-    if counts.size == 3:
+    if hist.size == 3:
         offset = 1
 
-    total = sum(counts[1-offset:])
-    percentages = [x / total for x in counts[1-offset:]]
+    total = sum(hist[1-offset:])
+    percentages = [x / total for x in hist[1-offset:]]
 
     print_notice("\tTotal Core Volume: " + str(total) + " voxels", mt.MessagePrefix.INFORMATION)
 
-    print_notice("\tVoid Content: " + str(counts[1-offset]) + " voxels, " +
+    print_notice("\tVoid Content: " + str(hist[1-offset]) + " voxels, " +
                  str(percentages[0] * 100.0) + "% of total", mt.MessagePrefix.INFORMATION)
 
-    print_notice("\tBinder Content: " + str(counts[2-offset]) + " voxels, " +
+    print_notice("\tBinder Content: " + str(hist[2-offset]) + " voxels, " +
                  str(percentages[1] * 100.0) + "% of total", mt.MessagePrefix.INFORMATION)
 
-    print_notice("\tAggregate Content: " + str(counts[3-offset]) + " voxels, " +
+    print_notice("\tAggregate Content: " + str(hist[3-offset]) + " voxels, " +
                  str(percentages[2] * 100.0) + "% of total", mt.MessagePrefix.INFORMATION)
 
-    return counts, percentages
+    return hist, percentages
 
 
 def calculate_average_void_diameter(void_network, core_is_pore_network):

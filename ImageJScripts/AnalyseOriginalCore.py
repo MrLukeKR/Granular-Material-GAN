@@ -5,7 +5,7 @@ from ij import IJ as ij
 from os import listdir
 from os.path import isdir, join
 
-base_directory = "X:/Doctorate/Phase1/data/CT-Scans/03_Segmented/Regions-Of-Interest/Aggregate-CT-Scans/";
+base_directory = "/run/media/***REMOVED***/Experiments/Doctorate/Phase1/data/CT-Scans/03_Segmented/Regions-Of-Interest/Aggregate-CT-Scans/";
 results_dirs = [f + '/' for f in listdir(base_directory) if isdir(join(base_directory, f))]
 
 
@@ -17,8 +17,8 @@ def analyseCore(results_dir):
 
 	mm = "60"
 	
-	ij.run("Set Scale...", "distance=" + str(im_width) + " known=" + mm + " unit=mm global")
-
+	#ij.run("Set Scale...", "distance=" + str(im_width) + " known=" + mm + " unit=mm global")
+	ij.run("Set Scale...", "distance=0 known=0 unit=pixel global")
 	# ij.log("Cropping to content...")
 	ij.run("Select Bounding Box")
 	# ij.run("Crop")
@@ -93,12 +93,11 @@ def analyseCore(results_dir):
 		if not os.path.exists(results_dir + new_dir):
 			os.makedirs(results_dir + new_dir)
 
-	ij.selectWindow("CoreSlices_PostProcessed");
-	ij.run("Image Sequence... ", "format=TIFF use save=[" + results_dir + "/Skeleton/Original/]");
 	ij.selectWindow("Tagged skeleton");
 	ij.run("Image Sequence... ", "format=TIFF use save=[" + results_dir + "/Skeleton/Tagged/]");
+	ij.run("Close")
 	ij.run("Collect Garbage");
-	ij.run("Close All")
+	
 
 for results_dir in results_dirs:
 	ij.log(results_dir)
@@ -114,5 +113,5 @@ for results_dir in results_dirs:
 	if not os.path.exists(analysis_dir):
 		os.makedirs(analysis_dir)
 
-	ij.run("Image Sequence...", "open=[" + core_dir + "] sort")
-	analyseCore(analysis_dir)
+		ij.run("Image Sequence...", "open=[" + core_dir + "] sort")
+		analyseCore(analysis_dir)

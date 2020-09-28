@@ -8,11 +8,14 @@ import ImageTools.Postprocessor as pop
 import ImageTools.Preprocessor as prp
 import cv2
 
+from ImageTools.CoreAnalysis.CoreAnalyser import calculate_composition, crop_to_core, crop_to_cylinder
 from ImageTools.ImageSaver import save_image
 from ImageTools.Segmentation.TwoDimensional import Otsu2D as segmentor2D
 from os import walk
 from matplotlib import cm
 from tqdm import tqdm
+
+from ImageTools.SmallestEnclosingCircle import make_circle
 from Settings import FileManager as fm, SettingsManager as sm, MessageTools as mt
 from Settings.EmailManager import send_email
 from Settings.MessageTools import print_notice, get_notice
@@ -29,7 +32,7 @@ segmentedImages = list()
 supported_image_formats = ('.png', '.jpg', '.jpeg', '.tiff', '.tif', '.bmp', '.gif')
 
 
-def segment_images(multiprocessing_pool, use_rois=True):
+def segment_all_images(multiprocessing_pool, use_rois=True):
     print_notice("Starting Segmentation Phase...", mt.MessagePrefix.INFORMATION)
     segment_dir = fm.SpecialFolder.SEGMENTED_ROI_SCANS if use_rois else fm.SpecialFolder.SEGMENTED_CORE_SCANS
 
@@ -45,30 +48,40 @@ def segment_images(multiprocessing_pool, use_rois=True):
         return
 
     for data_directory in fm.data_directories:
-        segments = load_images_from_directory(data_directory, multiprocessing_pool=multiprocessing_pool)
-        fm.current_directory = data_directory.replace(fm.compile_directory(fm.SpecialFolder.PROCESSED_SCANS), '')
-
-        if not fm.current_directory.endswith('/'):
-            fm.current_directory += '/'
-        # sm.images = images # TODO: Does this need to be here?
-
-        # \-- | 2D DATA SEGMENTATION SUB-MODULE
-        segments = list(tqdm(multiprocessing_pool.imap(segmentor2D.segment_image, segments),
-                        desc=get_notice("Segmenting images", mt.MessagePrefix.INFORMATION),
-                        total=len(segments)))
-
-        if sm.get_setting("ENABLE_POSTPROCESSING") == "True":
-            segments = apply_postprocessing_pipeline(segments, multiprocessing_pool)
-
-        print_notice("Saving segmented images... ", mt.MessagePrefix.INFORMATION)
-        # save_images(binders, "binder", fm.SpecialFolder.SEGMENTED_SCANS, multiprocessing_pool)
-        # save_images(aggregates, "aggregate", fm.SpecialFolder.SEGMENTED_SCANS, multiprocessing_pool)
-        # save_images(voids, "void", fm.SpecialFolder.SEGMENTED_SCANS, multiprocessing_pool)
-        save_images(segments, "segment", segment_dir, multiprocessing_pool)
-
-        send_email("Completed %s post-processing" % data_directory)
+        segment_images(data_directory, segment_dir, multiprocessing_pool)
 
     send_email("Segmenting %ss is finished!" % "ROI" if use_rois else "Core")
+
+
+def segment_images(data_directory, segment_dir, multiprocessing_pool):
+    segments = load_images_from_directory(data_directory, multiprocessing_pool=multiprocessing_pool)
+    fm.current_directory = data_directory.replace(fm.compile_directory(fm.SpecialFolder.PROCESSED_SCANS), '')
+
+    if not fm.current_directory.endswith('/'):
+        fm.current_directory += '/'
+    # sm.images = images # TODO: Does this need to be here?
+
+    # \-- | 2D DATA SEGMENTATION SUB-MODULE
+    segments = list(tqdm(multiprocessing_pool.imap(segmentor2D.segment_image, segments),
+                         desc=get_notice("Segmenting images", mt.MessagePrefix.INFORMATION),
+                         total=len(segments)))
+
+    print_notice("Before preprocessing:", mt.MessagePrefix.DEBUG)
+    calculate_composition(crop_to_cylinder(segments, multiprocessing_pool))  # TODO: Remove this when done
+
+    if sm.get_setting("ENABLE_POSTPROCESSING") == "True":
+        segments = apply_postprocessing_pipeline(segments, multiprocessing_pool)
+
+    print_notice("After preprocessing:", mt.MessagePrefix.DEBUG)
+    calculate_composition(segments)  # TODO: Remove this when done
+
+    print_notice("Saving segmented images... ", mt.MessagePrefix.INFORMATION)
+    # save_images(binders, "binder", fm.SpecialFolder.SEGMENTED_SCANS, multiprocessing_pool)
+    # save_images(aggregates, "aggregate", fm.SpecialFolder.SEGMENTED_SCANS, multiprocessing_pool)
+    # save_images(voids, "void", fm.SpecialFolder.SEGMENTED_SCANS, multiprocessing_pool)
+    save_images(segments, "segment", segment_dir, multiprocessing_pool)
+
+    send_email("Completed %s post-processing" % data_directory)
 
 
 def apply_postprocessing_pipeline(segments, multiprocessing_pool):
@@ -76,7 +89,7 @@ def apply_postprocessing_pipeline(segments, multiprocessing_pool):
 
     max_contour_area = int(sm.get_setting("MAXIMUM_BLOB_AREA"))
 
-    segments = prp.reshape_images(segments, multiprocessing_pool)
+    # segments = prp.reshape_images(segments, multiprocessing_pool)
 
     segments = list(tqdm(multiprocessing_pool.starmap(pop.remove_particles,
                          zip(segments, itertools.repeat(max_contour_area, len(segments)))),
@@ -131,12 +144,14 @@ def apply_preprocessing_pipeline(images, multiprocessing_pool):
 
     processed_images = prp.reshape_images(processed_images, pool=multiprocessing_pool)
     # processed_images = prp.remove_backgrounds(processed_images, pool=multiprocessing_pool)
+
+    processed_images = prp.normalise_images(processed_images, pool=multiprocessing_pool)
+
     processed_images = prp.denoise_images(processed_images, pool=multiprocessing_pool)
 
     processed_images = prp.enhance_contrasts(processed_images, pool=multiprocessing_pool)
     # processed_images = prp.bandpass_filter_images(processed_images, pool=multiprocessing_pool)
 
-    processed_images = prp.normalise_images(processed_images, pool=multiprocessing_pool)
     # processed_images = itp.remove_empty_scans(processed_images)
     # processed_images = itp.remove_anomalies(processed_images)
 
