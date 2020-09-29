@@ -10,10 +10,9 @@ from tqdm import tqdm
 from itertools import repeat
 from ExperimentTools.DataVisualiser import save_training_graphs
 from ExperimentTools.DatasetProcessor import prepare_tf_set
-from GAN.DCGAN import gan_to_voxels
+from Inpainters.GAN import gan_to_voxels, DCGAN
 from ImageTools.VoxelProcessor import voxels_to_core
 from ExperimentTools import DatasetProcessor, MethodologyLogger
-from GAN import DCGAN
 from Settings import FileManager as fm, MachineLearningManager as mlm, SettingsManager as sm, MessageTools as mt
 from ImageTools import ImageManager as im, VoxelProcessor as vp
 from ExperimentTools.MethodologyLogger import Logger
@@ -273,7 +272,9 @@ def test_network(testing_sets, test_generator, batch_size, fold=None,
             if new_dir is not None:
                 fm.create_if_not_exists(new_dir)
 
-        dimensions, test_aggregate, test_binder = vp.load_materials(current_set, use_rois=False)
+        # Load the aggregate skeleton (can select full core or Region of Interest)
+        output_with_roi = sm.get_setting("USE_REGIONS_OF_INTEREST") == "True"
+        dimensions, test_aggregate, test_binder = vp.load_materials(current_set, use_rois=output_with_roi)
         test_aggregate = np.expand_dims(test_aggregate, 4)
 
         # TODO: Make testing use TFData rather than numpy loading (faster)
@@ -317,6 +318,7 @@ def test_network(testing_sets, test_generator, batch_size, fold=None,
 
         print_notice("Converting aggregate voxels to core...")
         aggregate_core = voxels_to_core(test_aggregate, dimensions)
+        void_core = list()
 
         for ind, ct_slice in tqdm(enumerate(binder_core),
                                   desc=mt.get_notice("Saving Generated Core Slices"), total=len(binder_core)):
@@ -324,20 +326,20 @@ def test_network(testing_sets, test_generator, batch_size, fold=None,
             segment = np.add(segment, aggregate_core[ind], dtype=np.uint8)
             bind_image = Image.fromarray(segment)
 
+            # Invert Aggregates and Binder to get Voids
+            void_core.append(np.invert(bind_image))
+
             buff_ind = (len(str(len(binder_core))) - len(str(ind))) * "0" + str(ind)
             bind_image.save(slice_directory + buff_ind + ".png")
 
-        try:
-            cv.save_mesh(cv.voxels_to_mesh(binder_core), model_directory + "generated_binder.stl")
-        except:
-            print_notice("Could not create binder mesh", mt.MessagePrefix.ERROR)
-        del binder_core
-
-        try:
-            cv.save_mesh(cv.voxels_to_mesh(aggregate_core), model_directory + "aggregate.stl")
-        except:
-            print_notice("Could not create aggregate mesh", mt.MessagePrefix.ERROR)
-        del aggregate_core
+        for seg in [(binder_core, "generated_binder.stl", "binder"),
+                    (aggregate_core, "aggregate.stl", "aggregate"),
+                    (void_core, "void.stl", "void")]:
+            try:
+                cv.save_mesh(cv.voxels_to_mesh(seg[0]), model_directory + seg[1])
+            except:
+                print_notice("Could not create %s mesh" % seg[2], mt.MessagePrefix.ERROR)
+            del seg
 
         results = list(results)
         vp.save_voxels(results, dimensions, output_directory, "GeneratedVoxels", compress=True)

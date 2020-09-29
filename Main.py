@@ -31,7 +31,7 @@ multiprocessing_pool = None
 
 def print_introduction():
     print("   Optimal Material Generator using Generative Adversarial Networks   ")
-    print("                    Developed by ***REMOVED*** (BSc)                    ")
+    print("                    Developed by Luke K Rose (BSc)                    ")
     print("In fulfilment of Doctor of Engineering at the University of Nottingham")
     print("----------------------------------------------------------------------")
     print()
@@ -440,7 +440,7 @@ def main():
     test_processing = False
 
     if test_processing:
-        fm.current_directory = "/run/media/***REMOVED***/Experiments/Doctorate/Phase1/data/CT-Scans/01_Unprocessed/Aggregate-CT-Scans/15-2974/"
+        fm.current_directory = "/run/media/lukerose/Experiments/Doctorate/Phase1/data/CT-Scans/01_Unprocessed/Aggregate-CT-Scans/15-2974/"
         data_directory = fm.current_directory
 
         print_notice("Preprocessing %s..." % data_directory)
@@ -453,7 +453,7 @@ def main():
 
     segment_dir = fm.SpecialFolder.SEGMENTED_CORE_SCANS
 
-    fm.current_directory = "/run/media/***REMOVED***/Experiments/Doctorate/Phase1/data/CT-Scans/02_Processed/Aggregate-CT-Scans/15-2974/"
+    fm.current_directory = "/run/media/lukerose/Experiments/Doctorate/Phase1/data/CT-Scans/02_Processed/Aggregate-CT-Scans/15-2974/"
     data_directory = fm.current_directory
 
     segment_images(data_directory, segment_dir, multiprocessing_pool)

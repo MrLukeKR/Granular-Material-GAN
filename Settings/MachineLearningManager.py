@@ -3,7 +3,7 @@ import math
 from tensorflow.python.client import device_lib
 from ExperimentTools.MethodologyLogger import Logger
 from tensorflow.keras.mixed_precision import experimental as mixed_precision
-from GAN import DCGAN
+from Inpainters.GAN import DCGAN
 from Settings import DatabaseManager as dm, FileManager as fm, SettingsManager as sm, MessageTools as mt
 from Settings.MessageTools import print_notice
 import tensorflow as tf

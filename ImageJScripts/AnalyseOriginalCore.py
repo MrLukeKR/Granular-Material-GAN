@@ -5,7 +5,7 @@ from ij import IJ as ij
 from os import listdir
 from os.path import isdir, join
 
-base_directory = "/run/media/***REMOVED***/Experiments/Doctorate/Phase1/data/CT-Scans/03_Segmented/Regions-Of-Interest/Aggregate-CT-Scans/";
+base_directory = "/run/media/lukerose/Experiments/Doctorate/Phase1/data/CT-Scans/03_Segmented/Regions-Of-Interest/Aggregate-CT-Scans/";
 results_dirs = [f + '/' for f in listdir(base_directory) if isdir(join(base_directory, f))]
 
 

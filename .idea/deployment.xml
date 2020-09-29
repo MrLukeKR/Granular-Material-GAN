@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" serverName="***REMOVED***">
+  <component name="PublishConfigData" autoUpload="Always" serverName="Duane-Dibley">
     <serverData>
-      <paths name="***REMOVED***">
+      <paths name="Duane-Dibley">
         <serverdata>
           <mappings>
             <mapping deploy="/tmp/granular-material-gan" local="$PROJECT_DIR$" web="/" />
           </mappings>
         </serverdata>
       </paths>
-      <paths name="***REMOVED***@192.168.1.14:22">
+      <paths name="lukerose@192.168.1.14:22">
         <serverdata>
           <mappings>
             <mapping deploy="/tmp/granular-material-gan" local="$PROJECT_DIR$" web="/" />
           </mappings>
         </serverdata>
       </paths>
-      <paths name="***REMOVED***@192.168.1.2:22">
+      <paths name="lukerose@192.168.1.2:22">
         <serverdata>
           <mappings>
             <mapping deploy="/tmp/pycharm_project_247" local="$PROJECT_DIR$" />
